@@ -1632,7 +1632,9 @@ function toggleCitationStyle(style, label, btnEl) {
 }
 
 function filterObCampus() {
-  const q = document.getElementById('obCampusSearch').value.toLowerCase().trim();
+  const input = document.getElementById('obCampusSearch');
+  if (!input) return;
+  const q = (input.value || '').toLowerCase().trim();
   const resultsContainer = document.getElementById('dynamicCampusResults');
   if (!resultsContainer) return;
 
@@ -1698,7 +1700,8 @@ function handleObFileUpload(event) {
 }
 
 function extractObGuidelines() {
-  const text = document.getElementById('obPedomanText').value.trim();
+  const input = document.getElementById('obPedomanText');
+  const text = input ? input.value.trim() : '';
   if (!text) { alert('Tempel teks struktur bab terlebih dahulu.'); return; }
   alert('✨ Struktur pedoman berhasil diekstraksi! Thesa akan menggunakannya sebagai acuan format naskah.');
   goToStep(2);
