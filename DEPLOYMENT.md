@@ -75,22 +75,67 @@ Output sukses:
 
 ---
 
-### Opsi B: PaaS Cloud (Railway, Render, Fly.io, Coolify)
+### Opsi B: Koyeb Cloud Platform (Go Backend / Fullstack) — *Sangat Cepat & Mudah*
 
-Jika Anda menggunakan platform cloud modern yang mengelola container secara otomatis:
+Koyeb adalah platform serverless cloud modern dengan lokasi server di Singapore (SIN) dan mendukung Docker secara native.
 
-#### 1. Buat Service MySQL:
-- Buat instance MySQL di Railway / Render / PlanetScale / Aiven.
-- Salin connection string yang disediakan (contoh: `mysql://root:password@roundhouse.proxy.rlwy.net:12345/railway`).
+#### Langkah 1: Push Kode ke GitHub
+Pastikan seluruh perubahan terbaru telah di-push ke repository GitHub Anda:
+```bash
+git push origin main
+```
 
-#### 2. Deploy Web Service Thesa:
-- Hubungkan repository Git Anda ke platform.
-- Platform akan otomatis mendeteksi `Dockerfile`.
-- Tambahkan Environment Variables di dashboard platform:
-  - `DATABASE_URL`: Masukkan URL koneksi MySQL dari langkah 1.
-  - `DEEPSEEK_API_KEY`: Key DeepSeek Anda.
-  - `PORT`: (Platform seperti Railway / Render akan otomatis menyetel port ini).
-- Deploy! Backend akan otomatis membuat semua tabel (`schema.sql`) pada startup pertama.
+#### Langkah 2: Buat Service di Koyeb
+1. Buka [Koyeb Dashboard](https://app.koyeb.com/) dan klik **"Create App"** atau **"Create Service"**.
+2. Pilih sumber: **GitHub**.
+3. Pilih repository `Thesa AI` Anda.
+4. Pada bagian **Build & Deployment**:
+   - Builder: Pilih **Dockerfile** (Koyeb akan membaca `Dockerfile` di root repository).
+5. Pada bagian **Instance & Region**:
+   - Region: Pilih **Singapore (sin)** untuk performa & latensi terbaik di Indonesia.
+   - Plan: Pilih **Nano** / **Free Eco**.
+6. Pada bagian **Port & Health Check**:
+   - Port: `8080` (HTTP).
+   - Health Check Path: `/health`.
+7. Pada bagian **Environment Variables**, tambahkan:
+   - `PORT`: `8080`
+   - `AI_PRIMARY_PROVIDER`: `deepseek`
+   - `DEEPSEEK_API_KEY`: *(Masukkan API Key DeepSeek Anda)*
+   - `GEMINI_API_KEY`: *(Opsional: Masukkan API Key Google Gemini)*
+   - `ADMIN_SECRET_KEY`: *(Buat kunci rahasia admin yang aman)*
+   - `CORS_ALLOWED_ORIGINS`: `*` (atau domain Vercel Anda, misal: `https://thesa-ai.vercel.app`)
+   - `DATABASE_URL`: *(Opsional: URL MySQL dari TiDB Cloud / Aiven / Railway)*
+8. Klik **"Deploy"**. Dalam ~60 detik, backend Go Anda aktif dengan URL HTTPS publik otomatis (contoh: `https://thesa-ai-username.koyeb.app`).
+
+---
+
+### Opsi C: Vercel (Frontend Global CDN)
+
+Untuk mendeploy antarmuka web statis ke Edge CDN global Vercel dengan performa super cepat:
+
+#### Langkah 1: Impor Repository di Vercel
+1. Buka [Vercel Dashboard](https://vercel.com/new).
+2. Pilih repository GitHub Anda (`Thesa AI`).
+
+#### Langkah 2: Konfigurasi Project Settings
+- **Framework Preset**: `Other`
+- **Root Directory**: `./` (biarkan default, `vercel.json` akan otomatis mendeteksi `web/`)
+- **Build Command**: Kosongkan (tidak perlu build step karena static)
+- **Output Directory**: `web` (sudah terdefinisi di `vercel.json`)
+
+#### Langkah 3: Klik Deploy
+Klik tombol **"Deploy"**. Vercel akan langsung menerbitkan web app Anda ke domain seperti `https://thesa-ai.vercel.app`.
+
+> 💡 **Menghubungkan Frontend Vercel ke Backend Koyeb**:
+> Jika Anda mendeploy frontend di Vercel dan backend di Koyeb, Anda cukup mengupdate `vercel.json` bagian `rewrites` untuk mem-proxy API ke Koyeb, atau langsung memanggil URL Koyeb karena backend Go telah mengaktifkan CORS otomatis.
+
+---
+
+### Opsi D: PaaS Lainnya (Render, Railway, Fly.io, Coolify)
+
+Jika Anda menggunakan platform cloud lain:
+- **Render**: Gunakan blueprint otomatis [`render.yaml`](file:///Volumes/Productive%20Space/Antigravity%20Project/Thesa%20AI/render.yaml) (`Render Blueprints -> New Blueprint Instance`).
+- **Railway / Fly.io**: Cukup hubungkan repo Git, pilih `Dockerfile`, dan tentukan environment variables yang diperlukan.
 
 ---
 
