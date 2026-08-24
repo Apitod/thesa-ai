@@ -460,7 +460,7 @@
 
   <!-- ── Left: Warm Brand Panel ──────────────────────────────── -->
   <div class="auth-brand-panel">
-    <a href="landing.html" class="auth-logo" title="Kembali ke Beranda Thesa AI" style="text-decoration:none; color:inherit;">
+    <a href="index.html" class="auth-logo" title="Kembali ke Beranda Thesa AI" style="text-decoration:none; color:inherit;">
       <div class="auth-logo-icon">
         <span class="material-symbols-rounded">school</span>
       </div>
@@ -1064,7 +1064,7 @@
       const profileStr = JSON.stringify(profile);
       sessionStorage.setItem('thesaUser', profileStr);
       localStorage.setItem('thesaUser', profileStr);
-      window.location.href = 'index.html';
+      window.location.href = 'app.html';
     }
 
     async function quickLogin() {
@@ -1118,14 +1118,14 @@
       const demoStr = JSON.stringify(demoProfile);
       sessionStorage.setItem('thesaUser', demoStr);
       localStorage.setItem('thesaUser', demoStr);
-      window.location.href = 'index.html';
+      window.location.href = 'app.html';
     }
 
     function skipToHomepage() {
       if (!sessionStorage.getItem('thesaUser') && !localStorage.getItem('thesaUser')) {
         quickLogin();
       } else {
-        window.location.href = 'index.html';
+        window.location.href = 'app.html';
       }
     }
 

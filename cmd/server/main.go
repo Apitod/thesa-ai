@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
@@ -272,9 +273,21 @@ func main() {
 		json.NewEncoder(w).Encode(response)
 	})
 
-	// Static Web Frontend Server
+	// Static Web Frontend Server & Clean URL Rewrites
 	webDir := "./web"
 	if _, err := os.Stat(webDir); err == nil {
+		mux.HandleFunc("/app", func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, filepath.Join(webDir, "app.html"))
+		})
+		mux.HandleFunc("/workspace", func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, filepath.Join(webDir, "app.html"))
+		})
+		mux.HandleFunc("/auth", func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, filepath.Join(webDir, "auth.html"))
+		})
+		mux.HandleFunc("/admin", func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, filepath.Join(webDir, "admin.html"))
+		})
 		fs := http.FileServer(http.Dir(webDir))
 		mux.Handle("/", fs)
 		log.Printf("[Thesa Backend] Serving static frontend from %s", webDir)

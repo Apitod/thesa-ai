@@ -1,0 +1,3160 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thesa AI — Thesis & Research Co-Pilot</title>
+  <meta name="description" content="Platform pembimbing riset dan penulisan karya tulis ilmiah berbasis dialog sokratik interaktif dan Human-in-the-Loop Co-Authoring.">
+  
+  <!-- Open Graph & Social Sharing -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Thesa AI — Thesis & Research Co-Pilot">
+  <meta property="og:description" content="Platform pembimbing riset dan penulisan karya tulis ilmiah berbasis dialog sokratik interaktif.">
+  <meta property="og:site_name" content="Thesa AI">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦉</text></svg>">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="duo-theme">
+
+  <!-- ===================================================================
+       HOMEPAGE / DASHBOARD (shown after "login", entry point)
+       =================================================================== -->
+  <div id="homepageScreen" class="hp-root">
+
+    <!-- ── Left Sidebar ───────────────────────────────────────────────── -->
+    <aside class="hp-sidebar">
+      <div class="hp-sidebar-inner">
+
+        <!-- Brand -->
+        <a href="index.html" class="hp-brand" style="text-decoration:none; color:inherit; cursor:pointer;" title="Kembali ke Beranda">
+          <div class="hp-brand-icon">
+            <span class="material-symbols-rounded">school</span>
+          </div>
+          <div>
+            <div class="hp-brand-name">Thesa</div>
+            <div class="hp-brand-sub">Research Co-Pilot</div>
+          </div>
+        </a>
+
+        <!-- Nav -->
+        <nav class="hp-nav">
+          <a class="hp-nav-item active" id="navDashboard" href="#" onclick="return false;">
+            <span class="material-symbols-rounded">dashboard</span>
+            <span>Dashboard</span>
+          </a>
+          <a class="hp-nav-item" href="#" onclick="navigateTo('projects'); return false;">
+            <span class="material-symbols-rounded">folder_open</span>
+            <span>Proyek Saya</span>
+            <span class="hp-nav-badge">3</span>
+          </a>
+          <a class="hp-nav-item" id="navPustakaRiset" href="#" onclick="openPustakaRisetModal(); return false;">
+            <span class="material-symbols-rounded">menu_book</span>
+            <span>Pustaka Riset</span>
+          </a>
+          <a class="hp-nav-item" id="navPencapaian" href="#" onclick="openPencapaianModal(); return false;">
+            <span class="material-symbols-rounded">emoji_events</span>
+            <span>Pencapaian</span>
+          </a>
+
+          <div class="hp-nav-divider"></div>
+
+          <a class="hp-nav-item" href="#" onclick="showDossierModal('compass'); return false;" title="Pengaturan Academic Path & Preferensi Bimbingan">
+            <span class="material-symbols-rounded">settings</span>
+            <span>Pengaturan</span>
+          </a>
+        </nav>
+      </div>
+
+      <!-- User Profile (Click to open Settings / Profile) -->
+      <div class="hp-user-profile" onclick="showDossierModal('compass')" title="Buka Profil & Arah Riset Personal">
+        <div class="hp-avatar-ring">
+          <img id="sidebarUserAvatar" src="https://api.dicebear.com/7.x/initials/svg?seed=AA&backgroundColor=e0e7ff&textColor=4f46e5" alt="Avatar">
+        </div>
+        <div class="hp-user-meta">
+          <div class="hp-user-name" id="sidebarUserName">Alif Awwaz</div>
+          <div class="hp-user-role" id="sidebarUserRole">S2 Informatika · UI</div>
+        </div>
+        <button class="hp-user-menu-btn" title="Pengaturan akun & Arah Riset">
+          <span class="material-symbols-rounded">tune</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ── Main Content ────────────────────────────────────────────────── -->
+    <main class="hp-main">
+
+      <!-- Top Bar -->
+      <header class="hp-topbar">
+        <div class="hp-greeting">
+          <h1 id="hpGreetingText">Halo kembali, Alif! 👋</h1>
+          <p id="hpGreetingSub">Mau lanjutkan riset hari ini, atau mulai sesuatu yang baru?</p>
+        </div>
+        <div class="hp-topbar-actions">
+          <div class="hp-stat-pill streak">
+            <span>🔥</span>
+            <strong>7 Hari</strong>
+          </div>
+          <div class="hp-stat-pill xp">
+            <span>💎</span>
+            <strong>1,240 XP</strong>
+          </div>
+          <a href="/admin.html" class="hp-stat-pill" style="text-decoration:none; background:#1e1b4b; color:#a5b4fc; border:1px solid #4338ca; cursor:pointer;" title="Buka Dashboard Controlling & Monitoring">
+            <span>🛡️</span>
+            <strong>Admin Center</strong>
+          </a>
+          <button class="hp-notif-btn" title="Notifikasi">
+            <span class="material-symbols-rounded">notifications</span>
+            <span class="hp-notif-dot"></span>
+          </button>
+          <div class="hp-avatar-sm" onclick="showDossierModal()" title="Profil & Pengaturan">
+            <img id="hpUserAvatarSm" src="https://api.dicebear.com/7.x/initials/svg?seed=AA&backgroundColor=e0e7ff&textColor=4f46e5" alt="Avatar">
+          </div>
+        </div>
+      </header>
+
+      <!-- Scrollable Content Body -->
+      <div class="hp-body">
+
+        <!-- ── HERO: Start New Project ─────────────────────────────────── -->
+        <section class="hp-hero-card">
+          <div class="hp-hero-top-row">
+            <div class="hp-hero-left">
+              <div class="hp-hero-eyebrow">
+                <span class="material-symbols-rounded" style="font-size:14px;">rocket_launch</span>
+                <span>Mulai Lembar Baru</span>
+              </div>
+              <h2 class="hp-hero-title">Mau Meneliti atau Menulis Apa Hari Ini?</h2>
+              <p class="hp-hero-sub">Pilih jenis karya ilmiah di bawah — Thesa akan memandu alur berpikirmu langkah demi langkah.</p>
+            </div>
+
+            <div class="hp-hero-right">
+              <button class="hp-hero-cta" onclick="startNewProjectFromHome(null)">
+                <span class="material-symbols-rounded">add_circle</span>
+                <span>Buat Proyek Bebas</span>
+                <span class="material-symbols-rounded">arrow_forward</span>
+              </button>
+              <p class="hp-hero-cta-sub">Atau pilih jenis karya langsung di bawah 👇</p>
+            </div>
+          </div>
+
+          <!-- KTI Quick Select Shelf (Spacious & Clean) -->
+          <div class="hp-kti-shelf">
+            <button class="hp-kti-btn active-ready" data-kti="makalah" onclick="handleKTIClick('makalah')">
+              <div class="hp-kti-status-badge live">
+                <span class="live-pulse"></span> Siap Pakai
+              </div>
+              <div class="hp-kti-icon" style="background:#e0e7ff; color:var(--brand);">
+                <span class="material-symbols-rounded">article</span>
+              </div>
+              <span class="hp-kti-name">Makalah</span>
+              <span class="hp-kti-desc">3 Bab · Siap Pakai</span>
+            </button>
+
+            <button class="hp-kti-btn co-design" data-kti="proposal" onclick="handleKTIClick('proposal')">
+              <div class="hp-kti-status-badge co-design">💡 Sampaikan Needs</div>
+              <div class="hp-kti-icon" style="background:#dcfce7; color:#16a34a;">
+                <span class="material-symbols-rounded">note_add</span>
+              </div>
+              <span class="hp-kti-name">Proposal</span>
+              <span class="hp-kti-desc">Dalam Riset · Klik Disini</span>
+            </button>
+
+            <button class="hp-kti-btn co-design" data-kti="skripsi" onclick="handleKTIClick('skripsi')">
+              <div class="hp-kti-status-badge co-design">💡 Sampaikan Needs</div>
+              <div class="hp-kti-icon" style="background:#fef3c7; color:#d97706;">
+                <span class="material-symbols-rounded">school</span>
+              </div>
+              <span class="hp-kti-name">Skripsi (S1)</span>
+              <span class="hp-kti-desc">Dalam Riset · Klik Disini</span>
+            </button>
+
+            <button class="hp-kti-btn co-design" data-kti="tesis" onclick="handleKTIClick('tesis')">
+              <div class="hp-kti-status-badge co-design">💡 Sampaikan Needs</div>
+              <div class="hp-kti-icon" style="background:#ede9fe; color:#7c3aed;">
+                <span class="material-symbols-rounded">psychology</span>
+              </div>
+              <span class="hp-kti-name">Tesis (S2)</span>
+              <span class="hp-kti-desc">Dalam Riset · Klik Disini</span>
+            </button>
+
+            <button class="hp-kti-btn co-design" data-kti="disertasi" onclick="handleKTIClick('disertasi')">
+              <div class="hp-kti-status-badge co-design">💡 Sampaikan Needs</div>
+              <div class="hp-kti-icon" style="background:#ffe4e6; color:#e11d48;">
+                <span class="material-symbols-rounded">workspace_premium</span>
+              </div>
+              <span class="hp-kti-name">Disertasi (S3)</span>
+              <span class="hp-kti-desc">Dalam Riset · Klik Disini</span>
+            </button>
+
+            <button class="hp-kti-btn co-design" data-kti="jurnal" onclick="handleKTIClick('jurnal')">
+              <div class="hp-kti-status-badge co-design">💡 Sampaikan Needs</div>
+              <div class="hp-kti-icon" style="background:#ccfbf1; color:#0d9488;">
+                <span class="material-symbols-rounded">menu_book</span>
+              </div>
+              <span class="hp-kti-name">Artikel Jurnal</span>
+              <span class="hp-kti-desc">Dalam Riset · Klik Disini</span>
+            </button>
+
+            <button class="hp-kti-btn co-design" data-kti="laporan" onclick="handleKTIClick('laporan')">
+              <div class="hp-kti-status-badge co-design">💡 Sampaikan Needs</div>
+              <div class="hp-kti-icon" style="background:#ffedd5; color:#ea580c;">
+                <span class="material-symbols-rounded">summarize</span>
+              </div>
+              <span class="hp-kti-name">PKM / Laporan</span>
+              <span class="hp-kti-desc">Dalam Riset · Klik Disini</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- ── MAIN GRID ─────────────────────────────────────────────────── -->
+        <div class="hp-content-grid">
+
+          <!-- Left: Active Projects / Empty State -->
+          <div class="hp-col-main">
+
+            <!-- Section Header with State Switcher Demo -->
+            <div class="hp-section-header" style="flex-wrap:wrap; gap:10px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <h3 id="projectsSectionTitle">Mulai Karya Pertamamu</h3>
+                <span class="prof-tag verified" id="projectsViewBadge" style="font-size:10.5px;">Akun Baru</span>
+              </div>
+              
+              <div class="hp-demo-switch-group">
+                <span style="font-size:11px; color:var(--text-secondary); margin-right:4px;">Pratinjau:</span>
+                <button type="button" class="hp-switch-btn active" id="btnViewEmpty" onclick="setDashboardProjectsView('empty')">
+                  Akun Baru (0 Proyek)
+                </button>
+                <button type="button" class="hp-switch-btn" id="btnViewActive" onclick="setDashboardProjectsView('active')">
+                  Ada Riwayat Proyek
+                </button>
+              </div>
+            </div>
+
+            <!-- 1. EMPTY STATE SHOWCASE (Interactive & Educational for First-time Users) -->
+            <div id="dashboardEmptyState" class="hp-empty-showcase">
+              
+              <!-- Quick Start Hero Card -->
+              <div class="hp-empty-hero">
+                <div class="hp-empty-hero-body">
+                  <div class="hp-empty-hero-tag">
+                    <span class="material-symbols-rounded" style="font-size:14px;">bolt</span>
+                    Estimasi 20 Menit Jadi Draf Berbobot
+                  </div>
+                  <h4>Belum punya naskah aktif? Mulai dengan Makalah Ilmiah!</h4>
+                  <p>
+                    Thesa akan memandumu menyusun draf 3 bab dengan logika runtut dan argumentasi tajam. Bukan dibuatkan joki instan, tapi dilatih sampai siap diskusi kelas.
+                  </p>
+                  <div class="hp-empty-hero-actions">
+                    <button class="hp-empty-cta-btn" onclick="handleKTIClick('makalah')">
+                      <span class="material-symbols-rounded">edit_square</span>
+                      <span>Mulai Makalah Pertamamu</span>
+                      <span class="material-symbols-rounded">arrow_forward</span>
+                    </button>
+                    <button class="hp-empty-secondary-btn" onclick="openSampleMakalahModal()">
+                      <span class="material-symbols-rounded">visibility</span>
+                      <span>Lihat Contoh Draf Jadi</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3 Interactive Pillar Cards -->
+              <div class="hp-empty-features-grid">
+                
+                <div class="hp-empty-feat-card" onclick="handleKTIClick('makalah')">
+                  <div class="hp-feat-icon" style="background:#ede9fe; color:var(--brand);">
+                    <span class="material-symbols-rounded">psychology_alt</span>
+                  </div>
+                  <div class="hp-feat-info">
+                    <strong>1. Socratic Co-Pilot</strong>
+                    <p>AI membedah premis &amp; argumenmu lewat pertanyaan reflektif per subbab.</p>
+                  </div>
+                </div>
+
+                <div class="hp-empty-feat-card" onclick="handleKTIClick('makalah')">
+                  <div class="hp-feat-icon" style="background:#dcfce7; color:#16a34a;">
+                    <span class="material-symbols-rounded">verified_user</span>
+                  </div>
+                  <div class="hp-feat-info">
+                    <strong>2. 100% Anti-Joki</strong>
+                    <p>Sertifikat Integritas &amp; Audit Log membuktikan kamu menulis sendiri naskahmu.</p>
+                  </div>
+                </div>
+
+                <div class="hp-empty-feat-card" onclick="handleKTIClick('makalah')">
+                  <div class="hp-feat-icon" style="background:#fef3c7; color:#d97706;">
+                    <span class="material-symbols-rounded">sports_martial_arts</span>
+                  </div>
+                  <div class="hp-feat-info">
+                    <strong>3. Boss Arena Sidang</strong>
+                    <p>Simulasi tanya-jawab dengan AI Penguji Kritis sebelum maju presentasi kelas.</p>
+                  </div>
+                </div>
+
+              </div>
+
+            </div><!-- /dashboardEmptyState -->
+
+            <!-- 2. ACTIVE PROJECTS LIST (Shown when user has active projects) -->
+            <div class="hp-projects-list" id="hpProjectsList" style="display:none;">
+
+              <!-- Project Card 1 -->
+              <div class="hp-project-card" onclick="openExistingProject('cascade-multi-agent')">
+                <div class="hp-proj-head">
+                  <div class="hp-proj-kti-tag tesis">
+                    <span class="material-symbols-rounded">psychology</span> Tesis S2
+                  </div>
+                  <div class="hp-proj-activity">
+                    <span class="hp-activity-dot active"></span>
+                    Aktif 2 jam lalu
+                  </div>
+                </div>
+                <h4 class="hp-proj-title">Cascade Reasoning pada Sistem Multi-Agent untuk Konsistensi Naskah Panjang</h4>
+                <div class="hp-proj-meta-row">
+                  <span class="hp-proj-campus">🏛 Universitas Indonesia (UI)</span>
+                  <span class="hp-proj-unit">Unit 2 dari 5</span>
+                </div>
+                <div class="hp-proj-progress-area">
+                  <div class="hp-proj-progress-bar">
+                    <div class="hp-proj-fill" style="width: 65%; background: linear-gradient(90deg, #7c3aed, #8b5cf6);"></div>
+                  </div>
+                  <span class="hp-proj-pct">65%</span>
+                </div>
+                <div class="hp-proj-footer">
+                  <div class="hp-proj-tags">
+                    <span class="hp-tag">Multi-Agent</span>
+                    <span class="hp-tag">LLM</span>
+                    <span class="hp-tag">NLP</span>
+                  </div>
+                  <button class="hp-proj-resume-btn">
+                    <span class="material-symbols-rounded">play_circle</span> Lanjutkan
+                  </button>
+                </div>
+              </div>
+
+              <!-- Project Card 2 -->
+              <div class="hp-project-card" onclick="openExistingProject('hoaks-bert')">
+                <div class="hp-proj-head">
+                  <div class="hp-proj-kti-tag skripsi">
+                    <span class="material-symbols-rounded">school</span> Skripsi S1
+                  </div>
+                  <div class="hp-proj-activity">
+                    <span class="hp-activity-dot"></span>
+                    Aktif kemarin
+                  </div>
+                </div>
+                <h4 class="hp-proj-title">Deteksi Berita Hoaks Menggunakan Model BERT pada Platform Media Sosial Indonesia</h4>
+                <div class="hp-proj-meta-row">
+                  <span class="hp-proj-campus">🏛 Universitas Gadjah Mada (UGM)</span>
+                  <span class="hp-proj-unit">Unit 1 dari 5</span>
+                </div>
+                <div class="hp-proj-progress-area">
+                  <div class="hp-proj-progress-bar">
+                    <div class="hp-proj-fill" style="width: 30%; background: linear-gradient(90deg, #d97706, #f59e0b);"></div>
+                  </div>
+                  <span class="hp-proj-pct">30%</span>
+                </div>
+                <div class="hp-proj-footer">
+                  <div class="hp-proj-tags">
+                    <span class="hp-tag">BERT</span>
+                    <span class="hp-tag">Hoaks</span>
+                    <span class="hp-tag">Twitter</span>
+                  </div>
+                  <button class="hp-proj-resume-btn">
+                    <span class="material-symbols-rounded">play_circle</span> Lanjutkan
+                  </button>
+                </div>
+              </div>
+
+              <!-- Project Card 3 — Completed -->
+              <div class="hp-project-card completed" onclick="openExistingProject('ketahanan-pangan')">
+                <div class="hp-proj-head">
+                  <div class="hp-proj-kti-tag jurnal">
+                    <span class="material-symbols-rounded">menu_book</span> Artikel Jurnal
+                  </div>
+                  <div class="hp-proj-activity">
+                    <span class="material-symbols-rounded" style="color:var(--duo-green);font-size:14px;">check_circle</span>
+                    Selesai
+                  </div>
+                </div>
+                <h4 class="hp-proj-title">Dampak Perubahan Iklim terhadap Ketahanan Pangan Wilayah Pesisir Jawa</h4>
+                <div class="hp-proj-meta-row">
+                  <span class="hp-proj-campus">🏛 Dikti — Standar Nasional</span>
+                  <span class="hp-proj-unit" style="color:var(--duo-green-dark);">✓ 5 dari 5 Unit</span>
+                </div>
+                <div class="hp-proj-progress-area">
+                  <div class="hp-proj-progress-bar">
+                    <div class="hp-proj-fill" style="width: 100%; background: linear-gradient(90deg, #059669, #10b981);"></div>
+                  </div>
+                  <span class="hp-proj-pct" style="color:var(--duo-green-dark);">100% ✓</span>
+                </div>
+                <div class="hp-proj-footer">
+                  <div class="hp-proj-tags">
+                    <span class="hp-tag">Iklim</span>
+                    <span class="hp-tag">Pangan</span>
+                    <span class="hp-tag">Kuantitatif</span>
+                  </div>
+                  <button class="hp-proj-resume-btn completed-btn">
+                    <span class="material-symbols-rounded">visibility</span> Lihat
+                  </button>
+                </div>
+              </div>
+
+            </div><!-- /hpProjectsList -->
+
+            <!-- Bottom Prompt -->
+            <div class="hp-new-project-prompt" onclick="handleKTIClick('makalah')">
+              <span class="material-symbols-rounded">add_circle</span>
+              <span>Buat naskah makalah baru...</span>
+            </div>
+
+          </div><!-- /hp-col-main -->
+
+          <!-- Right: Achievements + Library -->
+          <div class="hp-col-side">
+
+            <!-- Weekly Stats -->
+            <div class="hp-side-card">
+              <div class="hp-side-card-head">
+                <span class="material-symbols-rounded">insights</span>
+                <h4>Statistik Minggu Ini</h4>
+              </div>
+              <div class="hp-stats-grid">
+                <div class="hp-stat-item">
+                  <div class="hp-stat-num" style="color:#7c3aed;">1,240</div>
+                  <div class="hp-stat-lbl">Total XP</div>
+                </div>
+                <div class="hp-stat-item">
+                  <div class="hp-stat-num" style="color:#d97706;">7</div>
+                  <div class="hp-stat-lbl">Hari Streak</div>
+                </div>
+                <div class="hp-stat-item">
+                  <div class="hp-stat-num" style="color:#0d9488;">14</div>
+                  <div class="hp-stat-lbl">Validasi Draf</div>
+                </div>
+                <div class="hp-stat-item">
+                  <div class="hp-stat-num" style="color:#059669;">1</div>
+                  <div class="hp-stat-lbl">Selesai</div>
+                </div>
+              </div>
+
+              <!-- Achievement Badges -->
+              <div class="hp-achievements-row">
+                <div class="hp-achievement" title="Pejuang Literatur">
+                  <div class="hp-ach-icon" style="background:#fef3c7;">📚</div>
+                  <span>Pejuang Literatur</span>
+                </div>
+                <div class="hp-achievement" title="First Gate Passed">
+                  <div class="hp-ach-icon" style="background:#ede9fe;">🛡️</div>
+                  <span>Gate Keeper</span>
+                </div>
+                <div class="hp-achievement" title="Streak 7 hari">
+                  <div class="hp-ach-icon" style="background:#fff7ed;">🔥</div>
+                  <span>7-Day Streak</span>
+                </div>
+                <div class="hp-achievement locked" title="Belum Terbuka">
+                  <div class="hp-ach-icon" style="background:#f8fafc; filter:grayscale(1);">🏆</div>
+                  <span>Champion</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Thesa Library -->
+            <div class="hp-side-card">
+              <div class="hp-side-card-head">
+                <span class="material-symbols-rounded">auto_stories</span>
+                <h4>Dari Pustaka Thesa</h4>
+              </div>
+              <div class="hp-library-list">
+                <div class="hp-library-item" onclick="startNewProjectFromHome('tesis')">
+                  <div class="hp-lib-icon" style="background:#ede9fe; color:#7c3aed;">
+                    <span class="material-symbols-rounded">psychology</span>
+                  </div>
+                  <div class="hp-lib-meta">
+                    <strong>Template Tesis S2 — Pendekatan Mixed-Method</strong>
+                    <span>Panduan lengkap + contoh BAB I–V</span>
+                  </div>
+                  <span class="material-symbols-rounded hp-lib-arrow">chevron_right</span>
+                </div>
+                <div class="hp-library-item" onclick="startNewProjectFromHome('jurnal')">
+                  <div class="hp-lib-icon" style="background:#ccfbf1; color:#0d9488;">
+                    <span class="material-symbols-rounded">menu_book</span>
+                  </div>
+                  <div class="hp-lib-meta">
+                    <strong>Panduan Submit Jurnal Scopus Q1/Q2</strong>
+                    <span>Abstract, keywords, dan cover letter</span>
+                  </div>
+                  <span class="material-symbols-rounded hp-lib-arrow">chevron_right</span>
+                </div>
+                <div class="hp-library-item" onclick="startNewProjectFromHome('skripsi')">
+                  <div class="hp-lib-icon" style="background:#fef9c3; color:#d97706;">
+                    <span class="material-symbols-rounded">school</span>
+                  </div>
+                  <div class="hp-lib-meta">
+                    <strong>Checklist Skripsi — Dari Proposal ke Sidang</strong>
+                    <span>Step-by-step + tips menghadapi penguji</span>
+                  </div>
+                  <span class="material-symbols-rounded hp-lib-arrow">chevron_right</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tip of the day -->
+            <div class="hp-tip-card">
+              <div class="hp-tip-head">
+                <span>💡</span>
+                <strong>Tips Hari Ini</strong>
+              </div>
+              <p>Rumusan masalah yang baik bukan hanya <em>"apa yang diteliti"</em>, tapi juga <em>"mengapa ini belum pernah dijawab dengan cara ini."</em> Thesa akan membantumu menemukan celah itu.</p>
+              <button class="hp-tip-action" onclick="startNewProjectFromHome(null)">Coba sekarang →</button>
+            </div>
+
+          </div><!-- /hp-col-side -->
+
+        </div><!-- /hp-content-grid -->
+      </div><!-- /hp-body -->
+    </main>
+  </div><!-- /homepageScreen -->
+
+
+  <!-- ===================================================================
+       ONBOARDING SCREEN (Full-screen, shown first before main app)
+       =================================================================== -->
+  <div id="onboardingScreen" class="onboarding-screen" style="display:none;">
+
+    <!-- Onboarding Brand Header -->
+    <header class="ob-top-brand">
+      <div class="ob-brand-inner">
+        <div class="owl-badge ob-owl">
+          <span class="material-symbols-rounded">school</span>
+        </div>
+        <div class="brand-text">
+          <span class="brand-thesa">Thesa</span>
+          <span class="brand-coach">Thesis & Research Co-Pilot</span>
+        </div>
+      </div>
+
+      <!-- Stepper: 2 Steps -->
+      <div class="ob-stepper" id="obStepper">
+        <div class="ob-step-item done" id="st1">
+          <div class="ob-step-dot">
+            <span class="material-symbols-rounded" style="font-size:13px;">check</span>
+          </div>
+          <span>1. Format Kampus</span>
+        </div>
+        <div class="ob-step-line done" id="stl1"></div>
+        <div class="ob-step-item active" id="st2">
+          <div class="ob-step-dot">2</div>
+          <span>2. Konteks Riset</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── STEP 1: Contextual Format with Sleek Optional Customization ── -->
+    <div class="ob-step-content" id="obStep1">
+      <div class="ob-headline">
+        <span class="ob-eyebrow">Langkah 1 dari 2 — Opsional</span>
+        <h1 id="obFormatHeadline">Format Siap untuk Karyamu 📄</h1>
+        <p id="obFormatSubtext">Thesa otomatis mengatur format makalah akademik 3 bab yang ringkas & terstruktur, tanpa beban metodologi kompleks.</p>
+      </div>
+
+      <!-- Clean Contextual Summary Card -->
+      <div class="ob-format-card">
+        <div class="ob-format-card-left">
+          <div class="ob-format-icon">
+            <span class="material-symbols-rounded">auto_stories</span>
+          </div>
+          <div class="ob-format-info">
+            <div class="ob-format-title-row">
+              <strong id="obActiveKTILabel">Makalah Ilmiah</strong>
+              <span class="ob-format-badge" id="obActiveFormatTag">Format Makalah 3 Bab</span>
+            </div>
+            <span class="ob-format-desc" id="obActiveStructureTag">
+              BAB I Pendahuluan · BAB II Pembahasan & Analisis · BAB III Penutup & Arena Diskusi
+            </span>
+          </div>
+        </div>
+        <div class="ob-format-check">
+          <span class="material-symbols-rounded">check_circle</span>
+        </div>
+      </div>
+
+      <!-- Sleek Collapsible Drawer for Optional Customization -->
+      <details class="ob-format-drawer">
+        <summary class="ob-drawer-summary">
+          <div class="ob-drawer-label">
+            <span class="material-symbols-rounded">tune</span>
+            <span>Sesuaikan Pedoman Kampus & Gaya Sitasi (Opsional)</span>
+          </div>
+          <span class="ob-drawer-toggle-text">Buka / Tutup ▼</span>
+        </summary>
+
+        <div class="ob-drawer-body">
+          <!-- Citation Style Selector -->
+          <div class="ob-drawer-section">
+            <div class="ob-drawer-section-header">
+              <label>📚 Gaya Sitasi & Daftar Pustaka (Klik untuk pilih / batalkan):</label>
+              <span id="activeCitationLabel">Standar Baku KTI</span>
+            </div>
+            <div class="citation-pills-grid" id="citationPillsGrid">
+              <button type="button" class="citation-pill" data-style="apa" onclick="toggleCitationStyle('apa', 'APA 7th Edition (Sosial & Humaniora)', this)">
+                <span class="pill-name">APA 7th</span>
+                <span class="pill-sub">(Sosial & Umum)</span>
+              </button>
+              <button type="button" class="citation-pill" data-style="ieee" onclick="toggleCitationStyle('ieee', 'IEEE Standard (Teknik & IT)', this)">
+                <span class="pill-name">IEEE</span>
+                <span class="pill-sub">(Teknik & Sains)</span>
+              </button>
+              <button type="button" class="citation-pill" data-style="harvard" onclick="toggleCitationStyle('harvard', 'Harvard Style (Bisnis & Ekonomi)', this)">
+                <span class="pill-name">Harvard</span>
+                <span class="pill-sub">(Ekonomi & Bisnis)</span>
+              </button>
+              <button type="button" class="citation-pill" data-style="vancouver" onclick="toggleCitationStyle('vancouver', 'Vancouver Style (Medis & Kesehatan)', this)">
+                <span class="pill-name">Vancouver</span>
+                <span class="pill-sub">(Kesehatan & Medis)</span>
+              </button>
+              <button type="button" class="citation-pill" data-style="chicago" onclick="toggleCitationStyle('chicago', 'Chicago Style (Hukum & Sejarah)', this)">
+                <span class="pill-name">Chicago</span>
+                <span class="pill-sub">(Hukum & Sejarah)</span>
+              </button>
+              <button type="button" class="citation-pill" data-style="mla" onclick="toggleCitationStyle('mla', 'MLA 9th (Bahasa & Sastra)', this)">
+                <span class="pill-name">MLA 9th</span>
+                <span class="pill-sub">(Bahasa & Seni)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Campus Pedoman Search / Upload -->
+          <div class="ob-drawer-section">
+            <label class="ob-drawer-field-label">🏛️ Pedoman Khusus Kampus / Fakultas:</label>
+            <div class="ob-campus-row">
+              <div class="ob-campus-input-wrap">
+                <span class="material-symbols-rounded">search</span>
+                <input type="text" id="obCampusSearch" placeholder="Ketik nama universitas (opsional)..." oninput="filterObCampus()">
+              </div>
+              <input type="file" id="obPedomanFile" accept=".pdf,.docx,.txt" style="display:none;" onchange="handleObFileUpload(event)">
+              <button type="button" class="btn-ob-upload" onclick="document.getElementById('obPedomanFile').click()">
+                <span class="material-symbols-rounded">upload_file</span> Unggah PDF
+              </button>
+            </div>
+            <div id="dynamicCampusResults" style="display:none;" class="dynamic-campus-dropdown"></div>
+          </div>
+        </div>
+      </details>
+
+      <div class="ob-footer">
+        <button class="btn-ob-back" onclick="backToHomepage()">
+          <span class="material-symbols-rounded">arrow_back</span>
+          <span>Kembali ke Dashboard</span>
+        </button>
+        <button class="btn-ob-next" onclick="goToStep(2)">
+          <span>Lanjut: Konteks Riset</span>
+          <span class="material-symbols-rounded">arrow_forward</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── STEP 2: Conversational Research Intake ── -->
+    <div class="ob-step-content" id="obStep2" style="display: none;">
+      <div class="ob-headline">
+        <span class="ob-eyebrow">Langkah 2 dari 2</span>
+        <h1>Cerita sedikit tentang karyamu</h1>
+        <p>Thesa akan menyesuaikan bimbingan dan gaya telaah berdasarkan ide & topikmu.</p>
+      </div>
+
+      <!-- Sleek Segmented Tab Navigation -->
+      <div class="ob-intake-tab-bar" role="tablist">
+        <button type="button" class="ob-tab-btn active" id="tabBtnTopik" onclick="switchIntakeTab('topik')">
+          <span class="material-symbols-rounded tab-icon">lightbulb</span>
+          <span class="tab-label">1. Topik Utama</span>
+          <span class="tab-pill-req" id="pillReqQ1">Wajib</span>
+        </button>
+        <button type="button" class="ob-tab-btn" id="tabBtnKonteks" onclick="switchIntakeTab('konteks')">
+          <span class="material-symbols-rounded tab-icon">psychology</span>
+          <span class="tab-label">2. Konteks Riset</span>
+          <span class="tab-pill-req ready" id="pillReqKonteks" style="background:#e0e7ff; color:#4338ca; font-weight:800;">Disarankan</span>
+        </button>
+        <button type="button" class="ob-tab-btn" id="tabBtnCover" onclick="switchIntakeTab('cover')">
+          <span class="material-symbols-rounded tab-icon">badge</span>
+          <span class="tab-label">3. Info Cover</span>
+          <span class="tab-pill-opt">Opsional</span>
+        </button>
+      </div>
+
+      <div class="ob-intake-form">
+
+        <!-- ── TAB 1: TOPIK & IDE UTAMA (Primary Focus) ── -->
+        <div class="ob-tab-pane active" id="paneIntakeTopik">
+          <div class="ob-question-card primary-focus" id="obQ1Card">
+            <div class="ob-q-head">
+              <div class="ob-q-num required">
+                <span class="material-symbols-rounded" style="font-size:18px;">lightbulb</span>
+              </div>
+              <div style="flex:1;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <strong id="obQ1Title" style="font-size:14.5px;">Apa topik atau ide yang ingin kamu susun?</strong>
+                  <span class="ob-valid-badge" id="obQ1Badge">Min. 3 karakter</span>
+                </div>
+                <span class="ob-q-hint">Tuliskan ide awal, tema skripsi, atau judul tugasmu. Bebas dengan bahasa santai.</span>
+              </div>
+            </div>
+
+            <div class="ob-textarea-wrapper">
+              <textarea id="obQ1Input" class="ob-q-input prominent-textarea" placeholder="Contoh: Analisis pengaruh efisiensi energi terhadap biaya operasional industri..." rows="3" oninput="validateIntakeQ1()"></textarea>
+              <div class="ob-textarea-footer">
+                <span class="ob-char-counter" id="obQ1CharCount">0 karakter</span>
+                <span class="ob-auto-save-tip">✓ Otomatis tersimpan ke draf</span>
+              </div>
+            </div>
+
+            <!-- Playful Quick Starter Chips -->
+            <div class="ob-quick-starter-box">
+              <div class="quick-starter-header">
+                <span class="material-symbols-rounded" style="font-size:16px; color:#f59e0b;">bolt</span>
+                <span>Inspirasi Topik Populer (Klik untuk isi cepat):</span>
+              </div>
+              <div class="quick-starter-chips" id="quickTopicStarters">
+                <button type="button" class="btn-topic-starter" onclick="applyTopicStarter('Dampak Integrasi Artificial Intelligence terhadap Efisiensi dan Kesiapan SDM')">
+                  <span>🤖 AI & Kesiapan SDM</span>
+                </button>
+                <button type="button" class="btn-topic-starter" onclick="applyTopicStarter('Strategi Transformasi Digital dan Adopsi FinTech pada Pertumbuhan UMKM')">
+                  <span>📈 FinTech & UMKM</span>
+                </button>
+                <button type="button" class="btn-topic-starter" onclick="applyTopicStarter('Efisiensi Penggunaan Energi Terbarukan dalam Menurunkan Emisi Karbon Industri')">
+                  <span>🌱 Energi Terbarukan</span>
+                </button>
+                <button type="button" class="btn-topic-starter" onclick="applyTopicStarter('Analisis Pengaruh Budaya Organisasi terhadap Kinerja Pegawai di Era Fleksibel')">
+                  <span>🏢 Budaya Kerja Fleksibel</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Nudge CTA to Step 2 -->
+            <div style="margin-top:14px; text-align:right;">
+              <button type="button" class="btn-quick-chip" onclick="switchIntakeTab('konteks')" style="background:#eef2ff; color:#4338ca; border-color:#c7d2fe; font-weight:700; padding:8px 16px;">
+                <span>Lanjut Ceritakan Konteks Riset (+50 XP)</span>
+                <span class="material-symbols-rounded" style="font-size:16px;">arrow_forward</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB 2: KONTEKS RISET (Sangat Disarankan agar Bimbingan AI Akurat) ── -->
+        <div class="ob-tab-pane" id="paneIntakeKonteks" style="display:none;">
+          
+          <!-- Value Nudge Callout -->
+          <div style="background:linear-gradient(135deg, #f0fdf4 0%, #e0e7ff 100%); border:1.5px solid #a7f3d0; border-radius:var(--r-lg); padding:12px 16px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="font-size:22px;">🎯</span>
+              <div>
+                <strong style="font-size:13px; color:#065f46; display:block;">Mengapa Konteks Riset Ini Penting?</strong>
+                <span style="font-size:11.5px; color:#047857;">Makin jelas ceritamu, bimbingan AI semakin tajam, nyambung dengan masalah lapangan, dan naskah tidak generik.</span>
+              </div>
+            </div>
+            <span style="font-size:11px; font-weight:800; background:#dcfce7; color:#15803d; padding:4px 10px; border-radius:999px; white-space:nowrap;">⭐ +50 XP Bonus</span>
+          </div>
+
+          <div class="ob-stacked-cards">
+            <!-- Q2: Urgensi -->
+            <div class="ob-question-card" id="obQ2Card" style="border-color:#cbd5e1;">
+              <div class="ob-q-head" style="margin-bottom:8px;">
+                <div class="ob-q-num required" style="background:#e0e7ff; color:#4338ca;">
+                  <span class="material-symbols-rounded" style="font-size:16px;">help_center</span>
+                </div>
+                <div style="flex:1;">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong style="font-size:14px; color:#0f172a;">Kenapa topik ini penting bagimu?</strong>
+                    <span style="font-size:10.5px; font-weight:800; color:#4338ca; background:#ede9fe; padding:2px 8px; border-radius:999px;">Sangat Disarankan</span>
+                  </div>
+                  <span class="ob-q-hint">Urgensi masalah, keresahan, atau fenomena nyata yang mendorong riset ini.</span>
+                </div>
+              </div>
+
+              <!-- Quick Helper Chips for Q2 -->
+              <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+                <button type="button" class="btn-quick-chip" onclick="insertContextHelper('obQ2Input', 'Adanya fenomena ketimpangan di lapangan dan belum optimalnya sistem tata kelola...')">
+                  ⚡ Fenomena di Lapangan
+                </button>
+                <button type="button" class="btn-quick-chip" onclick="insertContextHelper('obQ2Input', 'Kesenjangan antara target kinerja dengan data realitas di industri...')">
+                  📊 Kesenjangan Data & Fakta
+                </button>
+                <button type="button" class="btn-quick-chip" onclick="insertContextHelper('obQ2Input', 'Masih terbatasnya studi empiris lokal yang membahas topik ini secara komprehensif...')">
+                  🔍 Celah Riset Lokal
+                </button>
+              </div>
+
+              <textarea id="obQ2Input" class="ob-q-input" placeholder="Contoh: Karena topik ini krusial dalam memahami dampak transformasi digital di sektor perbankan..." rows="2"></textarea>
+            </div>
+
+            <!-- Q3: Harapan Hasil -->
+            <div class="ob-question-card" id="obQ3Card" style="border-color:#cbd5e1;">
+              <div class="ob-q-head" style="margin-bottom:8px;">
+                <div class="ob-q-num required" style="background:#e0e7ff; color:#4338ca;">
+                  <span class="material-symbols-rounded" style="font-size:16px;">flag</span>
+                </div>
+                <div style="flex:1;">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong style="font-size:14px; color:#0f172a;">Apa yang ingin kamu hasilkan dari karya ini?</strong>
+                    <span style="font-size:10.5px; font-weight:800; color:#4338ca; background:#ede9fe; padding:2px 8px; border-radius:999px;">Sangat Disarankan</span>
+                  </div>
+                  <span class="ob-q-hint">Target luaran, rekomendasi solusi praktis, atau model analisis yang diharapkan.</span>
+                </div>
+              </div>
+
+              <!-- Quick Helper Chips for Q3 -->
+              <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+                <button type="button" class="btn-quick-chip" onclick="insertContextHelper('obQ3Input', 'Menghasilkan rekomendasi tata kelola terukur dan strategi praktis bagi pemangku kepentingan...')">
+                  💡 Solusi & Rekomendasi
+                </button>
+                <button type="button" class="btn-quick-chip" onclick="insertContextHelper('obQ3Input', 'Merumuskan kerangka konseptual yang dapat diuji pada penelitian lanjutan...')">
+                  📐 Kerangka Konseptual
+                </button>
+              </div>
+
+              <textarea id="obQ3Input" class="ob-q-input" placeholder="Contoh: Menghasilkan rekomendasi tata kelola terukur bagi pemangku kepentingan..." rows="2"></textarea>
+            </div>
+
+            <!-- Q4: Kata Kunci -->
+            <div class="ob-question-card optional-card" id="obQ4Card">
+              <div class="ob-q-head">
+                <div class="ob-q-num optional">
+                  <span class="material-symbols-rounded" style="font-size:16px;">tag</span>
+                </div>
+                <div style="flex:1;">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong style="font-size:14px; color:#0f172a;">Kata kunci risetmu</strong>
+                    <span class="ob-q-optional-tag">Opsional</span>
+                  </div>
+                  <span class="ob-q-hint">Konsep kunci yang sering muncul pada naskahmu.</span>
+                </div>
+              </div>
+              <div class="ob-keyword-area">
+                <div class="ob-keyword-chips" id="keywordChips"></div>
+                <div class="ob-keyword-input-row">
+                  <input type="text" id="obKeywordInput" class="ob-q-input-inline" placeholder="Ketik kata kunci, tekan Enter..." onkeydown="handleKeywordAdd(event)">
+                  <button type="button" class="btn-add-keyword" onclick="addKeywordFromInput()" title="Tambah Kata Kunci">
+                    <span class="material-symbols-rounded" style="font-size:18px;">add</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB 3: DETAIL COVER & INFO TUGAS (Opsional / Bisa Diisi Nanti Saat Ekspor) ── -->
+        <div class="ob-tab-pane" id="paneIntakeCover" style="display:none;">
+          <div class="ob-question-card" id="obAssignmentCard">
+            <div class="ob-q-head" style="margin-bottom:12px;">
+              <div class="ob-q-num optional" style="background:#f1f5f9; color:#64748b;">
+                <span class="material-symbols-rounded" style="font-size:18px;">badge</span>
+              </div>
+              <div style="flex:1;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <strong style="color:#0f172a; font-size:14.5px;">Detail Halaman Judul & Cover</strong>
+                  <span class="ob-q-optional-tag" style="background:#f1f5f9; color:#64748b;">Bisa Diisi Nanti</span>
+                </div>
+                <span class="ob-q-hint">Boleh dilewati sekarang. Data ini bisa dilengkapi menjelang unduh naskah ke Word/PDF.</span>
+              </div>
+            </div>
+
+            <!-- Friendly Reassurance Callout -->
+            <div class="ob-friendly-note">
+              <span class="material-symbols-rounded note-icon">spa</span>
+              <div class="note-text">
+                <strong>Bebas dikosongkan sekarang!</strong>
+                <p>Data nama dosen, mata kuliah, dan NIM tidak menghalangi proses penyusunan draf. Kamu bisa langsung mulai menyusun naskah dan mengisinya nanti saat ekspor.</p>
+              </div>
+            </div>
+
+            <div class="ob-cover-grid">
+              <div class="ob-field-group">
+                <label class="ob-field-lbl">📚 Mata Kuliah (Opsional):</label>
+                <input type="text" id="obCourseInput" class="ob-q-input-inline" placeholder="Misal: Manajemen Strategik (atau lewati)">
+              </div>
+              <div class="ob-field-group">
+                <label class="ob-field-lbl">👨‍🏫 Dosen Pengampu (Opsional):</label>
+                <input type="text" id="obLecturerInput" class="ob-q-input-inline" placeholder="Misal: Dr. Budi Santoso (atau lewati)">
+              </div>
+              <div class="ob-field-group">
+                <label class="ob-field-lbl">👤 Nama Mahasiswa (Opsional):</label>
+                <input type="text" id="obAuthorInput" class="ob-q-input-inline" placeholder="Nama lengkapmu (atau lewati)">
+              </div>
+              <div class="ob-field-group">
+                <label class="ob-field-lbl">🆔 NIM / Nomor Mahasiswa (Opsional):</label>
+                <input type="text" id="obNimInput" class="ob-q-input-inline" placeholder="Nomor mahasiswa (atau lewati)">
+              </div>
+            </div>
+
+            <!-- Target Panjang Makalah Interactive Cards -->
+            <div style="margin-top:16px;">
+              <label class="ob-field-lbl" style="margin-bottom:8px; display:block;">📏 Estimasi Target Panjang Naskah:</label>
+              <div class="ob-length-grid">
+                <div class="ob-length-pill active-length" id="lengthOpt1" onclick="selectLengthTarget('Ringkas (4-6 Halaman)', this)">
+                  <span class="material-symbols-rounded length-icon">article</span>
+                  <div>
+                    <strong>Ringkas</strong>
+                    <span>4–6 Halaman</span>
+                  </div>
+                  <span class="length-check material-symbols-rounded">check_circle</span>
+                </div>
+                <div class="ob-length-pill" id="lengthOpt2" onclick="selectLengthTarget('Standar (8-12 Halaman)', this)">
+                  <span class="material-symbols-rounded length-icon">menu_book</span>
+                  <div>
+                    <strong>Standar</strong>
+                    <span>8–12 Halaman</span>
+                  </div>
+                  <span class="length-check material-symbols-rounded">check_circle</span>
+                </div>
+                <div class="ob-length-pill" id="lengthOpt3" onclick="selectLengthTarget('Komprehensif (15-20 Halaman)', this)">
+                  <span class="material-symbols-rounded length-icon">auto_stories</span>
+                  <div>
+                    <strong>Komprehensif</strong>
+                    <span>15–20 Halaman</span>
+                  </div>
+                  <span class="length-check material-symbols-rounded">check_circle</span>
+                </div>
+              </div>
+            </div>
+
+            </details>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer Navigation with Floating Launcher -->
+      <div class="ob-footer">
+        <button class="btn-ob-back" onclick="goToStep(1)">
+          <span class="material-symbols-rounded">arrow_back</span>
+          <span>Kembali</span>
+        </button>
+        
+        <div class="ob-footer-actions">
+          <span id="obReadinessHint" class="ob-readiness-badge ready" style="display:none;">
+            <span class="material-symbols-rounded" style="font-size:16px;">check_circle</span>
+            <span>Topik Terisi</span>
+          </span>
+          <button class="btn-ob-start" id="btnStartThesa" onclick="startThesaMain()" disabled>
+            <span>Mulai dengan Thesa!</span>
+            <span class="material-symbols-rounded" style="font-size:18px;">arrow_forward</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /onboardingScreen -->
+
+
+  <!-- ===================================================================
+       MAIN APP (hidden until onboarding complete)
+       =================================================================== -->
+  <div id="mainApp" style="display: none;">
+
+    <!-- Top Header Bar -->
+    <header class="duo-topbar">
+      <!-- Left side: Brand + Project & Campus Details Capsule -->
+      <div class="topbar-left">
+        <!-- Back to Homepage -->
+        <button class="btn-back-home" onclick="backToHomepage()" title="Kembali ke Dashboard">
+          <span class="material-symbols-rounded">arrow_back</span>
+        </button>
+
+        <div class="duo-brand">
+          <div class="owl-badge">
+            <span class="material-symbols-rounded icon-owl">school</span>
+          </div>
+          <div class="brand-text">
+            <span class="brand-thesa">Thesa</span>
+            <span class="brand-coach" id="appKTILabel">Tesis S2 Co-Pilot</span>
+          </div>
+        </div>
+
+        <div class="topbar-v-divider"></div>
+
+        <!-- Cohesive Project & Campus Info Group -->
+        <div class="topbar-context-capsule">
+          <div class="project-pill-nav">
+            <span class="material-symbols-rounded icon-folder">folder_open</span>
+            <span class="project-label" id="appKTIType">Tesis S2</span>
+            <span class="project-title-top" id="topProjectTitle" title="Cascade Reasoning Multi-Agent">Cascade Reasoning Multi-Agent</span>
+          </div>
+
+          <div class="campus-format-pill" id="topCampusFormatPill" onclick="reopenTemplateModal()" title="Klik untuk mengganti format pedoman kampus">
+            <span class="material-symbols-rounded icon-campus">account_balance</span>
+            <div class="campus-meta">
+              <span class="campus-label">Format:</span>
+              <span class="campus-name" id="activeCampusName">Universitas Indonesia (UI)</span>
+            </div>
+            <span class="campus-badge-edit">Ganti</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right side: Tools Action Bar + Unified Gamification & Progress Capsule -->
+      <div class="topbar-right">
+        <!-- Academic Navigation Tools -->
+        <div class="topbar-tools-group">
+          <button class="topbar-btn btn-literature" onclick="toggleLiteratureModal(true)" title="Cari jurnal, sitasi & literatur">
+            <span class="material-symbols-rounded">menu_book</span>
+            <span>Cari Jurnal</span>
+          </button>
+
+          <button class="topbar-btn btn-sandbox" onclick="toggleSandboxModal(true)" title="Uji logika & validasi argumen">
+            <span class="material-symbols-rounded">tune</span>
+            <span>Uji Argumen</span>
+          </button>
+
+          <button class="topbar-btn btn-defense" onclick="toggleDefenseModal(true)" title="Latihan tanya-jawab dosen penguji">
+            <span class="material-symbols-rounded">swords</span>
+            <span>Latihan Sidang</span>
+          </button>
+        </div>
+
+        <div class="topbar-v-divider"></div>
+
+        <!-- Unified Gamification & Progress Widget -->
+        <div class="topbar-stats-capsule">
+          <div class="stat-pill streak-pill" title="Streak Riset Harian">
+            <span class="stat-icon">🔥</span>
+            <span class="stat-value">1 Hari</span>
+          </div>
+
+          <div class="stat-capsule-divider"></div>
+
+          <div class="stat-pill xp-pill" id="topbarXpPill" onclick="toggleXpRewardsModal(true)" title="Total XP Riset (Klik untuk Tukar Token & Cek Kesiapan Sidang)" style="cursor:pointer;">
+            <span class="stat-icon">💎</span>
+            <span class="stat-value" id="userXP">0 XP</span>
+          </div>
+
+          <div class="stat-capsule-divider"></div>
+
+          <!-- Token Economy & Margin Guard Capsule -->
+          <div class="stat-pill token-pill" id="topbarTokenPill" onclick="toggleTokenBoosterModal(true)" title="Sisa Kuota Token AI (Klik untuk Isi Ulang Booster Instan)" style="cursor:pointer;">
+            <span class="stat-icon" style="color:#fbbf24;">⚡</span>
+            <span class="stat-value" id="topbarTokenBalance">215k Token</span>
+            <span style="font-size:10px; font-weight:800; background:rgba(255,255,255,0.2); padding:1px 6px; border-radius:999px; color:#fff; margin-left:2px;">+Topup</span>
+          </div>
+
+          <div class="stat-capsule-divider"></div>
+
+          <div class="stat-pill consistency-pill" title="Skor Kerapihan Logika">
+            <span class="stat-icon">🎯</span>
+            <span class="stat-value" id="cascadeScore">— Rapi</span>
+          </div>
+
+          <div class="stat-capsule-divider"></div>
+
+          <div class="stat-pill unit-pill" title="Progress Keseluruhan Naskah">
+            <span class="unit-label">Progress</span>
+            <div class="unit-progress-bar">
+              <div class="unit-fill" id="globalProgressBar" style="width: 0%;"></div>
+            </div>
+            <span class="unit-pct" id="globalProgressPct">0%</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main 3-Column Layout -->
+    <div class="duo-container">
+
+      <!-- 1. LEFT COLUMN: THESIS ROADMAP -->
+      <aside class="journey-sidebar">
+        <div class="journey-header">
+          <div class="header-tag-row">
+            <span class="journey-badge" id="roadmapBadgeLabel">TAHAPAN PENULISAN</span>
+            <span class="hitl-indicator-badge">🛡️ Kendali Penuh Kamu</span>
+          </div>
+          <h2 class="journey-title">Alur Penulisan</h2>
+          <p class="journey-sub">Dipandu langkah demi langkah agar kamu menguasai isi naskahmu sendiri.</p>
+        </div>
+
+        <div class="journey-path-scroll" id="journeyTree">
+
+          <!-- UNIT 1 -->
+          <div class="unit-block active" id="unit-1">
+            <div class="unit-header-card">
+              <div class="unit-info">
+                <span class="unit-num">UNIT 1</span>
+                <h3 id="unit1Title">BAB I: Menemukan Keresahan & Celah Riset</h3>
+                <p>Dari fenomena empiris ➔ Rumusan Masalah yang Teruji</p>
+              </div>
+              <span class="unit-badge-status current">Sedang Aktif</span>
+            </div>
+            <div class="step-nodes">
+              <button class="path-node active" id="node-1-1" onclick="switchStep(1, 1)">
+                <div class="node-circle pulse">
+                  <span class="material-symbols-rounded">psychology_alt</span>
+                </div>
+                <div class="node-label">
+                  <strong>Langkah 1.1</strong>
+                  <span id="step11Label">Uji Sokratik: Konteks & Batasan</span>
+                </div>
+              </button>
+              <div class="node-line"></div>
+              <button class="path-node locked" id="node-1-2" onclick="switchStep(1, 2)">
+                <div class="node-circle"><span class="material-symbols-rounded">lock</span></div>
+                <div class="node-label">
+                  <strong>Langkah 1.2</strong>
+                  <span id="step12Label">Co-Author: Latar Belakang</span>
+                </div>
+              </button>
+              <div class="node-line"></div>
+              <button class="path-node locked" id="node-1-3" onclick="switchStep(1, 3)">
+                <div class="node-circle"><span class="material-symbols-rounded">lock</span></div>
+                <div class="node-label">
+                  <strong>Langkah 1.3</strong>
+                  <span id="step13Label">Rumusan Masalah & Gap</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- UNIT 2 -->
+          <div class="unit-block locked" id="unit-2">
+            <div class="unit-header-card">
+              <div class="unit-info">
+                <span class="unit-num">UNIT 2</span>
+                <h3 id="unit2Title">BAB II: State-of-the-Art & Literature Matrix</h3>
+                <p>Sintesis paper kunci & temukan celah teoritis.</p>
+              </div>
+              <span class="unit-badge-status"><span class="material-symbols-rounded">lock</span> Terkunci</span>
+            </div>
+          </div>
+
+          <!-- UNIT 3 -->
+          <div class="unit-block locked" id="unit-3">
+            <div class="unit-header-card">
+              <div class="unit-info">
+                <span class="unit-num">UNIT 3</span>
+                <h3 id="unit3Title">BAB III: Kerangka Konseptual & Hipotesis</h3>
+                <p>Membangun variabel & relasi kausalitas.</p>
+              </div>
+              <span class="unit-badge-status"><span class="material-symbols-rounded">lock</span> Terkunci</span>
+            </div>
+          </div>
+
+          <!-- UNIT 4 -->
+          <div class="unit-block locked" id="unit-4">
+            <div class="unit-header-card">
+              <div class="unit-info">
+                <span class="unit-num">UNIT 4</span>
+                <h3 id="unit4Title">BAB IV: Desain Metodologi & Sampling</h3>
+                <p>Uji validitas instrumen dan keselarasan analisis.</p>
+              </div>
+              <span class="unit-badge-status"><span class="material-symbols-rounded">lock</span> Terkunci</span>
+            </div>
+          </div>
+
+          <!-- BOSS ARENA -->
+          <div class="unit-block boss-unit" id="unit-5" onclick="toggleDefenseModal(true)">
+            <div class="unit-header-card boss-card">
+              <div class="unit-info">
+                <span class="unit-num gold">BOSS ARENA</span>
+                <h3>Simulasi Ujian Sidang</h3>
+                <p>Uji ketahanan naskah di hadapan 2 AI Penguji!</p>
+              </div>
+              <span class="boss-trophy">🏆</span>
+            </div>
+            <div class="arena-launch-badge">
+              <span class="material-symbols-rounded">play_circle</span> Klik untuk Coba Simulasi Sidang
+            </div>
+          </div>
+
+        </div>
+      </aside>
+
+      <!-- 2. CENTER COLUMN: SOCRATIC DIALOGUE -->
+      <main class="chat-main-column">
+        
+        <!-- Socratic Milestone Banner -->
+        <div class="milestone-banner">
+          <div class="milestone-icon-wrapper">
+            <span class="material-symbols-rounded" id="currentStepIcon">psychology</span>
+          </div>
+          <div class="milestone-text">
+            <div class="banner-top-row">
+              <h4 id="currentStepTitle">Langkah 1.1: Membedah Isu Pokok & Gagasan Utama</h4>
+              <span class="badge-pedagogy" id="currentStepBadge">Panduan Interaktif</span>
+            </div>
+            <p id="currentStepDesc">💡 <strong>Panduan:</strong> Kita susun ide dan urgensi masalahmu terlebih dahulu agar naskah memiliki fondasi yang kuat.</p>
+          </div>
+        </div>
+
+        <!-- Dialogue Stream -->
+        <div class="duo-chat-stream" id="duoChatStream">
+          <!-- Chat bubbles inserted here by JS after onboarding -->
+        </div>
+
+        <!-- Input Bar -->
+        <div class="duo-input-area">
+          <div class="input-quick-helpers">
+            <span class="helper-label">⚡ Ide Cepat:</span>
+            <button class="btn-quick-chip" onclick="insertPromptHelper('Saya melihat masalahnya adalah ')">"Saya melihat masalahnya..."</button>
+            <button class="btn-quick-chip" onclick="insertPromptHelper('Di lapangan sering terjadi ')">"Di lapangan sering terjadi..."</button>
+            <button class="btn-quick-chip" onclick="insertPromptHelper('Dampaknya adalah ')">"Dampaknya adalah..."</button>
+          </div>
+          <div class="input-pill-wrapper">
+            <input type="text" id="coachCustomInput" placeholder="Ketik ide atau pemikiranmu di sini..." autocomplete="off">
+            <button class="btn-coach-send" id="btnSendCoach" title="Kirim Pesan">
+              <span class="material-symbols-rounded">send</span>
+            </button>
+          </div>
+          <div class="coach-hints">
+            <span>🛡️ <strong>Prinsip Kolaborasi:</strong> Thesa membantu menstrukturkan ide, setiap kalimat naskah tetap diverifikasi dan disetujui olehmu.</span>
+          </div>
+        </div>
+      </main>
+
+      <!-- Resizer divider between Chat & Paper -->
+      <div class="workspace-resizer" id="workspaceResizer" title="Tahan & geser untuk mengatur lebar naskah"></div>
+
+      <!-- 3. RIGHT COLUMN: LIVE THESIS CO-AUTHORING SCRAPBOOK -->
+      <aside class="thesis-scrapbook" id="thesisScrapbook">
+        <div class="scrapbook-header">
+          <div class="scrapbook-title-group">
+            <span class="material-symbols-rounded icon-doc">edit_document</span>
+            <div>
+              <h3>Draf Naskah Makalah</h3>
+              <span class="scrapbook-sub" id="syncStatusBadge">⚡ Tersimpan Otomatis</span>
+            </div>
+          </div>
+          <div class="scrapbook-head-actions">
+            <button class="btn-export-head" onclick="openExportModal()" title="Ekspor naskah ke Microsoft Word (.docx) atau PDF lengkap dengan Halaman Cover">
+              <span class="material-symbols-rounded">download</span>
+              <span>Ekspor</span>
+            </button>
+            <button class="btn-icon-head" title="Cari Literatur & Sitasi" onclick="toggleLiteratureModal(true)">
+              <span class="material-symbols-rounded">menu_book</span>
+            </button>
+            <button class="btn-icon-head" title="Perlebar Naskah" id="btnToggleWidth" onclick="togglePaperWidth()">
+              <span class="material-symbols-rounded">width</span>
+            </button>
+            <button class="btn-icon-head" title="Salin Naskah Mentah" onclick="copyThesisDraft()">
+              <span class="material-symbols-rounded">content_copy</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="paper-meta-ribbon">
+          <div class="epistemic-summary">
+            <span class="epistemic-dot green"></span> <strong id="verifiedCount">0</strong> Selesai
+            <span class="epistemic-dot yellow" style="margin-left:8px;"></span> <strong id="draftCount">0</strong> Draf
+          </div>
+          <span class="paper-format-tag" id="paperFormatStyleTag">Standar Nasional</span>
+        </div>
+
+        <div class="scrapbook-body">
+          <div class="paper-sheet" id="paperSheet">
+            <div class="paper-header-meta">
+              <span class="paper-tag" id="paperChapterTag">BAB I: PENDAHULUAN</span>
+              <span class="paper-badge-synced" id="docSyncBadge">✓ Siap Menulis</span>
+            </div>
+
+            <h1 class="paper-title" id="draftPaperTitle">——</h1>
+            <div class="paper-author-mock" id="paperAuthorSubtitle">Memuat format kampus...</div>
+
+            <!-- 1.1 Latar Belakang -->
+            <div class="paper-section" id="section11">
+              <div class="section-title-row">
+                <h2 class="section-heading" id="heading11">1.1 Latar Belakang Masalah</h2>
+                <span class="section-certainty-badge pending" id="badgeSection11">Belum Dimulai</span>
+              </div>
+              <div class="paper-box-target" id="boxLatarBelakang">
+                <p><em>Akan terisi saat kamu berdialog dengan Thesa di kolom tengah</em></p>
+              </div>
+            </div>
+
+            <!-- 1.2 Rumusan Masalah -->
+            <div class="paper-section" id="section12">
+              <div class="section-title-row">
+                <h2 class="section-heading" id="heading12">1.2 Rumusan Masalah</h2>
+                <span class="section-certainty-badge pending" id="badgeSection12">Menunggu Langkah 1.3</span>
+              </div>
+              <div class="paper-box-target" id="boxProblemStatement">
+                <p><em>Akan terisi setelah langkah rumusan masalah disetujui</em></p>
+              </div>
+            </div>
+
+            <!-- 1.3 Tujuan Penulisan -->
+            <div class="paper-section" id="section13">
+              <div class="section-title-row">
+                <h2 class="section-heading" id="heading13">1.3 Tujuan Penulisan</h2>
+                <span class="section-certainty-badge pending" id="badgeSection13">Menunggu Langkah 1.3</span>
+              </div>
+              <div class="paper-box-target" id="boxTujuanPenulisan">
+                <p><em>Akan terisi bersamaan dengan rumusan masalah</em></p>
+              </div>
+            </div>
+
+            <!-- BAB II: Pembahasan & Analisis -->
+            <div class="paper-section" id="section2" style="border-top:2px dashed #e2e8f0; margin-top:20px; padding-top:16px;">
+              <div class="section-title-row">
+                <h2 class="section-heading" id="heading2">BAB II: PEMBAHASAN & ANALISIS</h2>
+                <span class="section-certainty-badge pending" id="badgeSection2">Menunggu Unit 2</span>
+              </div>
+              <div class="paper-box-target" id="boxPembahasan">
+                <p><em>Terbuka setelah Bab I selesai dikerjakan</em></p>
+              </div>
+            </div>
+
+            <!-- BAB III: Penutup -->
+            <div class="paper-section" id="section3" style="border-top:2px dashed #e2e8f0; margin-top:20px; padding-top:16px;">
+              <div class="section-title-row">
+                <h2 class="section-heading" id="heading3">BAB III: PENUTUP (Kesimpulan & Saran)</h2>
+                <span class="section-certainty-badge pending" id="badgeSection3">Menunggu Unit 3</span>
+              </div>
+              <div class="paper-box-target" id="boxPenutup">
+                <p><em>Terbuka setelah Bab II selesai</em></p>
+              </div>
+            </div>
+
+            <!-- Daftar Pustaka / Referensi -->
+            <div class="paper-section" id="sectionDaftarPustaka" style="border-top:2px solid #cbd5e1; margin-top:24px; padding-top:16px;">
+              <div class="section-title-row">
+                <h2 class="section-heading" id="headingDaftarPustaka">DAFTAR PUSTAKA</h2>
+                <span class="section-certainty-badge" style="background:#f1f5f9; color:#64748b;" id="refCountBadge">0 Referensi</span>
+              </div>
+              <div class="paper-box-target" id="boxDaftarPustaka" style="font-size:11px; line-height:1.6; color:#475569;">
+                <p><em>Gunakan tombol "Cari Literatur" untuk menyisipkan referensi ilmiah ke naskah ini.</em></p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </aside>
+
+    </div><!-- /duo-container -->
+  </div><!-- /mainApp -->
+
+
+  <!-- ===================================================================
+       MODAL: LITERATURE SEARCH & CITATION INJECTOR
+       =================================================================== -->
+  <div class="modal-backdrop" id="literatureModal" style="display: none;">
+    <div class="modal-container literature-modal-box">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="material-symbols-rounded icon-modal" style="background:#eef2ff;color:#4f46e5;">menu_book</span>
+          <div>
+            <h3>Cari & Sisipkan Literatur / Referensi</h3>
+            <p>Pilih paper ilmiah terpercaya untuk memperkuat argumen dan otomatis menyusun daftar pustaka.</p>
+          </div>
+        </div>
+        <button class="btn-modal-close" onclick="toggleLiteratureModal(false)">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+
+      <div class="lit-modal-body">
+        <div class="lit-search-row">
+          <div class="lit-search-input-wrap">
+            <span class="material-symbols-rounded">search</span>
+            <input type="text" id="litSearchInput" placeholder="Cari judul paper, topik (misal: AI, Pendidikan, Metodologi)..." onkeyup="if(event.key==='Enter') searchLiterature()">
+          </div>
+          <button class="btn-primary" onclick="searchLiterature()" style="padding:0 20px; border-radius:10px; height:42px; font-weight:700;">Cari Paper</button>
+        </div>
+
+        <div class="lit-filters-bar">
+          <span class="lit-filter-pill active" onclick="filterLiteratureType(this, 'all')">Semua Paper</span>
+          <span class="lit-filter-pill" onclick="filterLiteratureType(this, 'scopus')">Jurnal Scopus / Internasional</span>
+          <span class="lit-filter-pill" onclick="filterLiteratureType(this, 'sinta')">Jurnal Nasional (SINTA)</span>
+          <span class="lit-filter-pill" onclick="filterLiteratureType(this, 'recent')">5 Tahun Terakhir (2020+)</span>
+        </div>
+
+        <div class="lit-cards-container" id="litCardsContainer">
+          <!-- Injected dynamically by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL: CAMPUS FORMAT (accessible from topbar "Ganti" button)
+       =================================================================== -->
+  <div class="modal-backdrop" id="templateModal" style="display: none;">
+    <div class="modal-container template-modal-box">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="material-symbols-rounded icon-modal">account_balance</span>
+          <div>
+            <h3>Ganti Format Pedoman Kampus</h3>
+            <p>Pilih dari katalog atau unggah dokumen pedoman penulisan dari fakultasmu.</p>
+          </div>
+        </div>
+        <button class="btn-modal-close" onclick="toggleTemplateModal(false)">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+
+      <div class="template-tab-bar">
+        <button class="tpl-tab active" id="tabBrowseBtn" onclick="switchTemplateTab('browse')">
+          <span class="material-symbols-rounded">storefront</span><span>Katalog Kampus</span>
+        </button>
+        <button class="tpl-tab" id="tabUploadBtn" onclick="switchTemplateTab('upload')">
+          <span class="material-symbols-rounded">upload_file</span><span>Unggah / Tempel Pedoman</span>
+        </button>
+      </div>
+
+      <div class="template-tab-content" id="tabBrowseContent">
+        <div class="template-search-bar">
+          <span class="material-symbols-rounded">search</span>
+          <input type="text" id="campusSearchInput" placeholder="Ketik nama kampus..." oninput="filterCampusCatalog()">
+        </div>
+        <div class="campus-cards-grid" id="campusCardsGrid">
+          <div class="campus-card selected" data-id="ui" onclick="selectCampusTemplate('ui')">
+            <div class="campus-card-head">
+              <div class="campus-icon-badge ui">UI</div>
+              <div class="campus-info"><strong>Universitas Indonesia (UI)</strong><span>Tesis & Disertasi Pascasarjana</span></div>
+              <span class="campus-check"><span class="material-symbols-rounded">check_circle</span></span>
+            </div>
+            <div class="campus-card-meta">
+              <span class="badge-rule">5 Bab</span><span class="badge-rule">APA 7th</span><span class="badge-rule">Times New Roman 12pt</span>
+            </div>
+          </div>
+          <div class="campus-card" data-id="itb" onclick="selectCampusTemplate('itb')">
+            <div class="campus-card-head">
+              <div class="campus-icon-badge itb">ITB</div>
+              <div class="campus-info"><strong>Institut Teknologi Bandung (ITB)</strong><span>Tesis Magister Pascasarjana</span></div>
+              <span class="campus-check"><span class="material-symbols-rounded">check_circle</span></span>
+            </div>
+            <div class="campus-card-meta">
+              <span class="badge-rule">5 Bab Teknis</span><span class="badge-rule">IEEE Style</span><span class="badge-rule">Arial 11pt</span>
+            </div>
+          </div>
+          <div class="campus-card" data-id="ugm" onclick="selectCampusTemplate('ugm')">
+            <div class="campus-card-head">
+              <div class="campus-icon-badge ugm">UGM</div>
+              <div class="campus-info"><strong>Universitas Gadjah Mada (UGM)</strong><span>Proposal & Tesis S2/S3</span></div>
+              <span class="campus-check"><span class="material-symbols-rounded">check_circle</span></span>
+            </div>
+            <div class="campus-card-meta">
+              <span class="badge-rule">Bab Teori Khusus</span><span class="badge-rule">Harvard Style</span><span class="badge-rule">Margin 4-4-3-3</span>
+            </div>
+          </div>
+          <div class="campus-card" data-id="unair" onclick="selectCampusTemplate('unair')">
+            <div class="campus-card-head">
+              <div class="campus-icon-badge unair">UNAIR</div>
+              <div class="campus-info"><strong>Universitas Airlangga (UNAIR)</strong><span>Karya Ilmiah Pascasarjana</span></div>
+              <span class="campus-check"><span class="material-symbols-rounded">check_circle</span></span>
+            </div>
+            <div class="campus-card-meta">
+              <span class="badge-rule">5 Bab</span><span class="badge-rule">Vancouver/APA</span><span class="badge-rule">Spasi 2</span>
+            </div>
+          </div>
+          <div class="campus-card" data-id="binus" onclick="selectCampusTemplate('binus')">
+            <div class="campus-card-head">
+              <div class="campus-icon-badge binus">BINUS</div>
+              <div class="campus-info"><strong>Bina Nusantara University (BINUS)</strong><span>Graduate Thesis Guideline</span></div>
+              <span class="campus-check"><span class="material-symbols-rounded">check_circle</span></span>
+            </div>
+            <div class="campus-card-meta">
+              <span class="badge-rule">Bilingual</span><span class="badge-rule">IEEE/ACM</span><span class="badge-rule">Max 60 hal</span>
+            </div>
+          </div>
+          <div class="campus-card" data-id="dikti" onclick="selectCampusTemplate('dikti')">
+            <div class="campus-card-head">
+              <div class="campus-icon-badge dikti">DIKTI</div>
+              <div class="campus-info"><strong>Standar Kemendikbudristek</strong><span>Standar Nasional KTI</span></div>
+              <span class="campus-check"><span class="material-symbols-rounded">check_circle</span></span>
+            </div>
+            <div class="campus-card-meta">
+              <span class="badge-rule">Universal</span><span class="badge-rule">APA 7th</span><span class="badge-rule">Standar Akreditasi</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="template-tab-content" id="tabUploadContent" style="display: none;">
+        <div class="upload-dropzone-box">
+          <span class="material-symbols-rounded upload-large-icon">cloud_upload</span>
+          <strong>Tarik & Letakkan File PDF / DOCX Pedoman</strong>
+          <p>Atau klik tombol di bawah untuk memilih file</p>
+          <input type="file" id="pedomanFileInput" accept=".pdf,.docx,.txt" style="display:none;" onchange="handlePedomanFileUploaded(event)">
+          <button class="btn-choose-file" onclick="document.getElementById('pedomanFileInput').click()">
+            <span class="material-symbols-rounded">folder_open</span> Pilih Dokumen
+          </button>
+        </div>
+        <div class="upload-or-divider"><span>ATAU</span></div>
+        <div class="upload-paste-box">
+          <label for="pedomanTextInput">Tempel Struktur Bab / Panduan Penulisan:</label>
+          <textarea id="pedomanTextInput" placeholder="BAB I PENDAHULUAN&#10;1.1 Latar Belakang&#10;1.2 Rumusan Masalah..."></textarea>
+          <button class="btn-extract-template" onclick="extractCustomGuidelines()">
+            <span class="material-symbols-rounded">auto_awesome</span> Ekstraksi Otomatis dengan AI
+          </button>
+        </div>
+      </div>
+
+      <div class="template-preview-bar">
+        <div class="tpl-preview-info">
+          <span class="tpl-preview-label">Format Aktif:</span>
+          <strong id="tplPreviewTitle">Universitas Indonesia (UI) — APA 7th</strong>
+          <span class="tpl-preview-sub" id="tplPreviewDesc">Struktur 5 Bab • APA 7th • Penomoran 1.1, 1.2, 1.3</span>
+        </div>
+        <div class="tpl-preview-actions">
+          <button class="btn-secondary" onclick="toggleTemplateModal(false)">Batal</button>
+          <button class="btn-primary" onclick="applySelectedTemplate()">
+            <span class="material-symbols-rounded">check</span> Terapkan
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL: SOCRATIC SANDBOX
+       =================================================================== -->
+  <div class="modal-backdrop" id="sandboxModal" style="display: none;">
+    <div class="modal-container sandbox-modal-box">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="material-symbols-rounded icon-modal">tune</span>
+          <div><h3>Socratic Research Sandbox</h3><p>Eksperimen variabel & lihat dampak cascade ke metodologi.</p></div>
+        </div>
+        <button class="btn-modal-close" onclick="toggleSandboxModal(false)"><span class="material-symbols-rounded">close</span></button>
+      </div>
+      <div class="sandbox-body-grid">
+        <div class="sandbox-card">
+          <h4>1. Variabel Bebas (Independent)</h4>
+          <select id="sandboxVarX" class="sandbox-select" onchange="runSandboxSimulation()">
+            <option value="multi-agent">Arsitektur Multi-Agent dengan Cascade Graph</option>
+            <option value="single-llm">Single LLM Direct Prompting (Baseline)</option>
+            <option value="rag-retrieval">RAG Tradisional (Vector Similarity)</option>
+          </select>
+        </div>
+        <div class="sandbox-card">
+          <h4>2. Konteks Objek (Domain)</h4>
+          <select id="sandboxDomain" class="sandbox-select" onchange="runSandboxSimulation()">
+            <option value="thesis-s2">Naskah Tesis Mahasiswa S2</option>
+            <option value="journal-ieee">Artikel Jurnal IEEE</option>
+            <option value="legal-brief">Dokumen Regulasi Hukum</option>
+          </select>
+        </div>
+        <div class="sandbox-card full-span highlight-box">
+          <div class="sim-header"><h4>⚡ Dampak Kausalitas (Cascade Engine):</h4><span class="sim-badge">Real-Time Simulation</span></div>
+          <div class="sim-grid">
+            <div class="sim-item"><span class="sim-label">Rumusan Masalah:</span><p id="simResultRQ">—</p></div>
+            <div class="sim-item"><span class="sim-label">Metode Pengujian:</span><p id="simResultMethod">—</p></div>
+            <div class="sim-item"><span class="sim-label">Metrik Keberhasilan:</span><p id="simResultMetric">—</p></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="toggleSandboxModal(false)">Tutup</button>
+        <button class="btn-primary" onclick="applySandboxToDraft()"><span class="material-symbols-rounded">check</span> Terapkan ke Naskah</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL: AI DEFENSE ARENA (Simulasi Ujian Sidang Sokratik)
+       =================================================================== -->
+  <div class="modal-backdrop" id="defenseModal" style="display: none;">
+    <div class="modal-container defense-modal-box">
+      <!-- Modal Header -->
+      <div class="modal-header arena-head">
+        <div class="modal-title-wrap">
+          <span class="material-symbols-rounded icon-arena">swords</span>
+          <div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <h3 id="defenseModalTitle">AI Defense Arena — Simulasi Ujian Sidang</h3>
+              <span class="arena-live-tag" id="arenaLiveTag">LIVE SESSION</span>
+            </div>
+            <p id="defenseModalSubtitle">Pertahankan argumen naskahmu di hadapan Dewan Penguji AI secara real-time.</p>
+          </div>
+        </div>
+        <div class="arena-head-actions">
+          <button class="btn-modal-close" onclick="toggleDefenseModal(false)" title="Tutup Arena"><span class="material-symbols-rounded">close</span></button>
+        </div>
+      </div>
+
+      <!-- Scope & Controls Bar -->
+      <div class="arena-scope-bar" id="arenaScopeBar">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex:1;">
+          <span class="arena-scope-title"><span class="material-symbols-rounded" style="font-size:14px;color:var(--brand);">target</span> Fokus Ujian:</span>
+          <div id="arenaScopeTabs" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+        </div>
+
+        <!-- Difficulty Mode & Timer -->
+        <div class="arena-controls-right">
+          <div class="defense-difficulty-wrap">
+            <label class="difficulty-label"><span class="material-symbols-rounded">psychology</span> Mode Penguji:</label>
+            <select id="defenseDifficultySelect" class="defense-difficulty-select" onchange="changeDefenseDifficulty(this.value)">
+              <option value="coaching">🟢 Pembimbingan (Coaching)</option>
+              <option value="standard" selected>🟡 Sidang Standar (Standard)</option>
+              <option value="killer">🔴 Penguji Killer (Ekstrem Kritis)</option>
+            </select>
+          </div>
+          <div class="arena-session-pill" id="arenaSessionTimer" title="Durasi Sidang">
+            <span class="material-symbols-rounded">timer</span>
+            <span id="defenseTimerText">00:00</span>
+          </div>
+          <div class="arena-turn-pill" id="defenseTurnBadge">Putaran 1 / 4</div>
+        </div>
+      </div>
+
+      <!-- Main Arena Layout -->
+      <div class="defense-arena-layout">
+        <!-- Left: Examiners & Meter Panel -->
+        <div class="examiners-panel">
+          <div class="examiners-header-tag">DEWAN PENGUJI AI</div>
+          
+          <div class="examiner-card active" id="examiner1">
+            <div class="ex-avatar-wrap">
+              <div class="ex-avatar">👨‍🏫</div>
+              <span class="ex-pulse-ring"></span>
+            </div>
+            <div class="ex-meta">
+              <strong id="ex1Name">Prof. Dr. Hardi Santoso</strong>
+              <span id="ex1Role">Ketua Penguji · Teori & Novelty</span>
+            </div>
+            <span class="ex-status attacking" id="ex1Status">Menguji Novelty</span>
+          </div>
+
+          <div class="examiner-card" id="examiner2">
+            <div class="ex-avatar-wrap">
+              <div class="ex-avatar">👩‍🔬</div>
+              <span class="ex-pulse-ring"></span>
+            </div>
+            <div class="ex-meta">
+              <strong id="ex2Name">Dr. Maya Kusuma</strong>
+              <span id="ex2Role">Penguji I · Metodologi & Validitas</span>
+            </div>
+            <span class="ex-status waiting" id="ex2Status">Menyimak</span>
+          </div>
+
+          <div class="examiner-card" id="examiner3">
+            <div class="ex-avatar-wrap">
+              <div class="ex-avatar">👨‍💻</div>
+              <span class="ex-pulse-ring"></span>
+            </div>
+            <div class="ex-meta">
+              <strong id="ex3Name">Dr. Anton Kurniawan</strong>
+              <span id="ex3Role">Penguji II · Statistik & Data</span>
+            </div>
+            <span class="ex-status waiting" id="ex3Status">Menyimak</span>
+          </div>
+
+          <!-- Live Defense Meter -->
+          <div class="defense-meter-card">
+            <div class="meter-label-row">
+              <span>Readiness Score:</span>
+              <strong id="defenseScoreText">80 / 100</strong>
+            </div>
+            <div class="meter-bar">
+              <div class="meter-fill" id="defenseMeterFill" style="width:80%;"></div>
+            </div>
+            
+            <div class="meter-aspects-mini">
+              <div class="aspect-mini-item">
+                <span>Logika Argumen</span>
+                <div class="aspect-mini-bar"><div id="aspectBarLogic" style="width: 82%;"></div></div>
+              </div>
+              <div class="aspect-mini-item">
+                <span>Validitas Metode</span>
+                <div class="aspect-mini-bar"><div id="aspectBarMethod" style="width: 78%;"></div></div>
+              </div>
+              <div class="aspect-mini-item">
+                <span>Rujukan Literatur</span>
+                <div class="aspect-mini-bar"><div id="aspectBarLit" style="width: 80%;"></div></div>
+              </div>
+            </div>
+
+            <button class="btn-finish-defense" id="btnFinishDefense" onclick="finishDefenseAndGenerateReport()">
+              <span class="material-symbols-rounded">verified</span>
+              <span>Terbitkan Berita Acara</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: Dialog & Answer Area -->
+        <div class="arena-dialog-wrap">
+          <div class="arena-chat-stream" id="arenaChatStream">
+            <!-- Messages streamed dynamically -->
+          </div>
+
+          <!-- Typing / Evaluating indicator -->
+          <div class="arena-evaluating-bar" id="arenaEvaluatingBar" style="display: none;">
+            <div class="eval-spinner"></div>
+            <span id="arenaEvaluatingText">Dewan Penguji sedang mengevaluasi kedalaman argumen Anda...</span>
+          </div>
+
+          <!-- Interactive Input Row -->
+          <div class="arena-input-container">
+            <div class="arena-input-row">
+              <button class="btn-arena-mic" id="btnVoiceInput" onclick="toggleVoiceInput()" title="Bicara Lisan (Speech-to-Text)">
+                <span class="material-symbols-rounded" id="micIcon">mic</span>
+                <span class="mic-pulse" id="micPulse"></span>
+              </button>
+              <textarea id="arenaAnswerInput" class="arena-textarea" placeholder="Pertahankan argumenmu di sini... (Tekan Enter untuk jawab, Shift+Enter untuk baris baru)" rows="2" onkeydown="handleDefenseKeydown(event)"></textarea>
+              <button class="btn-arena-submit" id="btnSubmitDefense" onclick="submitDefenseAnswer()">
+                <span>Jawab</span>
+                <span class="material-symbols-rounded">gavel</span>
+              </button>
+            </div>
+            <div class="arena-input-tips">
+              <span>💡 <strong>Tip Sidang:</strong> Sebutkan landasan teori, metodologi terukur, atau batasan riset untuk memperkuat skor.</span>
+              <span id="speechStatusHint" class="speech-hint" style="display:none;">🎙️ Mendengarkan suara Anda...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL: BERITA ACARA & RAPOR KESIAPAN SIDANG (Official Defense Report)
+       =================================================================== -->
+  <div class="modal-backdrop" id="defenseReportModal" style="display: none;">
+    <div class="modal-container defense-report-box">
+      <div class="report-header">
+        <div class="report-header-left">
+          <div class="report-seal">
+            <span class="material-symbols-rounded">workspace_premium</span>
+          </div>
+          <div>
+            <div class="report-org-title">THESA AI ACADEMIC SUPERVISION SYSTEM</div>
+            <h2 class="report-main-title">BERITA ACARA SIMULASI UJIAN SIDANG</h2>
+            <div class="report-subtitle" id="reportGeneratedDate">Diterbitkan pada: 19 Agustus 2026</div>
+          </div>
+        </div>
+        <button class="btn-modal-close" onclick="toggleDefenseReportModal(false)" style="color:#fff;"><span class="material-symbols-rounded">close</span></button>
+      </div>
+
+      <div class="report-body">
+        <!-- Candidate Meta Info Card -->
+        <div class="report-meta-grid">
+          <div class="meta-cell">
+            <span class="meta-label">Nama Peneliti</span>
+            <strong class="meta-val" id="reportCandidateName">Alif Awwaz</strong>
+          </div>
+          <div class="meta-cell">
+            <span class="meta-label">NIM & Program Studi</span>
+            <strong class="meta-val" id="reportCandidateProdi">2206123456 · S2 Ilmu Komputer</strong>
+          </div>
+          <div class="meta-cell">
+            <span class="meta-label">Institusi</span>
+            <strong class="meta-val" id="reportCandidateInstitution">Universitas Indonesia</strong>
+          </div>
+          <div class="meta-cell">
+            <span class="meta-label">Fokus Pengujian</span>
+            <strong class="meta-val" id="reportScopeLabel">Komprehensif (Naskah Lengkap)</strong>
+          </div>
+        </div>
+
+        <div class="report-topic-box">
+          <span class="meta-label">Judul / Topik Naskah:</span>
+          <p id="reportTopicText">"Rancang Bangun Multi-Agent Socratic Framework untuk Menjaga Koherensi Penulisan Karya Tulis Ilmiah"</p>
+        </div>
+
+        <!-- Grand Score & Verdict Badge -->
+        <div class="report-verdict-card">
+          <div class="verdict-score-block">
+            <div class="grand-score" id="reportGrandScore">88</div>
+            <div class="grand-score-sub">/ 100 SKOR KESIAPAN</div>
+          </div>
+          <div class="verdict-divider"></div>
+          <div class="verdict-content">
+            <div class="verdict-badge ready" id="reportVerdictBadge">✓ DINYATAKAN SIAP SIDANG MEJA HIJAU</div>
+            <p class="verdict-desc" id="reportVerdictDesc">
+              Peneliti mampu mempertahankan argumen secara logis, berbasis rujukan teori yang kokoh, dan memahami metodologi riset secara mendalam.
+            </p>
+          </div>
+        </div>
+
+        <!-- Aspect Rubrics Breakdown -->
+        <div class="report-section-title">
+          <span class="material-symbols-rounded">analytics</span>
+          <span>Rubrik Evaluasi Dewan Penguji</span>
+        </div>
+
+        <div class="report-rubric-grid">
+          <div class="rubric-card">
+            <div class="rubric-head">
+              <span>Struktur & Logika Argumen</span>
+              <strong id="scoreRubricLogic">90%</strong>
+            </div>
+            <div class="rubric-bar"><div id="barRubricLogic" style="width:90%;"></div></div>
+            <p id="descRubricLogic">Alur pemikiran terstruktur runtut dari premis ke kesimpulan.</p>
+          </div>
+
+          <div class="rubric-card">
+            <div class="rubric-head">
+              <span>Validitas Metodologi</span>
+              <strong id="scoreRubricMethod">85%</strong>
+            </div>
+            <div class="rubric-bar"><div id="barRubricMethod" style="width:85%;"></div></div>
+            <p id="descRubricMethod">Desain pengujian jelas dengan mitigasi bias yang memadai.</p>
+          </div>
+
+          <div class="rubric-card">
+            <div class="rubric-head">
+              <span>Penguasaan Literatur & Novelty</span>
+              <strong id="scoreRubricLit">88%</strong>
+            </div>
+            <div class="rubric-bar"><div id="barRubricLit" style="width:88%;"></div></div>
+            <p id="descRubricLit">Research gap dan kontribusi kebaruan terdefinisi tegas.</p>
+          </div>
+
+          <div class="rubric-card">
+            <div class="rubric-head">
+              <span>Ketajaman Respon Lisan</span>
+              <strong id="scoreRubricOral">86%</strong>
+            </div>
+            <div class="rubric-bar"><div id="barRubricOral" style="width:86%;"></div></div>
+            <p id="descRubricOral">Menjawab tepat sasaran tanpa berputar-putar.</p>
+          </div>
+        </div>
+
+        <!-- Critical Weaknesses & Notes to Anticipate -->
+        <div class="report-section-title">
+          <span class="material-symbols-rounded">warning</span>
+          <span>Catatan Kritis yang Perlu Diantisipasi Saat Sidang Asli</span>
+        </div>
+
+        <div class="report-weakness-list" id="reportWeaknessList">
+          <div class="weakness-item">
+            <span class="material-symbols-rounded weakness-icon">arrow_forward</span>
+            <div>
+              <strong>Urgensi Batasan Riset:</strong>
+              <p>Pertegas alasan pemilihan parameter model dan batasan komputasi agar tidak dipertanyakan oleh penguji teknis.</p>
+            </div>
+          </div>
+          <div class="weakness-item">
+            <span class="material-symbols-rounded weakness-icon">arrow_forward</span>
+            <div>
+              <strong>Perbandingan dengan Baseline Mutakhir:</strong>
+              <p>Siapkan tabel perbandingan langsung dengan 2 studi terkini (2024-2026) jika penguji menanyakan novelty kuantitatif.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recommended Action Checklist -->
+        <div class="report-section-title">
+          <span class="material-symbols-rounded">checklist</span>
+          <span>Rekomendasi Tindakan Pra-Sidang (Next Action Checklist)</span>
+        </div>
+
+        <div class="report-checklist" id="reportActionChecklist">
+          <label class="action-check-item">
+            <input type="checkbox" checked disabled>
+            <span>Latihan pembelaan lisan Bab I & III dengan durasi jawaban di bawah 90 detik</span>
+          </label>
+          <label class="action-check-item">
+            <input type="checkbox" checked disabled>
+            <span>Harmonisasi sitasi APA 7th style pada daftar pustaka terkait novelty</span>
+          </label>
+          <label class="action-check-item">
+            <input type="checkbox" checked disabled>
+            <span>Simpan slide cadangan (Backup Slides) untuk arsitektur mendalam jika ditanya penguji</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Report Footer Actions -->
+      <div class="report-footer">
+        <button class="btn-report-secondary" onclick="toggleDefenseReportModal(false)">
+          <span class="material-symbols-rounded">arrow_back</span>
+          <span>Kembali ke Naskah</span>
+        </button>
+        <div style="display:flex; gap:10px;">
+          <button class="btn-report-outline" onclick="restartDefenseSession()">
+            <span class="material-symbols-rounded">replay</span>
+            <span>Uji Ulang Simulasi</span>
+          </button>
+          <button class="btn-report-primary" onclick="printDefenseReport()">
+            <span class="material-symbols-rounded">print</span>
+            <span>Cetak / Unduh PDF</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Older dossier modal replaced by new unified Dossier Modal below -->
+
+  <!-- ===================================================================
+       MODAL: PROPOSAL HANDOVER TO FULL THESIS / DISSERTATION
+       =================================================================== -->
+  <div class="modal-backdrop" id="handoverModal" style="display: none;">
+    <div class="modal-container" style="width: 680px; max-height: 88vh;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #1e1b4b, #312e81); color:#fff; border-radius: var(--r-2xl) var(--r-2xl) 0 0; padding: 22px 26px;">
+        <div class="modal-title-wrap">
+          <span class="material-symbols-rounded icon-modal" style="background: rgba(255,255,255,0.15); color:#fff;">move_up</span>
+          <div>
+            <h3 style="color:#fff;">Handover Proposal ke Naskah Penuh</h3>
+            <p style="color:rgba(255,255,255,0.75);">Lanjutkan draf Bab I–III yang sudah teruji ke fase Skripsi, Tesis, atau Disertasi.</p>
+          </div>
+        </div>
+        <button class="btn-modal-close" style="color:#fff;" onclick="toggleHandoverModal(false)"><span class="material-symbols-rounded">close</span></button>
+      </div>
+
+      <div style="padding: 22px 26px; overflow-y:auto; max-height: calc(88vh - 180px); display:flex; flex-direction:column; gap:18px;">
+        
+        <!-- Summary of Approved Proposal -->
+        <div class="covenant-card-audit" style="background: var(--bg-card); border: 1.5px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <strong style="font-size:13.5px; color:var(--text);">📄 Ringkasan Draf Proposal Teruji:</strong>
+            <span class="badge-trust-status">Siap Handover ✅</span>
+          </div>
+          <p style="font-size:12.5px; color:var(--text-secondary); line-height:1.5;" id="handoverProposalTopicSummary">
+            "Analisis Dampak Kecerdasan Buatan terhadap Etika dan Integritas Penulisan Akademik"
+          </p>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <span class="prof-tag verified">✓ BAB I Pendahuluan</span>
+            <span class="prof-tag verified">✓ BAB II Tinjauan Pustaka</span>
+            <span class="prof-tag verified">✓ BAB III Metode Penelitian</span>
+          </div>
+        </div>
+
+        <!-- Target Destination Selection -->
+        <div>
+          <label style="font-size:13px; font-weight:800; color:var(--text); display:block; margin-bottom:8px;">
+            Pilih Target Naskah Penuh:
+          </label>
+          <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+            <button class="ob-campus-card selected" id="handoverTargetSkripsi" onclick="selectHandoverTarget('skripsi', this)">
+              <div class="campus-icon-badge" style="background:#fef3c7; color:#d97706;">S1</div>
+              <div class="ob-campus-info">
+                <strong>Skripsi (S1)</strong>
+                <span>Bab IV &amp; V Empiris</span>
+              </div>
+            </button>
+            <button class="ob-campus-card" id="handoverTargetTesis" onclick="selectHandoverTarget('tesis', this)">
+              <div class="campus-icon-badge" style="background:#ede9fe; color:#7c3aed;">S2</div>
+              <div class="ob-campus-info">
+                <strong>Tesis (S2)</strong>
+                <span>Novelty &amp; Diskusi Global</span>
+              </div>
+            </button>
+            <button class="ob-campus-card" id="handoverTargetDisertasi" onclick="selectHandoverTarget('disertasi', this)">
+              <div class="campus-icon-badge" style="background:#ffe4e6; color:#e11d48;">S3</div>
+              <div class="ob-campus-info">
+                <strong>Disertasi (S3)</strong>
+                <span>Konstruksi Dalil Baru</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Lifecycle Bridge Notice -->
+        <div style="background:#f0fdf4; border:1.5px solid #86efac; border-radius:var(--r-xl); padding:14px 16px; display:flex; gap:12px; align-items:flex-start;">
+          <span class="material-symbols-rounded" style="color:#16a34a; font-size:22px;">data_exploration</span>
+          <div style="font-size:12.5px; color:#166534; line-height:1.45;">
+            <strong>Otomatis Membuka Fase Pengumpulan Data:</strong><br>
+            Setelah handover, Thesa akan menyisipkan <em>Fase Lapangan &amp; Pengumpulan Data</em> sebagai jembatan sebelum menyusun Bab IV (Hasil &amp; Pembahasan).
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between;">
+        <button class="btn-secondary" onclick="toggleHandoverModal(false)">Batal</button>
+        <button class="btn-primary" onclick="executeHandover()" style="background:var(--brand); display:flex; align-items:center; gap:6px;">
+          <span>Lanjutkan Handover ke Naskah Penuh</span>
+          <span class="material-symbols-rounded">arrow_forward</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================================================================
+       MODAL: DATA COLLECTION & FIELDWORK HUB (INTERMEDIATE PHASE)
+       =================================================================== -->
+  <div class="modal-backdrop" id="dataHubModal" style="display: none;">
+    <div class="modal-container" style="width: 720px; max-height: 88vh;">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="material-symbols-rounded icon-modal" style="color:var(--brand);">dataset</span>
+          <div>
+            <h3>Fase Pengumpulan Data &amp; Log Lapangan</h3>
+            <p>Catat progres pengumpulan data, upload temuan mentah, dan sintesiskan bersama Thesa sebelum menyusun Bab IV.</p>
+          </div>
+        </div>
+        <button class="btn-modal-close" onclick="toggleDataHubModal(false)"><span class="material-symbols-rounded">close</span></button>
+      </div>
+
+      <div style="padding: 20px 24px; overflow-y:auto; max-height: calc(88vh - 180px); display:flex; flex-direction:column; gap:16px;">
+        
+        <!-- Live Fieldwork Progress Card -->
+        <div class="integrity-profile-card" style="background:#f8fafc; border:1.5px solid var(--border);">
+          <div style="flex:1;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <strong style="font-size:13.5px;">📈 Status Responden / Sampel Lapangan:</strong>
+              <span class="prof-tag verified" id="dataProgressPercent">80% Terkumpul</span>
+            </div>
+            <div style="width:100%; height:8px; background:#e2e8f0; border-radius:4px; overflow:hidden; margin-bottom:8px;">
+              <div id="dataProgressBarFill" style="width:80%; height:100%; background:var(--brand); transition:width 0.3s;"></div>
+            </div>
+            <div style="display:flex; gap:12px; font-size:12px; color:var(--text-secondary);">
+              <span>🎯 Target: <strong>150 Responden</strong></span>
+              <span>📥 Terkumpul: <strong id="dataCountText">120 Data</strong></span>
+              <span>✅ Uji Validitas Instrumen: <strong>Lolos (Alpha = 0.84)</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Raw Data / Findings Input -->
+        <div class="covenant-card-audit">
+          <strong style="font-size:13px; display:block; margin-bottom:6px;">📝 Input Rangkuman Data Mentah / Temuan Eksperimen:</strong>
+          <p style="font-size:12px; color:var(--text-secondary); margin-bottom:8px;">
+            Tempelkan ringkasan tabel frekuensi, temuan statistik, atau poin-poin wawancara mendalam yang kamu dapatkan di lapangan:
+          </p>
+          <textarea id="rawFindingsInput" rows="4" style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--r-md); font-family:var(--font-sans); font-size:12.5px; resize:vertical;" placeholder="Contoh: 78% responden menyatakan bahwa pemahaman orisinalitas meningkat setelah pembimbingan Sokratik. Ditemukan anomali pada kelompok mahasiswa semester 1..."></textarea>
+        </div>
+
+        <!-- Socratic Digest Prompt -->
+        <div class="socratic-probe-box">
+          <span class="material-symbols-rounded probe-icon">psychology</span>
+          <div class="probe-content">
+            <strong>Thesa Socratic Data Digest:</strong>
+            <p>"Dari data lapangan yang sudah masuk, pola atau temuan apa yang paling berbeda atau mengonfirmasi hipotesis yang kamu ajukan di Bab II?"</p>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between;">
+        <button class="btn-secondary" onclick="toggleDataHubModal(false)">Tutup</button>
+        <button class="btn-primary" onclick="saveAndProceedToResults()" style="display:flex; align-items:center; gap:6px;">
+          <span>Simpan &amp; Lanjut ke BAB IV: Hasil &amp; Pembahasan</span>
+          <span class="material-symbols-rounded">arrow_forward</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       CO-DESIGN & EARLY ACCESS SURVEY MODAL FOR UPCOMING MODULES
+       =================================================================== -->
+  <div id="moduleSurveyModal" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) toggleModuleSurveyModal(false)">
+    <div class="modal-container survey-modal-container">
+
+      <!-- Gradient Header -->
+      <div class="survey-modal-head" id="surveyModalHead">
+        <button class="survey-close-btn" onclick="toggleModuleSurveyModal(false)">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+        <div class="survey-head-icon-wrap">
+          <div class="survey-head-icon" id="surveyModalIcon">
+            <span class="material-symbols-rounded">hub</span>
+          </div>
+        </div>
+        <div class="survey-head-label" id="surveyHeadLabel">Sedang dalam Pengembangan</div>
+        <h2 class="survey-head-title" id="surveyModalTitle">Co-Design Modul Skripsi (S1)</h2>
+        <p class="survey-head-sub" id="surveyModalSub">Bantu kami membangun fitur yang benar-benar kamu butuhkan.</p>
+        <!-- Reward Pills -->
+        <div class="survey-reward-row">
+          <span class="survey-reward-pill"><span class="material-symbols-rounded">bolt</span> +150 XP</span>
+          <span class="survey-reward-pill"><span class="material-symbols-rounded">stars</span> Akses Beta Prioritas</span>
+          <span class="survey-reward-pill"><span class="material-symbols-rounded">military_tech</span> Badge Pionir</span>
+        </div>
+      </div>
+
+      <!-- Survey Form Body -->
+      <div id="surveyFormState" class="survey-form-body">
+
+        <!-- Q1: Prodi -->
+        <div class="survey-field-group">
+          <label class="survey-field-label">
+            <span class="material-symbols-rounded">school</span>
+            Jurusan &amp; Perguruan Tinggi <span class="survey-required">*</span>
+          </label>
+          <input type="text" id="surveyProdiInput" class="survey-text-input"
+            placeholder="Contoh: S1 Ilmu Komunikasi – Universitas Padjadjaran">
+        </div>
+
+        <!-- Q2: Tahapan (dynamic pills) -->
+        <div class="survey-field-group">
+          <label class="survey-field-label">
+            <span class="material-symbols-rounded">timeline</span>
+            Kamu sedang di tahap mana?
+          </label>
+          <div class="survey-stage-grid" id="surveyStageGrid">
+            <!-- Injected by app.js -->
+          </div>
+        </div>
+
+        <!-- Q3: Obstacles (dynamic chip-checks) -->
+        <div class="survey-field-group">
+          <label class="survey-field-label">
+            <span class="material-symbols-rounded">bolt</span>
+            Tantangan terberatmu <span class="survey-hint-tag">pilih semua yang relevan</span>
+          </label>
+          <div class="survey-obstacle-grid" id="surveyObstaclesList">
+            <!-- Injected by app.js -->
+          </div>
+        </div>
+
+        <div class="survey-field-group">
+          <label class="survey-field-label">
+            <span class="material-symbols-rounded">edit_note</span>
+            Ada hal lain yang perlu kami tahu? <span class="survey-hint-tag">opsional</span>
+          </label>
+          <textarea id="surveyFeatureWish" class="survey-textarea"
+            placeholder="Ceritakan dengan bebas..."></textarea>
+        </div>
+
+        <!-- Q5: Contact (compact inline) -->
+        <div class="survey-contact-row">
+          <div class="survey-contact-field">
+            <span class="material-symbols-rounded">mail</span>
+            <input type="email" id="surveyEmailInput" class="survey-contact-input"
+              placeholder="Email kamu" value="andi.pratama@univ.ac.id">
+          </div>
+          <div class="survey-contact-field">
+            <span class="material-symbols-rounded">smartphone</span>
+            <input type="tel" id="surveyPhoneInput" class="survey-contact-input"
+              placeholder="WA (opsional)">
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="survey-modal-footer" id="surveyModalFooter">
+        <button type="button" class="survey-cancel-btn" onclick="toggleModuleSurveyModal(false)">Lewati</button>
+        <button type="button" class="survey-submit-btn" onclick="submitModuleSurvey()">
+          <span class="material-symbols-rounded">send</span>
+          Kirim &amp; Dapatkan Akses Prioritas
+        </button>
+      </div>
+
+      <!-- Success State -->
+      <div id="surveySuccessState" class="survey-success-state" style="display:none;">
+        <div class="survey-success-glow"></div>
+        <div class="survey-success-icon">🏅</div>
+        <h3 class="survey-success-title">Kamu resmi jadi Pionir Riset Thesa!</h3>
+        <p class="survey-success-sub">Masukan berhargamu sudah kami terima. Tim akan menghubungimu saat modul ini siap diuji.</p>
+        <div class="survey-success-rewards">
+          <div class="survey-success-reward-item">
+            <span style="font-size:22px;">⚡</span>
+            <div>
+              <strong>+150 XP</strong>
+              <span>Ditambahkan ke akun</span>
+            </div>
+          </div>
+          <div class="survey-success-reward-item">
+            <span style="font-size:22px;">🎖️</span>
+            <div>
+              <strong>Badge Pionir</strong>
+              <span>Co-Design Thesa</span>
+            </div>
+          </div>
+          <div class="survey-success-reward-item">
+            <span style="font-size:22px;">🚀</span>
+            <div>
+              <strong>Akses Beta</strong>
+              <span>Prioritas pertama</span>
+            </div>
+          </div>
+        </div>
+        <div class="survey-success-actions">
+          <button type="button" class="survey-cancel-btn" onclick="toggleModuleSurveyModal(false)">Kembali ke Dashboard</button>
+          <button type="button" class="survey-submit-btn" onclick="toggleModuleSurveyModal(false); handleKTIClick('makalah');">
+            <span class="material-symbols-rounded">article</span>
+            Coba Modul Makalah
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+
+  <!-- ===================================================================
+       DOSSIER / PROFILE & PERSONAL RESEARCH DIRECTION MODAL
+       =================================================================== -->
+  <div id="dossierModal" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) toggleDossierModal(false)">
+    <div class="modal-container" style="width: 760px; max-height: 90vh;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); color:#fff; border-bottom:none;">
+        <div class="modal-title-wrap">
+          <div style="width:44px; height:44px; border-radius:50%; border:2px solid rgba(255,255,255,0.3); overflow:hidden; background:#e0e7ff; display:flex; align-items:center; justify-content:center;">
+            <img id="dossierAvatar" src="https://api.dicebear.com/7.x/initials/svg?seed=AA&backgroundColor=e0e7ff&textColor=4f46e5" alt="Avatar" style="width:100%; height:100%;">
+          </div>
+          <div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <h3 id="dossierName" style="color:#fff; font-size:18px;">Alif Awwaz</h3>
+              <span id="dossierTierBadge" style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:999px; background:rgba(255,255,255,0.2); color:#fff;">🥇 Gold</span>
+            </div>
+            <p id="dossierMeta" style="color:rgba(255,255,255,0.75); font-size:12.5px;">S2 Ilmu Komputer · Universitas Indonesia</p>
+          </div>
+        </div>
+        <button class="btn-modal-close" style="color:#fff;" onclick="toggleDossierModal(false)"><span class="material-symbols-rounded">close</span></button>
+      </div>
+
+      <!-- Dossier Tabs -->
+      <div style="display:flex; border-bottom:1px solid var(--border); background:#f8fafc; padding:0 20px;">
+        <button class="dossier-tab active" id="tabBtnCompass" onclick="switchDossierTab('compass')">
+          <span class="material-symbols-rounded" style="font-size:17px;">explore</span>
+          Arah Riset Personal
+        </button>
+        <button class="dossier-tab" id="tabBtnBilling" onclick="switchDossierTab('billing')">
+          <span class="material-symbols-rounded" style="font-size:17px;">account_balance_wallet</span>
+          Paket &amp; Saldo / Kuota
+        </button>
+        <button class="dossier-tab" id="tabBtnAccount" onclick="switchDossierTab('account')">
+          <span class="material-symbols-rounded" style="font-size:17px;">person</span>
+          Informasi Akun
+        </button>
+      </div>
+
+      <div style="padding:24px; max-height:calc(85vh - 180px); overflow-y:auto;">
+        
+        <!-- TAB 1: ACADEMIC TRAJECTORY & RESEARCH STRATEGY -->
+        <div id="dossierTabCompass">
+          
+          <!-- Long-term Empowerment Hero Banner -->
+          <div class="dossier-hero-banner">
+            <div class="hero-icon-box">
+              <span class="material-symbols-rounded">rocket_launch</span>
+            </div>
+            <div>
+              <strong class="hero-title">Academic Path &amp; Pemberdayaan Riset Jangka Panjang</strong>
+              <p class="hero-desc">
+                Tentukan lintasan akademik dan gaya pembimbingan AI-mu. Pengaturan ini akan <strong>selalu inline diwariskan ke setiap proyek</strong>, menjaga konsistensi kepakaranmu dari semester awal hingga publikasi bereputasi.
+              </p>
+            </div>
+          </div>
+
+          <!-- SECTION 1: JALUR & TARGET AKADEMIK AKTIF -->
+          <div class="dossier-section-card">
+            <div class="dossier-sec-header">
+              <div class="sec-badge">1</div>
+              <div>
+                <strong>Jalur &amp; Target Akademik Utama (Academic Milestone)</strong>
+                <span>Pilih jenjang yang sedang kamu tempuh untuk menyesuaikan kedalaman kritik dan standar naskah.</span>
+              </div>
+            </div>
+
+            <div class="academic-path-grid">
+              <div class="academic-path-card" id="pathCardS1" onclick="selectAcademicPath('s1')">
+                <div class="path-head">
+                  <span class="path-icon">🎓</span>
+                  <span class="path-tag">Sarjana (S1)</span>
+                </div>
+                <strong>Fast-Track Sarjana</strong>
+                <p>Fokus Skripsi 5 Bab, Lolos Sidang Predikat A, Publikasi SINTA 2/3, &amp; Kesiapan Beasiswa S2.</p>
+                <div class="path-footer">
+                  <span class="material-symbols-rounded check-icon">check_circle</span>
+                </div>
+              </div>
+
+              <div class="academic-path-card active" id="pathCardS2" onclick="selectAcademicPath('s2')">
+                <div class="path-head">
+                  <span class="path-icon">🏛️</span>
+                  <span class="path-tag">Magister (S2)</span>
+                </div>
+                <strong>Rigorous Scholar</strong>
+                <p>Tesis Riset Terapan &amp; Eksperimental, Publikasi Jurnal Scopus Q2/Q3, Kontribusi Manajerial/Industri.</p>
+                <div class="path-footer">
+                  <span class="material-symbols-rounded check-icon">check_circle</span>
+                </div>
+              </div>
+
+              <div class="academic-path-card" id="pathCardS3" onclick="selectAcademicPath('s3')">
+                <div class="path-head">
+                  <span class="path-icon">🔬</span>
+                  <span class="path-tag">Doktoral (S3)</span>
+                </div>
+                <strong>Frontier Researcher</strong>
+                <p>Disertasi Novelty Teoretis Fundamental, Publikasi Scopus Q1, H-Index &amp; Paradigma Keilmuan Baru.</p>
+                <div class="path-footer">
+                  <span class="material-symbols-rounded check-icon">check_circle</span>
+                </div>
+              </div>
+
+              <div class="academic-path-card" id="pathCardDosen" onclick="selectAcademicPath('dosen')">
+                <div class="path-head">
+                  <span class="path-icon">👨‍🏫</span>
+                  <span class="path-tag">Dosen / Peneliti</span>
+                </div>
+                <strong>Independent Scholar</strong>
+                <p>Hibah Riset DIKTI/Kedaireka, Kolaborasi Internasional, dan Roadmap Portofolio Penelitian 5 Tahunan.</p>
+                <div class="path-footer">
+                  <span class="material-symbols-rounded check-icon">check_circle</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 2: GAYA & KEKETATAN PEMBIMBING AI -->
+          <div class="dossier-section-card">
+            <div class="dossier-sec-header">
+              <div class="sec-badge">2</div>
+              <div>
+                <strong>Gaya &amp; Keketatan Pembimbing AI (AI Supervisor Rigor)</strong>
+                <span>Bagaimana cara Thesa menantang dan membimbingmu dalam menyusun argumen ilmiah.</span>
+              </div>
+            </div>
+
+            <div class="rigor-cards-grid">
+              <div class="rigor-card active" id="rigorCardSocratic" onclick="selectCoachingRigor('socratic')">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                  <span class="material-symbols-rounded" style="color:#4f46e5; font-size:20px;">psychology</span>
+                  <strong>Socratic Mentor (Rekomendasi)</strong>
+                </div>
+                <p>AI selalu menantang logika dan menguji asumsimu melalui pertanyaan sokratik agar kemampuan berpikir kritis terasah mandiri.</p>
+              </div>
+
+              <div class="rigor-card" id="rigorCardScopus" onclick="selectCoachingRigor('scopus')">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                  <span class="material-symbols-rounded" style="color:#059669; font-size:20px;">verified</span>
+                  <strong>Scopus Peer Reviewer</strong>
+                </div>
+                <p>Keketatan akademik tinggi: mengaudit bias sampel, validitas konstruk, replikasi data, dan kesenjangan literatur global.</p>
+              </div>
+
+              <div class="rigor-card" id="rigorCardFast" onclick="selectCoachingRigor('accelerator')">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                  <span class="material-symbols-rounded" style="color:#f59e0b; font-size:20px;">bolt</span>
+                  <strong>Structured Accelerator</strong>
+                </div>
+                <p>Fokus efisiensi penulisan cepat, sistematika bab baku, dan pencapaian tenggat waktu tugas kuliah/proposal.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 3: PILAR KEPAKARAN & GRAND RESEARCH THEME -->
+          <div class="dossier-section-card">
+            <div class="dossier-sec-header">
+              <div class="sec-badge">3</div>
+              <div>
+                <strong>Pilar Kepakaran &amp; Benang Merah Riset (Research Niche)</strong>
+                <span>Setiap naskah, tugas, dan bab yang kamu buat akan diselaraskan dengan identitas riset ini.</span>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+              <div class="form-group">
+                <label style="font-size:12px; font-weight:700; color:var(--text); margin-bottom:4px; display:block;">Disiplin / Bidang Utama</label>
+                <select id="compassField" class="survey-input" style="width:100%; padding:9px 12px; font-size:13px;" onchange="updateCompassPreview()">
+                  <option value="Informatika & AI">Informatika &amp; Kecerdasan Buatan</option>
+                  <option value="Ilmu Komunikasi">Ilmu Komunikasi &amp; Media Baru</option>
+                  <option value="Manajemen & Bisnis">Manajemen &amp; Bisnis Digital</option>
+                  <option value="Hukum & Regulasi">Hukum &amp; Kebijakan Publik</option>
+                  <option value="Pendidikan">Pendidikan &amp; Teknologi Pembelajaran</option>
+                  <option value="Kesehatan Masyarakat">Kesehatan Masyarakat &amp; Biomedis</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label style="font-size:12px; font-weight:700; color:var(--text); margin-bottom:4px; display:block;">Sub-Spesialisasi Fokus</label>
+                <input type="text" id="compassSubField" class="survey-input" style="width:100%; padding:9px 12px; font-size:13px;" placeholder="cth: FinTech & AI Governance" value="Natural Language Processing & Evaluasi Naskah" oninput="updateCompassPreview()">
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:14px;">
+              <label style="font-size:12px; font-weight:700; color:var(--text); margin-bottom:4px; display:block;">5 Kata Kunci Inti Portofolio Risetmu</label>
+              <input type="text" id="compassKeywords" class="survey-input" style="width:100%; padding:9px 12px; font-size:13px;" placeholder="Pisahkan dengan koma, cth: Multi-Agent, LLM, Koherensi, Validitas, Sokratik" value="Multi-Agent, LLM Coherence, Cascade Reasoning, Evaluasi Akademik, Human-AI" oninput="updateCompassPreview()">
+            </div>
+
+            <div class="form-group">
+              <label style="font-size:12px; font-weight:700; color:var(--text); margin-bottom:4px; display:flex; justify-content:space-between;">
+                <span>Benang Merah Personal (Grand Research Theme)</span>
+                <span style="font-size:11px; font-weight:700; color:var(--brand);">Identitas Peneliti</span>
+              </label>
+              <textarea id="compassGrandTheme" class="survey-textarea" style="height:68px; font-size:12.5px;" placeholder="Tuliskan masalah atau keresahan pokok yang ingin kamu selesaikan secara konsisten...">Mengeksplorasi bagaimana model bahasa besar (LLM) dapat diajak berpikir logis berjenjang tanpa mengalami delusi argumentasi, demi menjaga integritas karya tulis ilmiah.</textarea>
+              <span style="font-size:11px; color:var(--text-dim); display:block; margin-top:4px;">* AI Thesa akan mengacu pada benang merah ini dalam menyarankan rumusan masalah dan teori pembanding di setiap makalahmu.</span>
+            </div>
+          </div>
+
+          <!-- Literature Sources Gateway Section -->
+          <div style="background:#fff; border:1.5px solid var(--border); border-radius:14px; padding:16px 18px; margin-bottom:20px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <div>
+                <strong style="font-size:13px; color:var(--text); display:flex; align-items:center; gap:6px;">
+                  <span class="material-symbols-rounded" style="color:var(--brand); font-size:19px;">travel_explore</span>
+                  Pusat Akses Sumber Literatur Ilmiah
+                </strong>
+                <span style="font-size:11.5px; color:var(--text-secondary);">Tentukan repositori dan indeks jurnal rujukan yang diizinkan untuk di-crawl &amp; disintesis oleh AI Thesa.</span>
+              </div>
+              
+              <!-- Auto vs Manual Toggle -->
+              <div style="display:flex; align-items:center; gap:6px; background:#f1f5f9; padding:3px 6px; border-radius:999px;">
+                <button type="button" class="source-mode-btn active" id="srcModeAuto" onclick="setSourceMode('auto')">
+                  🤖 Rekomendasi Otomatis
+                </button>
+                <button type="button" class="source-mode-btn" id="srcModeManual" onclick="setSourceMode('manual')">
+                  ⚙️ Kustom (Buka/Tutup)
+                </button>
+              </div>
+            </div>
+
+            <div id="sourceAutoNotice" style="font-size:11.5px; color:#1d4ed8; background:#eff6ff; padding:8px 12px; border-radius:8px; margin-bottom:12px; border:1px solid #bfdbfe;">
+              ✨ <strong>Mode Cerdas Aktif:</strong> Sistem otomatis memprioritaskan database literatur paling relevan berdasarkan bidang <em><span id="autoDisciplineLabel">Informatika &amp; AI</span></em>.
+            </div>
+
+            <!-- Source Toggles Grid -->
+            <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:10px;" id="literatureSourcesGrid">
+              
+              <label class="source-toggle-card" id="cardSrcScholar">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <span class="source-icon">🌐</span>
+                  <div>
+                    <strong>Google Scholar</strong>
+                    <span>Multidisiplin &amp; sitasi luas</span>
+                  </div>
+                </div>
+                <input type="checkbox" id="srcScholar" checked onchange="toggleLiteratureSource('scholar', this.checked)">
+              </label>
+
+              <label class="source-toggle-card" id="cardSrcPubMed">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <span class="source-icon">🧬</span>
+                  <div>
+                    <strong>PubMed / MEDLINE</strong>
+                    <span>Kesehatan, Kedokteran, &amp; Biomedis</span>
+                  </div>
+                </div>
+                <input type="checkbox" id="srcPubMed" onchange="toggleLiteratureSource('pubmed', this.checked)">
+              </label>
+
+              <label class="source-toggle-card" id="cardSrcIEEE">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <span class="source-icon">⚡</span>
+                  <div>
+                    <strong>IEEE Xplore / ACM</strong>
+                    <span>Informatika, Komputasi, &amp; Elektro</span>
+                  </div>
+                </div>
+                <input type="checkbox" id="srcIEEE" checked onchange="toggleLiteratureSource('ieee', this.checked)">
+              </label>
+
+              <label class="source-toggle-card" id="cardSrcSemantic">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <span class="source-icon">📑</span>
+                  <div>
+                    <strong>Semantic Scholar &amp; arXiv</strong>
+                    <span>AI, Sains Data, &amp; Preprint Terkini</span>
+                  </div>
+                </div>
+                <input type="checkbox" id="srcSemantic" checked onchange="toggleLiteratureSource('semantic', this.checked)">
+              </label>
+
+              <label class="source-toggle-card" id="cardSrcSinta">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <span class="source-icon">🇮🇩</span>
+                  <div>
+                    <strong>SINTA &amp; Garuda Dikti</strong>
+                    <span>Jurnal Nasional Terakreditasi 1–6</span>
+                  </div>
+                </div>
+                <input type="checkbox" id="srcSinta" checked onchange="toggleLiteratureSource('sinta', this.checked)">
+              </label>
+
+              <label class="source-toggle-card" id="cardSrcScopus">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <span class="source-icon">🌍</span>
+                  <div>
+                    <strong>Scopus / ScienceDirect</strong>
+                    <span>Jurnal Internasional Bereputasi Q1–Q4</span>
+                  </div>
+                </div>
+                <input type="checkbox" id="srcScopus" checked onchange="toggleLiteratureSource('scopus', this.checked)">
+              </label>
+
+              <label class="source-toggle-card" id="cardSrcDOAJ">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <span class="source-icon">📖</span>
+                  <div>
+                    <strong>DOAJ (Open Access)</strong>
+                    <span>Jurnal Akses Terbuka Peer-Reviewed</span>
+                  </div>
+                </div>
+                <input type="checkbox" id="srcDOAJ" checked onchange="toggleLiteratureSource('doaj', this.checked)">
+              </label>
+
+              <label class="source-toggle-card" id="cardSrcSSRN">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <span class="source-icon">🏛️</span>
+                  <div>
+                    <strong>SSRN &amp; LawArXiv</strong>
+                    <span>Sosial, Hukum, &amp; Kebijakan Publik</span>
+                  </div>
+                </div>
+                <input type="checkbox" id="srcSSRN" onchange="toggleLiteratureSource('ssrn', this.checked)">
+              </label>
+
+            </div>
+          </div>
+
+          <!-- Consistency Visual Metric -->
+          <div style="background:#f8fafc; border:1.5px solid var(--border); border-radius:14px; padding:16px 18px; margin-bottom:16px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+              <strong style="font-size:13px; color:var(--text); display:flex; align-items:center; gap:6px;">
+                <span class="material-symbols-rounded" style="color:#16a34a; font-size:18px;">verified</span>
+                Skor Konsistensi Riset Akumulatif
+              </strong>
+              <span style="font-size:13px; font-weight:800; color:#16a34a; background:#dcfce7; padding:2px 8px; border-radius:999px;">88% Sangat Selaras</span>
+            </div>
+            <div style="width:100%; height:8px; background:#e2e8f0; border-radius:999px; overflow:hidden; margin-bottom:8px;">
+              <div style="width:88%; height:100%; background:linear-gradient(90deg, #22c55e, #16a34a); border-radius:999px;"></div>
+            </div>
+            <p style="font-size:11.5px; color:var(--text-secondary); line-height:1.4;">
+              3 naskah tersimpan (2 Makalah, 1 Draf Tesis) memiliki korelasi tematik kuat pada domain <em>Kecerdasan Buatan &amp; NLP</em>.
+            </p>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end;">
+            <button class="btn-primary" onclick="saveResearchCompass()">
+              <span class="material-symbols-rounded">save</span>
+              Simpan &amp; Terapkan ke AI Bimbingan
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB 2: BILLING & TOKENS / SALDO -->
+        <div id="dossierTabBilling" style="display:none;">
+          <div id="billingStatusCard" style="margin-bottom:20px;"></div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+            <div style="border:1.5px solid var(--border); border-radius:14px; padding:16px; background:#fff;">
+              <strong style="font-size:13px; color:var(--text); display:block; margin-bottom:4px;">Isi Ulang Saldo / Kuota Token</strong>
+              <p style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;">Tambah saldo deposit untuk Silver atau top-up kuota token mingguan untuk Gold.</p>
+              <button class="btn-secondary" style="width:100%;" onclick="openTopupModal()">
+                <span class="material-symbols-rounded">add_card</span>
+                Beli Kuota / Top Up Saldo
+              </button>
+            </div>
+
+            <div style="border:1.5px solid var(--border); border-radius:14px; padding:16px; background:#fff;">
+              <strong style="font-size:13px; color:var(--text); display:block; margin-bottom:4px;">Ganti / Upgrade Paket</strong>
+              <p style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;">Tingkatkan akun ke Gold atau Platinum untuk membuka Pustaka Riset &amp; modul lanjutan.</p>
+              <button class="btn-primary" style="width:100%;" onclick="toggleDossierModal(false); showUpgradeModal('platinum', 'Semua Fitur Thesa');">
+                <span class="material-symbols-rounded">upgrade</span>
+                Lihat Opsi Upgrade
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: ACCOUNT INFO -->
+        <div id="dossierTabAccount" style="display:none;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+            <div class="form-group">
+              <label style="font-size:12px; font-weight:700; color:var(--text); margin-bottom:6px; display:block;">Nama Lengkap</label>
+              <input type="text" id="accNameInput" class="survey-input" style="width:100%; padding:10px 12px;" value="Alif Awwaz">
+            </div>
+            <div class="form-group">
+              <label style="font-size:12px; font-weight:700; color:var(--text); margin-bottom:6px; display:block;">Alamat Email</label>
+              <input type="email" id="accEmailInput" class="survey-input" style="width:100%; padding:10px 12px;" value="alif.awwaz@ui.ac.id">
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+            <div class="form-group">
+              <label style="font-size:12px; font-weight:700; color:var(--text); margin-bottom:6px; display:block;">Perguruan Tinggi</label>
+              <input type="text" id="accInstInput" class="survey-input" style="width:100%; padding:10px 12px;" value="Universitas Indonesia">
+            </div>
+            <div class="form-group">
+              <label style="font-size:12px; font-weight:700; color:var(--text); margin-bottom:6px; display:block;">Program Studi &amp; Jenjang</label>
+              <input type="text" id="accProdiInput" class="survey-input" style="width:100%; padding:10px 12px;" value="S2 Ilmu Komputer">
+            </div>
+          </div>
+          <div style="display:flex; justify-content:flex-end;">
+            <button class="btn-primary" onclick="saveAccountInfo()">
+              <span class="material-symbols-rounded">check</span>
+              Simpan Perubahan
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       PUSTAKA RISET MODAL (PLATINUM EXCLUSIVE)
+       =================================================================== -->
+  <div id="pustakaRisetModal" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) togglePustakaRisetModal(false)">
+    <div class="modal-container" style="width: 820px; max-height: 90vh;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 100%); color:#fff; border-bottom:none;">
+        <div class="modal-title-wrap">
+          <span class="material-symbols-rounded" style="font-size:28px; color:#ddd6fe;">menu_book</span>
+          <div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <h3 style="color:#fff; font-size:18px;">Pustaka Riset Personal</h3>
+              <span style="font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:999px; background:rgba(255,255,255,0.2); color:#fff;">💎 Platinum</span>
+            </div>
+            <p style="color:rgba(255,255,255,0.8); font-size:12px;">Basis data referensi terverifikasi, peta tematik, dan kutipan lintas karya ilmiah</p>
+          </div>
+        </div>
+        <button class="btn-modal-close" style="color:#fff;" onclick="togglePustakaRisetModal(false)"><span class="material-symbols-rounded">close</span></button>
+      </div>
+
+      <div id="pustakaContentContainer" style="padding:24px; max-height:calc(85vh - 160px); overflow-y:auto;">
+        <!-- Injected dynamically based on tier (Platinum vs Locked) -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       PENCAPAIAN MODAL (GOLD & PLATINUM XP & BADGES)
+       =================================================================== -->
+  <div id="pencapaianModal" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) togglePencapaianModal(false)">
+    <div class="modal-container" style="width: 720px; max-height: 88vh;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #78350f 0%, #d97706 100%); color:#fff; border-bottom:none;">
+        <div class="modal-title-wrap">
+          <span class="material-symbols-rounded" style="font-size:28px; color:#fef3c7;">emoji_events</span>
+          <div>
+            <h3 style="color:#fff; font-size:18px;">Pencapaian &amp; Scholar Rank</h3>
+            <p style="color:rgba(255,255,255,0.85); font-size:12px;">Akumulasi reputasi literasi, keaktifan bimbingan, dan lencana kompetensi riset</p>
+          </div>
+        </div>
+        <button class="btn-modal-close" style="color:#fff;" onclick="togglePencapaianModal(false)"><span class="material-symbols-rounded">close</span></button>
+      </div>
+
+      <div style="padding:24px; max-height:calc(85vh - 160px); overflow-y:auto;">
+        <!-- XP & Level Rank Card -->
+        <div style="background:linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%); border:1.5px solid #fde68a; border-radius:16px; padding:18px 20px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:14px;">
+            <div style="width:52px; height:52px; border-radius:50%; background:#d97706; color:#fff; display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:800;">
+              3
+            </div>
+            <div>
+              <span style="font-size:11px; font-weight:800; color:#92400e; text-transform:uppercase; letter-spacing:0.04em;">Level Scholar</span>
+              <h4 style="font-size:17px; font-weight:800; color:#78350f; margin:1px 0;">Kontributor Riset</h4>
+              <p style="font-size:12px; color:#b45309;">1.240 / 1.500 XP menuju <em>Scholar Terkemuka</em></p>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <span style="font-size:24px; font-weight:800; color:#d97706;">1.240</span>
+            <span style="font-size:12px; font-weight:700; color:#92400e; display:block;">Total XP</span>
+          </div>
+        </div>
+
+        <!-- Badges Grid -->
+        <h4 style="font-size:14px; font-weight:800; color:var(--text); margin-bottom:12px;">Koleksi Lencana Kompetensi</h4>
+        <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-bottom:20px;">
+          
+          <div style="display:flex; gap:12px; padding:12px 14px; border:1.5px solid #bbf7d0; background:#f0fdf4; border-radius:12px; align-items:center;">
+            <span style="font-size:28px;">🏅</span>
+            <div>
+              <strong style="font-size:12.5px; color:#166534; display:block;">Pionir Co-Design</strong>
+              <span style="font-size:11px; color:#15803d;">Berpartisipasi aktif merancang modul Thesa</span>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:12px; padding:12px 14px; border:1.5px solid #c7d2fe; background:#eef2ff; border-radius:12px; align-items:center;">
+            <span style="font-size:28px;">🧭</span>
+            <div>
+              <strong style="font-size:12.5px; color:#3730a3; display:block;">Arsitek Riset</strong>
+              <span style="font-size:11px; color:#4338ca;">Menetapkan arah riset personal berkelanjutan</span>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:12px; padding:12px 14px; border:1.5px solid #fed7aa; background:#fff7ed; border-radius:12px; align-items:center;">
+            <span style="font-size:28px;">🔥</span>
+            <div>
+              <strong style="font-size:12.5px; color:#9a3412; display:block;">Konsistensi 7 Hari</strong>
+              <span style="font-size:11px; color:#c2410c;">Aktif berdiskusi sokratik 7 hari berturut-turut</span>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:12px; padding:12px 14px; border:1.5px solid #e2e8f0; background:#f8fafc; border-radius:12px; align-items:center; opacity:0.6;">
+            <span style="font-size:28px;">📚</span>
+            <div>
+              <strong style="font-size:12.5px; color:var(--text); display:block;">Literasi Kuat</strong>
+              <span style="font-size:11px; color:var(--text-secondary);">Koleksi 25+ referensi di Pustaka Riset</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       TOPUP & KUOTA MODAL
+       =================================================================== -->
+  <div id="topupModal" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) toggleTopupModal(false)">
+    <div class="modal-container" style="width: 520px; max-height: 88vh;">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="material-symbols-rounded icon-modal" style="background:#e0e7ff; color:var(--brand);">add_card</span>
+          <div>
+            <h3>Top Up Saldo &amp; Kuota Token</h3>
+            <p id="topupModalSubtitle">Pilih nominal isi ulang sesuai paket aktifmu</p>
+          </div>
+        </div>
+        <button class="btn-modal-close" onclick="toggleTopupModal(false)"><span class="material-symbols-rounded">close</span></button>
+      </div>
+
+      <div style="padding:20px 24px;">
+        <div id="topupOptionsContainer"></div>
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between;">
+        <button class="btn-secondary" onclick="toggleTopupModal(false)">Batal</button>
+        <button class="btn-primary" onclick="processTopup()">
+          <span class="material-symbols-rounded">bolt</span>
+          Konfirmasi Pembayaran
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       XP REWARDS & ACADEMIC RANK CENTER MODAL
+       =================================================================== -->
+  <div id="xpRewardsModal" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) toggleXpRewardsModal(false)">
+    <div class="modal-container" style="width: 680px; max-height: 90vh;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); color:#fff; border-radius: var(--r-2xl) var(--r-2xl) 0 0; padding: 20px 24px;">
+        <div class="modal-title-wrap">
+          <span class="material-symbols-rounded icon-modal" style="background: rgba(255,255,255,0.15); color:#67e8f9;">workspace_premium</span>
+          <div>
+            <h3 style="color:#fff; margin:0; font-size:16px;">Pusat Penukaran XP &amp; Kesiapan Riset</h3>
+            <p style="color:#c7d2fe; margin:2px 0 0 0; font-size:11.5px;">XP membuktikan penguasaan materimu dan dapat ditukarkan dengan Token AI gratis.</p>
+          </div>
+        </div>
+        <button class="btn-modal-close" style="color:#fff;" onclick="toggleXpRewardsModal(false)"><span class="material-symbols-rounded">close</span></button>
+      </div>
+
+      <div style="padding: 20px 24px; max-height: calc(85vh - 150px); overflow-y:auto;">
+        <!-- Rank Progress Card -->
+        <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:var(--r-xl); padding:18px; margin-bottom:18px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div>
+              <span style="font-size:11px; font-weight:800; color:#6366f1; text-transform:uppercase; letter-spacing:0.5px;">Peringkat Peneliti Aktif</span>
+              <h4 id="xpRankTitle" style="font-size:18px; font-weight:800; color:#0f172a; margin:2px 0 0 0;">🎓 Scholar Candidate</h4>
+            </div>
+            <div style="text-align:right;">
+              <span id="xpModalBalance" style="font-size:22px; font-weight:800; color:#4f46e5;">350 XP</span>
+              <span style="font-size:11px; color:#64748b; display:block;">Total Poin Riset</span>
+            </div>
+          </div>
+
+          <!-- Readiness Bar -->
+          <div style="margin-bottom:6px;">
+            <div style="display:flex; justify-content:space-between; font-size:11.5px; font-weight:700; color:#475569; margin-bottom:4px;">
+              <span>Tingkat Kesiapan Sidang / Ujian:</span>
+              <span id="xpReadinessPct">75% Siap</span>
+            </div>
+            <div style="height:8px; background:#e2e8f0; border-radius:999px; overflow:hidden;">
+              <div id="xpReadinessBar" style="width:75%; height:100%; background:linear-gradient(90deg, #4f46e5, #06b6d4); border-radius:999px;"></div>
+            </div>
+          </div>
+          <p style="font-size:11.5px; color:#64748b; margin:6px 0 0 0;">Setiap kali kamu menjawab pertanyaan Sokratik dan memvalidasi draf, skor kesiapanmu bertambah otomatis.</p>
+        </div>
+
+        <!-- Tukar XP Jadi Token AI -->
+        <h4 style="font-size:13.5px; font-weight:800; color:#0f172a; margin:0 0 10px 0;">🎁 Tukar XP Jadi Token AI Gratis:</h4>
+        
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-bottom:18px;">
+          <!-- Reward 1 -->
+          <div class="qris-pkg-card" onclick="redeemXPForTokens(250, 7500)" style="padding:14px 10px; border:1.5px solid #cbd5e1; background:#ffffff; border-radius:var(--r-lg); cursor:pointer; text-align:center;">
+            <span style="font-size:18px; display:block; margin-bottom:4px;">⚡</span>
+            <strong style="font-size:13px; color:#0f172a; display:block;">+7.500 Token</strong>
+            <span style="font-size:11.5px; font-weight:800; color:#4f46e5; display:block; margin:4px 0;">250 XP</span>
+            <button type="button" class="btn-quick-chip" style="font-size:11px; padding:4px 8px; width:100%; justify-content:center;">Tukar Sekarang</button>
+          </div>
+
+          <!-- Reward 2 -->
+          <div class="qris-pkg-card" onclick="redeemXPForTokens(500, 20000)" style="padding:14px 10px; border:2px solid #4f46e5; background:#f5f3ff; border-radius:var(--r-lg); cursor:pointer; text-align:center;">
+            <span style="font-size:18px; display:block; margin-bottom:4px;">🚀</span>
+            <strong style="font-size:13px; color:#0f172a; display:block;">+20.000 Token</strong>
+            <span style="font-size:11.5px; font-weight:800; color:#4f46e5; display:block; margin:4px 0;">500 XP</span>
+            <button type="button" class="btn-quick-chip" style="font-size:11px; padding:4px 8px; width:100%; justify-content:center; background:#4f46e5; color:#fff;">Tukar Sekarang</button>
+          </div>
+
+          <!-- Reward 3 -->
+          <div class="qris-pkg-card" onclick="redeemXPForTokens(1000, 50000)" style="padding:14px 10px; border:1.5px solid #cbd5e1; background:#ffffff; border-radius:var(--r-lg); cursor:pointer; text-align:center;">
+            <span style="font-size:18px; display:block; margin-bottom:4px;">👑</span>
+            <strong style="font-size:13px; color:#0f172a; display:block;">+50.000 Token</strong>
+            <span style="font-size:11.5px; font-weight:800; color:#16a34a; display:block; margin:4px 0;">1.000 XP</span>
+            <button type="button" class="btn-quick-chip" style="font-size:11px; padding:4px 8px; width:100%; justify-content:center;">Tukar Sekarang</button>
+          </div>
+        </div>
+
+        <!-- Bukti Penguasaan Mandiri -->
+        <div style="background:#fffbeb; border:1.5px solid #fde68a; border-radius:var(--r-lg); padding:12px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:22px;">📜</span>
+            <div>
+              <strong style="font-size:12.5px; color:#92400e; display:block;">Bukti Bimbingan Mandiri (Orisinalitas)</strong>
+              <span style="font-size:11px; color:#b45309;">XP membuktikan kamu menyusun naskah lewat dialog berpikir sendiri, bukan hasil copas.</span>
+            </div>
+          </div>
+          <button type="button" class="btn-quick-chip" onclick="showThesaToast('✓ Ringkasan orisinalitas naskah tersertifikasi', 'success', 'verified')" style="background:#fef3c7; color:#92400e; border-color:#fcd34d; font-size:11px; font-weight:700; white-space:nowrap;">
+            Cek Bukti
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between; padding:14px 24px; background:#f8fafc; border-top:1px solid var(--border);">
+        <button class="btn-secondary" onclick="toggleXpRewardsModal(false)">Tutup</button>
+        <span style="font-size:11px; color:#64748b;">🎯 Tingkatkan terus XP dengan merespons pertanyaan pembimbing AI.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       SAMPLE MAKALAH MODAL (PREVIEW FOR FIRST-TIME USERS)
+       =================================================================== -->
+  <div id="sampleMakalahModal" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) toggleSampleMakalahModal(false)">
+    <div class="modal-container" style="width: 680px; max-height: 88vh;">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="material-symbols-rounded icon-modal" style="background:#e0e7ff; color:var(--brand);">article</span>
+          <div>
+            <h3>Contoh Naskah Makalah Terstruktur</h3>
+            <p>Dihasilkan melalui proses bimbingan Sokratik Thesa (3 Bab Standar)</p>
+          </div>
+        </div>
+        <button class="btn-modal-close" onclick="toggleSampleMakalahModal(false)"><span class="material-symbols-rounded">close</span></button>
+      </div>
+      
+      <div style="padding:20px 24px; max-height: calc(85vh - 160px); overflow-y:auto; font-size:13px; line-height:1.6;">
+        <div style="padding:12px 16px; background:#f8fafc; border-radius:var(--r-md); border:1px solid var(--border); margin-bottom:16px;">
+          <strong style="font-size:14px; color:var(--text);">Judul: Etika Penerapan Kecerdasan Buatan dalam Penulisan Akademik Mahasiswa</strong>
+          <span style="font-size:12px; color:var(--text-secondary); display:block; margin-top:2px;">Format: Makalah Ilmiah 3 Bab · Gaya Sitasi APA 7th</span>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div style="padding:12px; border-left:3px solid var(--brand); background:#fafafa;">
+            <strong style="color:var(--brand);">BAB I: PENDAHULUAN</strong>
+            <p style="margin-top:4px; font-size:12.5px; color:var(--text-secondary);">
+              Membahas disrupsi Generative AI di perguruan tinggi, dilema batas antara bantuan tata bahasa vs perjokian algoritma, dan rumusan masalah mengenai batasan etis penggunaan AI.
+            </p>
+          </div>
+
+          <div style="padding:12px; border-left:3px solid var(--brand); background:#fafafa;">
+            <strong style="color:var(--brand);">BAB II: PEMBAHASAN &amp; ANALISIS KRITIS</strong>
+            <p style="margin-top:4px; font-size:12.5px; color:var(--text-secondary);">
+              Analisis komparasi kerangka integritas akademik UNESCO dan Kemendikbudristek. Argumen bahwa peran mahasiswa adalah sebagai konduktor pemikiran, bukan sekadar penonton hasil sintesis mesin.
+            </p>
+          </div>
+
+          <div style="padding:12px; border-left:3px solid var(--brand); background:#fafafa;">
+            <strong style="color:var(--brand);">BAB III: PENUTUP &amp; REKOMENDASI</strong>
+            <p style="margin-top:4px; font-size:12.5px; color:var(--text-secondary);">
+              Kesimpulan sintesis bahwa transparansi proses bernalar melalui metode dialog Sokratik adalah kunci utama pencegahan krisis integritas akademik.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between;">
+        <button class="btn-secondary" onclick="toggleSampleMakalahModal(false)">Tutup</button>
+        <button class="btn-primary" onclick="toggleSampleMakalahModal(false); handleKTIClick('makalah');">
+          <span>Mulai Buat Makalah Sekarang</span>
+          <span class="material-symbols-rounded">arrow_forward</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       TOKEN BOOSTER & PROFIT GUARD MODAL (INSTANT QRIS TOP-UP)
+       =================================================================== -->
+  <div id="tokenBoosterModal" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) toggleTokenBoosterModal(false)">
+    <div class="modal-container" style="width: 660px; max-height: 90vh;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); color:#fff; border-radius: var(--r-2xl) var(--r-2xl) 0 0; padding: 20px 24px;">
+        <div class="modal-title-wrap">
+          <span class="material-symbols-rounded icon-modal" style="background: rgba(255,255,255,0.15); color:#fbbf24;">bolt</span>
+          <div>
+            <h3 style="color:#fff; margin:0; font-size:16px;">Isi Ulang Token AI Instan (Booster Bimbingan)</h3>
+            <p style="color:#c7d2fe; margin:2px 0 0 0; font-size:11.5px;">Bebas bimbingan Sokratik &amp; analisis naskah tanpa gangguan kuota mingguan.</p>
+          </div>
+        </div>
+        <button class="btn-modal-close" style="color:#fff;" onclick="toggleTokenBoosterModal(false)"><span class="material-symbols-rounded">close</span></button>
+      </div>
+
+      <div style="padding: 20px 24px; max-height: calc(85vh - 150px); overflow-y:auto;">
+        <!-- Token Balance Notice -->
+        <div style="background:#fffbeb; border:1.5px solid #fef3c7; border-radius:var(--r-lg); padding:12px 16px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:24px;">⚠️</span>
+            <div>
+              <strong style="font-size:13px; color:#92400e; display:block;">Kuota Token AI Menipis</strong>
+              <span style="font-size:11.5px; color:#b45309;">Top-up sekarang untuk memastikan penalaran draf dan bimbingan tidak terputus di tengah jalan.</span>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <span id="boosterCurrentTokens" style="font-size:16px; font-weight:800; color:#d97706;">24.500 Token</span>
+            <span style="font-size:10.5px; color:#92400e; display:block;">Sisa Token Aktif</span>
+          </div>
+        </div>
+
+        <!-- Booster Package Grid -->
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-bottom:18px;">
+          <!-- Package 1: 50k -->
+          <div class="qris-pkg-card" id="boosterPkg50" onclick="selectBoosterPackage('50k', 5000, 50000)" style="padding:14px 10px; border:1.5px solid #cbd5e1; background:#ffffff; border-radius:var(--r-lg); cursor:pointer; text-align:center;">
+            <span style="font-size:9.5px; font-weight:800; color:#475569; background:#f1f5f9; padding:2px 6px; border-radius:6px;">HEMAT</span>
+            <h4 style="font-size:13.5px; font-weight:800; color:#0f172a; margin:6px 0 2px 0;">⚡ 50k Token</h4>
+            <div style="font-size:16px; font-weight:800; color:#4f46e5;">Rp 5.000</div>
+            <p style="font-size:10px; color:#64748b; margin:4px 0 0 0;">Cukup untuk ~2 Bab &amp; Review Draf</p>
+          </div>
+
+          <!-- Package 2: 150k -->
+          <div class="qris-pkg-card active" id="boosterPkg150" onclick="selectBoosterPackage('150k', 12000, 150000)" style="padding:14px 10px; border:2px solid #4f46e5; background:#f5f3ff; border-radius:var(--r-lg); cursor:pointer; text-align:center; position:relative;">
+            <span style="font-size:9.5px; font-weight:800; color:#4f46e5; background:#ede9fe; padding:2px 6px; border-radius:6px;">FAVORIT</span>
+            <h4 style="font-size:13.5px; font-weight:800; color:#0f172a; margin:6px 0 2px 0;">🚀 150k Token</h4>
+            <div style="font-size:16px; font-weight:800; color:#4f46e5;">Rp 12.000</div>
+            <p style="font-size:10px; color:#64748b; margin:4px 0 0 0;">Cukup untuk Naskah Skripsi Penuh</p>
+          </div>
+
+          <!-- Package 3: 500k -->
+          <div class="qris-pkg-card" id="boosterPkg500" onclick="selectBoosterPackage('500k', 29000, 500000)" style="padding:14px 10px; border:1.5px solid #cbd5e1; background:#ffffff; border-radius:var(--r-lg); cursor:pointer; text-align:center;">
+            <span style="font-size:9.5px; font-weight:800; color:#16a34a; background:#dcfce7; padding:2px 6px; border-radius:6px;">HEMAT 40%</span>
+            <h4 style="font-size:13.5px; font-weight:800; color:#0f172a; margin:6px 0 2px 0;">👑 500k Token</h4>
+            <div style="font-size:16px; font-weight:800; color:#16a34a;">Rp 29.000</div>
+            <p style="font-size:10px; color:#64748b; margin:4px 0 0 0;">Untuk Riset Tesis &amp; Jurnal Scopus</p>
+          </div>
+        </div>
+
+        <!-- Dynamic QRIS Scan Box -->
+        <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:var(--r-xl); padding:16px; text-align:center;">
+          <div style="font-size:13px; font-weight:700; color:#0f172a; margin-bottom:10px;">
+            Total Bayar: <span id="boosterAmountText" style="color:#4f46e5; font-size:18px; font-weight:800;">Rp 12.000</span>
+            <span style="font-size:11.5px; font-weight:600; color:#64748b;">(Penambahan <span id="boosterAddedTokensText">150.000</span> Token AI)</span>
+          </div>
+
+          <!-- QR Code Area -->
+          <div style="width:160px; height:160px; margin:0 auto 10px; background:#fff; padding:10px; border-radius:12px; border:2px solid #0f172a; display:flex; align-items:center; justify-content:center;">
+            <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#fafafa; border:1px dashed #cbd5e1; border-radius:8px;">
+              <span class="material-symbols-rounded" style="font-size:100px; color:#1e293b;">qr_code_2</span>
+            </div>
+          </div>
+
+          <span style="font-size:11px; color:#64748b; display:block; margin-bottom:10px;">Scan instan via GoPay, ShopeePay, BCA Mobile, OVO, Dana, LinkAja, Mandiri Livin, dll.</span>
+
+          <!-- Instant Simulation CTA -->
+          <button type="button" class="btn-quick-chip" onclick="simulateBoosterSuccess()" style="background:#e0e7ff; color:#4338ca; border-color:#c7d2fe; font-weight:700; padding:6px 16px;">
+            ⚡ Konfirmasi Pembayaran QRIS Booster (Otomatis Masuk)
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between; padding:14px 24px; background:#f8fafc; border-top:1px solid var(--border);">
+        <button class="btn-secondary" onclick="toggleTokenBoosterModal(false)">Batal</button>
+        <span style="font-size:11px; color:#64748b;">⚡ Token langsung masuk ke akun secara instan tanpa perlu refresh halaman.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       PAY-PER-MAKALAH QRIS CHECKOUT MODAL
+       =================================================================== -->
+  <div id="qrisCheckoutModal" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) toggleQRISModal(false)">
+    <div class="modal-container" style="width: 660px; max-height: 90vh;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color:#fff; border-radius: var(--r-2xl) var(--r-2xl) 0 0; padding: 20px 24px;">
+        <div class="modal-title-wrap">
+          <span class="material-symbols-rounded icon-modal" style="background: rgba(255,255,255,0.15); color:#38bdf8;">qr_code_scanner</span>
+          <div>
+            <h3 style="color:#fff; margin:0; font-size:16px;">Pay-per-Makalah Instant QRIS</h3>
+            <p style="color:#94a3b8; margin:2px 0 0 0; font-size:11.5px;">Bayar per tugas tanpa langganan mahal. Cetak & Unduh Word/PDF Instan.</p>
+          </div>
+        </div>
+        <button class="btn-modal-close" style="color:#fff;" onclick="toggleQRISModal(false)"><span class="material-symbols-rounded">close</span></button>
+      </div>
+
+      <div style="padding: 20px 24px; max-height: calc(85vh - 150px); overflow-y:auto;">
+        <!-- Package Option Cards -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:18px;">
+          <div class="qris-pkg-card active" id="pkgSingle" onclick="selectQRISPackage('single', 12000, '1 Naskah Makalah')" style="padding:14px; border:2px solid #4f46e5; background:#f5f3ff; border-radius:var(--r-lg); cursor:pointer; position:relative;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <span style="font-size:10px; font-weight:800; color:#4f46e5; background:#ede9fe; padding:2px 8px; border-radius:12px;">PALING POPULER</span>
+              <span class="qris-radio-dot" id="radioSingle" style="width:16px; height:16px; border-radius:50%; border:2px solid #4f46e5; background:#4f46e5; display:inline-block;"></span>
+            </div>
+            <h4 style="font-size:14px; font-weight:800; color:#0f172a; margin:8px 0 2px 0;">1x Makalah Penuh</h4>
+            <div style="font-size:18px; font-weight:800; color:#4f46e5;">Rp 12.000 <span style="font-size:11px; font-weight:600; color:#64748b;">/naskah</span></div>
+            <p style="font-size:11px; color:#64748b; margin:4px 0 0 0;">Akses draf 3 Bab + Ekspor Word & PDF + Halaman Cover Resmi.</p>
+          </div>
+
+          <div class="qris-pkg-card" id="pkgSemester" onclick="selectQRISPackage('semester', 39000, '4 Naskah Makalah')" style="padding:14px; border:1.5px solid #cbd5e1; background:#ffffff; border-radius:var(--r-lg); cursor:pointer; position:relative;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <span style="font-size:10px; font-weight:800; color:#16a34a; background:#dcfce7; padding:2px 8px; border-radius:12px;">HEMAT 20%</span>
+              <span class="qris-radio-dot" id="radioSemester" style="width:16px; height:16px; border-radius:50%; border:2px solid #cbd5e1; background:#fff; display:inline-block;"></span>
+            </div>
+            <h4 style="font-size:14px; font-weight:800; color:#0f172a; margin:8px 0 2px 0;">Paket 4x Makalah</h4>
+            <div style="font-size:18px; font-weight:800; color:#16a34a;">Rp 39.000 <span style="font-size:11px; font-weight:600; color:#64748b;">(~Rp 9.750/naskah)</span></div>
+            <p style="font-size:11px; color:#64748b; margin:4px 0 0 0;">Cukup untuk 1 semester + Bonus Cek Plagiarisme & Sitasi APA 7th.</p>
+          </div>
+        </div>
+
+        <!-- Dynamic QRIS Payment Container -->
+        <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:var(--r-xl); padding:18px; text-align:center;">
+          <div style="display:flex; justify-content:center; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+            <strong style="font-size:14px; color:#0f172a;">Scan QRIS Resmi:</strong>
+            <span style="font-size:11px; font-weight:800; color:#dc2626; background:#fee2e2; padding:2px 8px; border-radius:6px;">QRIS NASIONAL</span>
+            <span style="font-size:11px; font-weight:700; color:#4f46e5; background:#e0e7ff; padding:2px 8px; border-radius:6px;">MIDTRANS GATEWAY</span>
+          </div>
+
+          <!-- Mock QRIS SVG Graphic -->
+          <div style="width:180px; height:180px; margin:0 auto 12px; background:#fff; padding:12px; border-radius:12px; border:2px solid #0f172a; box-shadow:0 4px 12px rgba(0,0,0,0.06); display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <div id="qrisCodeBox" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#fafafa; border:1px dashed #cbd5e1; border-radius:8px;">
+              <span class="material-symbols-rounded" style="font-size:110px; color:#1e293b;">qr_code_2</span>
+            </div>
+          </div>
+
+          <div style="font-size:13px; font-weight:700; color:#0f172a; margin-bottom:4px;">
+            Total Pembayaran: <span id="qrisAmountText" style="color:#4f46e5; font-size:16px; font-weight:800;">Rp 12.000</span>
+          </div>
+          <span style="font-size:11px; color:#64748b; display:block; margin-bottom:12px;">Bisa discan menggunakan GoPay, ShopeePay, OVO, Dana, LinkAja, BCA Mobile, Mandiri, & BRImo</span>
+
+          <!-- Real-time Status Indicator -->
+          <div id="qrisStatusNotice" style="display:inline-flex; align-items:center; gap:6px; background:#fef3c7; border:1px solid #fde047; color:#854d0e; padding:6px 14px; border-radius:var(--r-full); font-size:11.5px; font-weight:700;">
+            <span class="material-symbols-rounded" style="font-size:16px; animation: spin 2s linear infinite;">sync</span>
+            <span>Menunggu Verifikasi Pembayaran via QRIS...</span>
+          </div>
+
+          <!-- Instant Simulation CTA for Demo -->
+          <div style="margin-top:14px; padding-top:12px; border-top:1px dashed #cbd5e1;">
+            <button type="button" class="btn-quick-chip" onclick="simulateQRISSuccess()" style="background:#e0e7ff; color:#4338ca; border-color:#c7d2fe; font-weight:700; padding:6px 16px;">
+              ⚡ Simulasi Bayar QRIS Instan (Verifikasi Langsung)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between; padding:14px 24px; background:#f8fafc; border-top:1px solid var(--border);">
+        <button class="btn-secondary" onclick="toggleQRISModal(false)">Batal</button>
+        <span style="font-size:11px; color:#64748b;">🛡️ Transaksi aman 100% terenkripsi via QRIS standar Bank Indonesia.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       EXPORT MAKALAH MODAL (DOCX / PDF WITH ACADEMIC COVER PAGE)
+       =================================================================== -->
+  <div id="exportMakalahModal" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) toggleExportModal(false)">
+    <div class="modal-container" style="width: 640px; max-height: 90vh;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); color:#fff; border-radius: var(--r-2xl) var(--r-2xl) 0 0; padding: 20px 24px;">
+        <div class="modal-title-wrap">
+          <span class="material-symbols-rounded icon-modal" style="background: rgba(255,255,255,0.15); color:#fff;">download_for_offline</span>
+          <div>
+            <h3 style="color:#fff; margin:0; font-size:16px;">Ekspor Naskah Makalah Siap Kumpul</h3>
+            <p style="color:#c7d2fe; margin:2px 0 0 0; font-size:11.5px;">Otomatis tersusun dengan Halaman Judul/Cover, Margin 4-4-3-3 & Gaya Sitasi APA 7th</p>
+          </div>
+        </div>
+        <button class="btn-modal-close" style="color:#fff;" onclick="toggleExportModal(false)"><span class="material-symbols-rounded">close</span></button>
+      </div>
+
+      <div style="padding: 20px 24px; max-height: calc(85vh - 160px); overflow-y:auto;">
+        <!-- Preset Format Banner -->
+        <div style="display:flex; align-items:center; gap:10px; padding:10px 14px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:var(--r-md); margin-bottom:18px;">
+          <span class="material-symbols-rounded" style="color:#16a34a; font-size:22px;">verified</span>
+          <div style="font-size:12px; color:#166534;">
+            <strong>Standar Format Akademik Indonesia:</strong> Font Times New Roman 12pt, Spasi 1.5, Margin Kiri/Atas 4cm, Kanan/Bawah 3cm, & Rata Kanan-Kiri (Justified).
+          </div>
+        </div>
+
+        <h4 style="font-size:13px; font-weight:800; color:var(--text); margin:0 0 12px 0;">Data Halaman Cover / Judul:</h4>
+
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div>
+            <label style="font-size:11.5px; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:4px;">Judul Makalah Lengkap:</label>
+            <input type="text" id="exportTitleInput" class="ob-q-input-inline" style="width:100%; box-sizing:border-box; font-size:13px; font-weight:600;" placeholder="Judul lengkap makalah...">
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+            <div>
+              <label style="font-size:11.5px; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:4px;">Mata Kuliah:</label>
+              <input type="text" id="exportCourseInput" class="ob-q-input-inline" style="width:100%; box-sizing:border-box; font-size:12.5px;" placeholder="Contoh: Kecerdasan Buatan">
+            </div>
+            <div>
+              <label style="font-size:11.5px; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:4px;">Dosen Pengampu:</label>
+              <input type="text" id="exportLecturerInput" class="ob-q-input-inline" style="width:100%; box-sizing:border-box; font-size:12.5px;" placeholder="Contoh: Dr. Budi Santoso, M.Kom.">
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:12px;">
+            <div>
+              <label style="font-size:11.5px; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:4px;">Nama Mahasiswa (Penyusun):</label>
+              <input type="text" id="exportAuthorInput" class="ob-q-input-inline" style="width:100%; box-sizing:border-box; font-size:12.5px;" placeholder="Nama lengkapmu">
+            </div>
+            <div>
+              <label style="font-size:11.5px; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:4px;">NIM / Nomor Mahasiswa:</label>
+              <input type="text" id="exportNimInput" class="ob-q-input-inline" style="width:100%; box-sizing:border-box; font-size:12.5px;" placeholder="Contoh: 21060120140000">
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+            <div>
+              <label style="font-size:11.5px; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:4px;">Program Studi & Fakultas:</label>
+              <input type="text" id="exportProdiInput" class="ob-q-input-inline" style="width:100%; box-sizing:border-box; font-size:12.5px;" placeholder="Contoh: S1 Ilmu Komputer, Fasilkom">
+            </div>
+            <div>
+              <label style="font-size:11.5px; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:4px;">Universitas / Kampus:</label>
+              <input type="text" id="exportCampusInput" class="ob-q-input-inline" style="width:100%; box-sizing:border-box; font-size:12.5px;" placeholder="Contoh: Universitas Indonesia (UI)">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between; padding:14px 24px; background:#f8fafc; border-top:1px solid var(--border); flex-wrap:wrap; gap:10px;">
+        <button class="btn-secondary" onclick="toggleExportModal(false)">Batal</button>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn-secondary" onclick="executeExportBibTeX()" style="border-color:#cbd5e1; color:#334155;" title="Ekspor Sitasi ke Mendeley / Zotero">
+            <span class="material-symbols-rounded" style="font-size:18px;">format_quote</span>
+            <span>BibTeX (.bib)</span>
+          </button>
+          <button class="btn-secondary" onclick="executeExportMarkdown()" style="border-color:#cbd5e1; color:#334155;" title="Ekspor Naskah ke Markdown">
+            <span class="material-symbols-rounded" style="font-size:18px;">code</span>
+            <span>Markdown (.md)</span>
+          </button>
+          <button class="btn-secondary" onclick="executeExportPDF()" style="border-color:#cbd5e1; color:#334155;">
+            <span class="material-symbols-rounded" style="font-size:18px;">print</span>
+            <span>Cetak / PDF</span>
+          </button>
+          <button class="btn-primary" onclick="executeExportDOCX()" style="background:linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);">
+            <span class="material-symbols-rounded" style="font-size:18px;">description</span>
+            <span>Unduh Word (.doc)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Floating Dynamic Toast Container ─────────────────────── -->
+  <div id="thesaToastContainer"></div>
+
+  <!-- ── Celebration & Completion Confetti Modal ──────────────── -->
+  <div id="thesaCelebrationModal" class="celebration-overlay" onclick="closeCelebrationModal()">
+    <canvas id="confettiCanvas"></canvas>
+    <div class="celebration-card" onclick="event.stopPropagation()">
+      <div class="celebration-badge-glow">🎓</div>
+      <div class="celebration-title" id="celebrationTitle">Naskah Siap Dikumpulkan! 🎉</div>
+      <p class="celebration-sub" id="celebrationSub">
+        Naskah berhasil diekspor dengan standar penulisan DIKTI, margin 4-4-3-3, dan sitasi APA 7th. Semangat untuk bimbingan dan sidangmu!
+      </p>
+      <div>
+        <div class="celebration-xp-pill" id="celebrationXpPill">
+          <span>💎</span>
+          <span id="celebrationXpText">+50 XP Didapatkan!</span>
+        </div>
+      </div>
+      <button class="btn-duo-green" style="width:100%; justify-content:center;" onclick="closeCelebrationModal()">
+        Lanjut Berkarya
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Mobile Responsive Studio Bottom Tabs ──────────────────── -->
+  <div class="mobile-studio-tabs" id="mobileStudioTabs">
+    <button class="mobile-tab-btn active" id="tabMobileChat" onclick="switchMobileStudioTab('chat')">
+      <span class="material-symbols-rounded">chat_bubble</span>
+      <span>Bimbingan</span>
+    </button>
+    <button class="mobile-tab-btn" id="tabMobileDraft" onclick="switchMobileStudioTab('draft')">
+      <span class="material-symbols-rounded">article</span>
+      <span>Draf Naskah</span>
+    </button>
+    <button class="mobile-tab-btn" id="tabMobilePath" onclick="switchMobileStudioTab('path')">
+      <span class="material-symbols-rounded">timeline</span>
+      <span>Alur Bab</span>
+    </button>
+  </div>
+
+  <script src="export_service.js"></script>
+  <script src="app.js?v=2.4"></script>
+</body>
+</html>
