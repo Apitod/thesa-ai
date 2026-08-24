@@ -254,9 +254,6 @@ func (h *OutlineHandler) SetWordTarget(w http.ResponseWriter, r *http.Request) {
 // defaultConfig builds a ProviderConfig from environment variables with sensible defaults.
 func (h *OutlineHandler) defaultConfig() agent.ProviderConfig {
 	apiKey := os.Getenv("DEEPSEEK_API_KEY")
-	if apiKey == "" {
-		apiKey = "sk-b8a1a9a1f42a4207a0e775d9dcc26b53"
-	}
 	return agent.ProviderConfig{
 		Provider:  "deepseek",
 		Model:     "deepseek-chat",
@@ -267,6 +264,10 @@ func (h *OutlineHandler) defaultConfig() agent.ProviderConfig {
 
 // loadTopicAndGap retrieves topic and gap summary from the database for a project.
 func (h *OutlineHandler) loadTopicAndGap(projectID int) (*agent.TopicFocus, string) {
+	if db.DB == nil || !db.IsConnected() {
+		return nil, ""
+	}
+
 	var topic string
 	err := db.DB.Get(&topic, "SELECT topic FROM research_topics WHERE project_id = ? LIMIT 1", projectID)
 	if err != nil {
@@ -300,6 +301,20 @@ func (h *OutlineHandler) loadTopicAndGap(projectID int) (*agent.TopicFocus, stri
 
 // loadTemplateStructure loads a template structure from the database by ID.
 func (h *OutlineHandler) loadTemplateStructure(templateID int) (*agent.TemplateStructure, error) {
+	if db.DB == nil || !db.IsConnected() {
+		// Return standard default template structure if database is offline
+		return &agent.TemplateStructure{
+			Source: "default",
+			Sections: []agent.TemplateSection{
+				{Label: "Bab 1", Title: "PENDAHULUAN", Description: "Latar Belakang, Rumusan Masalah, Tujuan", Required: true},
+				{Label: "Bab 2", Title: "TINJAUAN PUSTAKA", Description: "Landasan Teori & Penelitian Terdahulu", Required: true},
+				{Label: "Bab 3", Title: "METODOLOGI PENELITIAN", Description: "Desain, Sumber Data & Analisis", Required: true},
+				{Label: "Bab 4", Title: "HASIL DAN PEMBAHASAN", Description: "Hasil Analisis & Diskusi Akademik", Required: true},
+				{Label: "Bab 5", Title: "KESIMPULAN DAN SARAN", Description: "Kesimpulan & Rekomendasi", Required: true},
+			},
+		}, nil
+	}
+
 	// First try to get from thesa_templates
 	var templateData string
 	err := db.DB.Get(&templateData, "SELECT structure_data FROM thesa_templates WHERE id = ?", templateID)

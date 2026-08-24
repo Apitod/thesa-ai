@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 
 	"risethub_os/backend/internal/agent"
+	"risethub_os/backend/internal/db"
 )
 
 // ---------------------------------------------------------------------------
@@ -107,9 +110,40 @@ func (h *TemplateHandler) LookupTemplate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// TODO: Implement actual DB lookup
+	// Attempt DB lookup if connected
+	if db.DB != nil {
+		type DBTemplate struct {
+			ID            int    `db:"id"`
+			Name          string `db:"name"`
+			Institution   string `db:"institution"`
+			Degree        string `db:"degree"`
+			StructureData string `db:"structure_data"`
+		}
+		var tmpl DBTemplate
+		query := "SELECT id, name, institution, degree, structure_data FROM thesa_templates WHERE institution LIKE ? OR degree LIKE ? LIMIT 1"
+		err := db.DB.Get(&tmpl, query, "%"+req.Institusi+"%", "%"+req.JenisKTI+"%")
+		if err == nil && tmpl.ID > 0 {
+			var parsedStructure map[string]interface{}
+			_ = json.Unmarshal([]byte(tmpl.StructureData), &parsedStructure)
+			resp := map[string]interface{}{
+				"template_id":    tmpl.ID,
+				"name":           tmpl.Name,
+				"jenis_kti":      tmpl.Degree,
+				"institusi":      tmpl.Institution,
+				"program_studi":  req.ProgramStudi,
+				"structure":      parsedStructure,
+				"sections":       parsedStructure["sections"],
+				"requirements":   parsedStructure["requirements"],
+			}
+			json.NewEncoder(w).Encode(resp)
+			return
+		}
+	}
+
+	// Fallback preset response
 	resp := map[string]interface{}{
 		"template_id":    1,
+		"name":           "Pedoman Penulisan Skripsi Standar Nasional (DIKTI)",
 		"jenis_kti":      req.JenisKTI,
 		"institusi":      req.Institusi,
 		"program_studi":  req.ProgramStudi,
@@ -157,9 +191,22 @@ func (h *TemplateHandler) UploadTemplate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	createdID := 1
+	if db.DB != nil {
+		name := fmt.Sprintf("Pedoman %s - %s", req.JenisKTI, req.Institusi)
+		structureJSON := fmt.Sprintf(`{"raw_text": %q, "institution": %q, "prodi": %q}`, req.RawText, req.Institusi, req.ProgramStudi)
+		res, err := db.DB.Exec("INSERT INTO thesa_templates (name, institution, degree, structure_data) VALUES (?, ?, ?, ?)",
+			name, req.Institusi, req.JenisKTI, structureJSON)
+		if err == nil {
+			if id, err := res.LastInsertId(); err == nil {
+				createdID = int(id)
+			}
+		}
+	}
+
 	resp := map[string]interface{}{
 		"success":       true,
-		"template_id":   1,
+		"template_id":   createdID,
 		"jenis_kti":     req.JenisKTI,
 		"institusi":     req.Institusi,
 		"program_studi": req.ProgramStudi,
@@ -176,9 +223,29 @@ func (h *TemplateHandler) ListTemplates(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	type TemplateItem struct {
+		ID          int    `db:"id" json:"id"`
+		Name        string `db:"name" json:"name"`
+		Institution string `db:"institution" json:"institution"`
+		Degree      string `db:"degree" json:"degree"`
+	}
+
+	var templates []TemplateItem
+	if db.DB != nil {
+		_ = db.DB.Select(&templates, "SELECT id, name, institution, degree FROM thesa_templates ORDER BY id ASC LIMIT 50")
+	}
+
+	if len(templates) == 0 {
+		templates = []TemplateItem{
+			{ID: 1, Name: "Pedoman Penulisan Skripsi Standar Nasional (DIKTI)", Institution: "Standar Nasional", Degree: "S1"},
+			{ID: 2, Name: "Pedoman Tesis Magister Akademik", Institution: "Standar Nasional", Degree: "S2"},
+			{ID: 3, Name: "Pedoman Disertasi Doktoral", Institution: "Standar Nasional", Degree: "S3"},
+		}
+	}
+
 	resp := map[string]interface{}{
-		"templates": []map[string]interface{}{},
-		"total":     0,
+		"templates": templates,
+		"total":     len(templates),
 	}
 	json.NewEncoder(w).Encode(resp)
 }
@@ -192,7 +259,7 @@ func (h *TemplateHandler) SuggestInstitutions(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	query := r.URL.Query().Get("query")
+	query := strings.TrimSpace(r.URL.Query().Get("query"))
 	if query == "" {
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"institutions": []string{},
@@ -200,13 +267,35 @@ func (h *TemplateHandler) SuggestInstitutions(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	baseList := []string{
+		"Universitas Indonesia (UI)",
+		"Universitas Gadjah Mada (UGM)",
+		"Institut Teknologi Bandung (ITB)",
+		"Institut Pertanian Bogor (IPB)",
+		"Institut Teknologi Sepuluh Nopember (ITS)",
+		"Universitas Airlangga (UNAIR)",
+		"Universitas Diponegoro (UNDIP)",
+		"Universitas Padjadjaran (UNPAD)",
+		"Universitas Brawijaya (UB)",
+		"Universitas Hasanuddin (UNHAS)",
+		"Universitas Sebelas Maret (UNS)",
+		"Universitas Pendidikan Indonesia (UPI)",
+		"Universitas Negeri Jakarta (UNJ)",
+		"Universitas Telkom",
+		"Universitas Bina Nusantara (BINUS)",
+	}
+
+	var matched []string
+	queryLower := strings.ToLower(query)
+	for _, inst := range baseList {
+		if strings.Contains(strings.ToLower(inst), queryLower) {
+			matched = append(matched, inst)
+		}
+	}
+
 	resp := map[string]interface{}{
-		"institutions": []string{
-			"Universitas Indonesia",
-			"Universitas Gadjah Mada",
-			"Institut Teknologi Bandung",
-		},
-		"query": query,
+		"institutions": matched,
+		"query":        query,
 	}
 	json.NewEncoder(w).Encode(resp)
 }
@@ -354,7 +443,7 @@ func (h *TemplateHandler) CheckCompliance(w http.ResponseWriter, r *http.Request
 
 // defaultConfig builds a ProviderConfig from environment variables with sensible defaults.
 func (h *TemplateHandler) defaultConfig() agent.ProviderConfig {
-	apiKey := getEnvOrDefault("DEEPSEEK_API_KEY", "sk-172...1da5")
+	apiKey := getEnvOrDefault("DEEPSEEK_API_KEY", "")
 	return agent.ProviderConfig{
 		Provider:  "deepseek",
 		Model:     "deepseek-chat",
@@ -364,10 +453,26 @@ func (h *TemplateHandler) defaultConfig() agent.ProviderConfig {
 }
 
 // loadTemplateMappedOutline loads a template from DB by ID and converts it to a MappedOutline.
-// This is a simplified implementation; full DB integration is left for future phases.
 func (h *TemplateHandler) loadTemplateMappedOutline(templateID int) (*agent.MappedOutline, error) {
-	// TODO: Load from DB when template storage is implemented
-	// For now, return an empty outline so the CheckCompliance endpoint is structurally complete.
+	if db.DB != nil && templateID > 0 {
+		var structureData string
+		err := db.DB.Get(&structureData, "SELECT structure_data FROM thesa_templates WHERE id = ? LIMIT 1", templateID)
+		if err == nil && structureData != "" {
+			var parsed struct {
+				Sections     []agent.OutlineSection      `json:"sections"`
+				Requirements agent.TemplateRequirements `json:"requirements"`
+				Deviations   []agent.TemplateDeviation   `json:"deviations"`
+			}
+			if err := json.Unmarshal([]byte(structureData), &parsed); err == nil && len(parsed.Sections) > 0 {
+				return &agent.MappedOutline{
+					Sections:     parsed.Sections,
+					Requirements: parsed.Requirements,
+					Deviations:   parsed.Deviations,
+				}, nil
+			}
+		}
+	}
+
 	return &agent.MappedOutline{
 		Sections:     []agent.OutlineSection{},
 		Requirements: agent.TemplateRequirements{},
@@ -387,9 +492,9 @@ func countSections(sections []agent.TemplateSection) int {
 
 // getEnvOrDefault returns the environment variable value or a fallback.
 func getEnvOrDefault(key, fallback string) string {
-	// Note: In production this would call os.Getenv(key).
-	// The gap handler already imports os and uses it directly.
-	// For now, we return the fallback to avoid adding os import here.
-	_ = key
+	val := os.Getenv(key)
+	if val != "" {
+		return val
+	}
 	return fallback
 }

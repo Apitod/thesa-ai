@@ -1,0 +1,112 @@
+name: 🚀 Thesa AI CI/CD & Automated Quality Gate
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  # ============================================================
+  # JOB 1: Code Quality, Lint & Unit Tests
+  # ============================================================
+  test-and-lint:
+    name: 🧪 Go Vet, Test & Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🐹 Set up Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: 📦 Download Dependencies
+        run: go mod download
+
+      - name: 🔍 Run Go Vet & Static Analysis
+        run: go vet ./...
+
+      - name: 🧪 Execute Unit Tests with Race Detector
+        run: |
+          go test -v -race -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out
+
+      - name: 📊 Upload Test Coverage Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-coverage-report
+          path: coverage.out
+          retention-days: 7
+
+  # ============================================================
+  # JOB 2: Multi-Stage Docker Build & Container Smoke Test
+  # ============================================================
+  docker-smoke-test:
+    name: 🐳 Docker Multi-Stage Build & Container Smoke Test
+    needs: test-and-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Set up Docker Buildx
+        uses: actions/setup-buildx-action@v3
+
+      - name: 🏗️ Build Thesa Production Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: thesa-ai:ci-test
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 🚀 Start Container in Background
+        run: |
+          docker run -d --name thesa-test-container -p 8080:8080 \
+            -e PORT=8080 \
+            -e CORS_ALLOWED_ORIGINS="*" \
+            thesa-ai:ci-test
+
+      - name: ⏳ Wait for Server Initialization
+        run: |
+          for i in {1..15}; do
+            if curl -s -f http://127.0.0.1:8080/health > /dev/null; then
+              echo "✅ Thesa Engine is LIVE and healthy!"
+              break
+            fi
+            echo "Waiting for container startup... ($i/15)"
+            sleep 2
+          done
+
+      - name: 🔬 Execute Live API Smoke Tests
+        run: |
+          echo "=== 1. Checking Health Endpoint ==="
+          HEALTH=$(curl -s http://127.0.0.1:8080/health)
+          echo "$HEALTH" | grep -q "Thesa AI" || { echo "❌ Health check failed"; exit 1; }
+
+          echo "=== 2. Checking Static Web Asset ==="
+          curl -s -I http://127.0.0.1:8080/ | grep -q "HTTP/1.1 200 OK" || { echo "❌ Web asset serving failed"; exit 1; }
+
+          echo "=== 3. Checking Auth Login Endpoint ==="
+          LOGIN=$(curl -s -X POST http://127.0.0.1:8080/api/v1/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"alif.awwaz@ui.ac.id","password":"thesa2026"}')
+          echo "$LOGIN" | grep -q "token" || { echo "❌ Auth login failed"; exit 1; }
+
+          echo "=== 4. Checking Examiner Simulation Endpoint ==="
+          SIM=$(curl -s -X POST http://127.0.0.1:8080/api/v1/supervisor/examiner-simulate \
+            -H "Content-Type: application/json" \
+            -d '{"mode":"question","topic":"Transformasi Digital","difficulty":"standard","turn":1,"examiner":{"id":"ex1","name":"Prof. Hardi","role":"Ketua Penguji"}}')
+          echo "$SIM" | grep -q "question_text" || { echo "❌ Examiner simulation endpoint failed"; exit 1; }
+
+          echo "🎉 All CI Smoke Tests PASSED successfully!"
+
+      - name: 🛑 Teardown Test Container
+        if: always()
+        run: docker rm -f thesa-test-container || true

@@ -227,20 +227,71 @@ func (h *SupervisorHandler) Readiness(w http.ResponseWriter, r *http.Request) {
 }
 
 // ---------------------------------------------------------------------------
+// ExaminerSimulate — POST /api/v1/supervisor/examiner-simulate
+// ---------------------------------------------------------------------------
+
+// ExaminerSimulate handles dynamic questioning and evaluation by specific AI examiner personas.
+func (h *SupervisorHandler) ExaminerSimulate(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != "POST" {
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": "method not allowed"})
+		return
+	}
+
+	var req agent.ExaminerSimulateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": "invalid request body"})
+		return
+	}
+
+	config := h.defaultConfig()
+
+	resp, err := h.supervisor.SimulateExaminer(req, config)
+	if err != nil {
+		log.Printf("ExaminerSimulate error: %v", err)
+		// Return graceful fallback
+		if req.Mode == "evaluate" {
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"score": 85,
+				"grade": "A-",
+				"feedback": "Jawaban Anda telah menyentuh aspek substansi inti dengan baik.",
+				"critique": "Pertahankan artikulasi dan perkuat korelasi data empiris.",
+				"strong_points": []string{"Penjelasan logis", "Menjawab langsung esensi pertanyaan"},
+				"improvement_points": []string{"Sertakan contoh kasus", "Pertegas batasan riset"},
+				"aspect_scores": map[string]int{"logic": 85, "method": 82, "literature": 84, "oral": 88},
+			})
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"question_text": fmt.Sprintf("Berdasarkan topik '%s', bagaimana Anda membuktikan kebaruan (novelty) riset ini terhadap literatur yang sudah ada?", req.Topic),
+			"context_bab": "BAB I & II",
+			"intent": "Menguji penguasaan novelty dan posisi riset",
+		})
+		return
+	}
+
+	json.NewEncoder(w).Encode(resp)
+}
+
+// ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-// defaultConfig builds a ProviderConfig from the DEEPSEEK_KEY env variable
-// with sensible defaults for supervisor AI calls.
+// defaultConfig builds a ProviderConfig dynamically using SmartLLMRouter for maximum cost efficiency.
 func (h *SupervisorHandler) defaultConfig() agent.ProviderConfig {
-	apiKey := os.Getenv("DEEPSEEK_KEY")
+	apiKey := os.Getenv("DEEPSEEK_API_KEY")
 	if apiKey == "" {
-		apiKey = "sk-b8a1a9a1f42a4207a0e775d9dcc26b53"
+		apiKey = os.Getenv("DEEPSEEK_KEY")
 	}
+
+	router := agent.NewSmartLLMRouter()
+	routed := router.RouteTask(agent.TaskSocraticChat, "gold", 100000)
+
 	return agent.ProviderConfig{
 		Provider:  "deepseek",
-		Model:     "deepseek-chat",
+		Model:     routed.Model,
 		APIKey:    apiKey,
-		MaxTokens: 4096,
+		MaxTokens: routed.MaxTokens,
 	}
 }

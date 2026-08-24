@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thesa AI — Bikin Makalah Seru & Belajar Ringan ala Duolingo!</title>
+  <meta name="description" content="Cara paling seru dan menyenangkan bikin makalah kuliah bersama AI Sokratik. Belajar ringan sambil tugas selesai, sitasi otomatis APA 7th, dan ekspor Word (.docx) & PDF!">
+  
+  <!-- Open Graph & Social Sharing -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Thesa AI — Academic & Research Co-Pilot">
+  <meta property="og:description" content="Cara paling seru bikin tugas makalah & karya tulis ilmiah bersama bimbingan Sokratik AI.">
+  <meta property="og:site_name" content="Thesa AI">
+  <meta name="theme-color" content="#58cc02">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦉</text></svg>">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0" rel="stylesheet">
+  <style>
+    /* ── RESET & DUOLINGO STYLE TOKENS ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --duo-green: #58cc02;
+      --duo-green-dark: #46a302;
+      --duo-green-light: #d7ffb8;
+      --duo-blue: #1cb0f6;
+      --duo-blue-dark: #1899d6;
+      --duo-blue-light: #ddf4ff;
+      --duo-yellow: #ffc800;
+      --duo-yellow-dark: #e5b200;
+      --duo-purple: #ce82ff;
+      --duo-purple-dark: #a560e8;
+      --duo-purple-light: #f3e8ff;
+      --duo-red: #ff4b4b;
+      --duo-red-dark: #ea2b2b;
+      --duo-gray-bg: #ffffff;
+      --duo-gray-soft: #f7f9fa;
+      --duo-border: #e5e5e5;
+      --duo-border-dark: #cecece;
+      --duo-text: #4b4b4b;
+      --duo-text-dark: #111827;
+      --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-display: 'Fredoka', cursive, sans-serif;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      color: var(--duo-text-dark);
+      background: var(--duo-gray-bg);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { text-decoration: none; color: inherit; }
+    button { font-family: var(--font-display); cursor: pointer; border: none; }
+    .container { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── DUOLINGO CHUNKY 3D BUTTONS ── */
+    .btn-duo-green {
+      font-family: var(--font-display); font-size: 16px; font-weight: 700; color: #ffffff;
+      background: var(--duo-green); border: 2px solid var(--duo-green-dark);
+      border-bottom: 5px solid var(--duo-green-dark); border-radius: 18px;
+      padding: 12px 28px; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      text-transform: uppercase; letter-spacing: 0.8px; transition: all 0.1s ease;
+      box-shadow: 0 4px 12px rgba(88, 204, 2, 0.25);
+    }
+    .btn-duo-green:hover { background: #61df02; }
+    .btn-duo-green:active { transform: translateY(3px); border-bottom-width: 2px; }
+
+    .btn-duo-blue {
+      font-family: var(--font-display); font-size: 16px; font-weight: 700; color: #ffffff;
+      background: var(--duo-blue); border: 2px solid var(--duo-blue-dark);
+      border-bottom: 5px solid var(--duo-blue-dark); border-radius: 18px;
+      padding: 12px 28px; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      text-transform: uppercase; letter-spacing: 0.8px; transition: all 0.1s ease;
+      box-shadow: 0 4px 12px rgba(28, 176, 246, 0.25);
+    }
+    .btn-duo-blue:hover { background: #26b9ff; }
+    .btn-duo-blue:active { transform: translateY(3px); border-bottom-width: 2px; }
+
+    .btn-duo-white {
+      font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--duo-blue-dark);
+      background: #ffffff; border: 2px solid var(--duo-border);
+      border-bottom: 4px solid var(--duo-border-dark); border-radius: 16px;
+      padding: 10px 22px; display: inline-flex; align-items: center; gap: 8px;
+      text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.1s ease;
+    }
+    .btn-duo-white:active { transform: translateY(2px); border-bottom-width: 2px; }
+
+    /* ── NAVBAR ── */
+    .duo-navbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(16px);
+      border-bottom: 2px solid var(--duo-border); padding: 14px 0;
+    }
+    .nav-wrap { display: flex; align-items: center; justify-content: space-between; }
+    .duo-brand { display: flex; align-items: center; gap: 12px; }
+    .owl-avatar {
+      width: 44px; height: 44px; background: var(--duo-green); border: 2px solid var(--duo-green-dark);
+      border-bottom: 4px solid var(--duo-green-dark); border-radius: 14px;
+      display: flex; align-items: center; justify-content: center; font-size: 26px; color: #fff;
+    }
+    .brand-title-wrap { display: flex; flex-direction: column; }
+    .brand-title { font-family: var(--font-display); font-size: 26px; font-weight: 700; color: var(--duo-text-dark); line-height: 1; }
+    .brand-tag { font-size: 11px; font-weight: 800; color: var(--duo-green-dark); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .nav-links { display: flex; gap: 24px; font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--duo-text); }
+    .nav-links a { transition: color 0.15s; }
+    .nav-links a:hover { color: var(--duo-green-dark); }
+
+    /* ── HERO SECTION ── */
+    .hero { padding: 60px 0 40px; position: relative; }
+    .hero-grid { display: grid; grid-template-columns: 1fr 440px; gap: 40px; align-items: center; }
+
+    .hero-badge-duo {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--duo-green-light); border: 2px solid var(--duo-green);
+      color: var(--duo-green-dark); font-family: var(--font-display); font-size: 13px; font-weight: 700;
+      padding: 6px 16px; border-radius: 999px; margin-bottom: 20px; text-transform: uppercase;
+    }
+
+    .hero-title {
+      font-family: var(--font-display); font-size: 46px; font-weight: 700; line-height: 1.15;
+      color: var(--duo-text-dark); margin-bottom: 18px;
+    }
+    .hero-title span.highlight-green { color: var(--duo-green-dark); background: var(--duo-green-light); padding: 2px 10px; border-radius: 12px; }
+    .hero-title span.highlight-blue { color: var(--duo-blue-dark); background: var(--duo-blue-light); padding: 2px 10px; border-radius: 12px; }
+
+    .hero-sub {
+      font-size: 17px; color: var(--duo-text); line-height: 1.6; margin-bottom: 32px; font-weight: 500;
+    }
+    .hero-sub strong { color: var(--duo-text-dark); font-weight: 800; }
+
+    .hero-actions { display: flex; gap: 14px; margin-bottom: 32px; flex-wrap: wrap; }
+
+    .hero-stats-row {
+      display: flex; gap: 20px; border-top: 2px solid var(--duo-border); padding-top: 20px;
+    }
+    .hero-stat-item { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--duo-text-dark); }
+
+    /* Right Hero Card Showcase */
+    .hero-card-showcase {
+      background: #ffffff; border: 3px solid var(--duo-border); border-bottom: 8px solid var(--duo-border-dark);
+      border-radius: 28px; padding: 24px; position: relative; box-shadow: 0 15px 35px rgba(0,0,0,0.06);
+    }
+    .showcase-header {
+      display: flex; align-items: center; gap: 12px; background: var(--duo-blue-light);
+      border: 2px solid var(--duo-blue); padding: 12px 16px; border-radius: 18px; margin-bottom: 16px;
+    }
+    .showcase-chat-bubble {
+      background: #ffffff; border: 2px solid var(--duo-border); border-bottom: 4px solid var(--duo-border-dark);
+      border-radius: 18px; padding: 14px; margin-bottom: 12px; font-size: 13px;
+    }
+
+    /* ── PHILOSOPHY SECTION (DUOLINGO GAMIFIED STYLE) ── */
+    .philosophy-duo {
+      background: var(--duo-gray-soft); border-top: 3px solid var(--duo-border);
+      border-bottom: 3px solid var(--duo-border); padding: 64px 0; margin-top: 40px;
+    }
+    .philo-head { text-align: center; max-width: 800px; margin: 0 auto 44px; }
+    .philo-head h2 { font-family: var(--font-display); font-size: 38px; font-weight: 700; color: var(--duo-text-dark); margin-bottom: 12px; }
+    .philo-head p { font-size: 17px; color: var(--duo-text); line-height: 1.6; }
+
+    .philo-cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .philo-card {
+      background: #ffffff; border: 3px solid var(--duo-border); border-bottom: 7px solid var(--duo-border-dark);
+      border-radius: 24px; padding: 28px 24px; transition: all 0.15s ease; position: relative;
+    }
+    .philo-card:hover { transform: translateY(-4px); }
+    .philo-icon-box {
+      width: 56px; height: 56px; border-radius: 18px; display: flex; align-items: center; justify-content: center;
+      font-size: 30px; margin-bottom: 16px; border: 2px solid rgba(0,0,0,0.1); border-bottom-width: 4px;
+    }
+    .philo-card h3 { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--duo-text-dark); margin-bottom: 8px; }
+    .philo-card p { font-size: 13.5px; color: var(--duo-text); line-height: 1.6; }
+
+    /* ── FEATURES SECTION ── */
+    .features-section { padding: 72px 0; }
+    .duo-section-title { text-align: center; margin-bottom: 48px; }
+    .duo-section-title h2 { font-family: var(--font-display); font-size: 36px; font-weight: 700; color: var(--duo-text-dark); }
+    .duo-section-title p { font-size: 16px; color: var(--duo-text); margin-top: 6px; }
+
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .duo-feature-card {
+      background: #ffffff; border: 2.5px solid var(--duo-border); border-bottom: 6px solid var(--duo-border-dark);
+      border-radius: 22px; padding: 26px; transition: all 0.15s ease;
+    }
+    .duo-feature-card:hover { transform: translateY(-3px); border-color: #cbd5e1; }
+    .duo-feat-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .duo-feat-icon {
+      width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+      font-size: 22px; color: #fff; border-bottom: 3px solid rgba(0,0,0,0.2);
+    }
+    .duo-feature-card h3 { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--duo-text-dark); }
+    .duo-feature-card p { font-size: 13px; color: var(--duo-text); line-height: 1.6; }
+
+    /* ── PRICING SECTION (PLAYFUL 3D CARDS) ── */
+    .pricing-section { padding: 64px 0 80px; background: var(--duo-gray-soft); border-top: 3px solid var(--duo-border); }
+    .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1040px; margin: 0 auto; }
+    .duo-price-card {
+      background: #ffffff; border: 3px solid var(--duo-border); border-bottom: 8px solid var(--duo-border-dark);
+      border-radius: 28px; padding: 32px 24px; display: flex; flex-direction: column; position: relative;
+    }
+    .duo-price-card.featured {
+      border-color: var(--duo-green-dark); border-bottom-color: var(--duo-green-dark);
+      box-shadow: 0 12px 30px rgba(88, 204, 2, 0.2);
+    }
+    .price-ribbon {
+      position: absolute; top: -14px; right: 20px; background: var(--duo-green); color: #fff;
+      font-family: var(--font-display); font-size: 11px; font-weight: 700; padding: 4px 12px;
+      border-radius: 12px; border: 2px solid var(--duo-green-dark); text-transform: uppercase;
+    }
+    .duo-price-card h3 { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--duo-text-dark); margin-bottom: 4px; }
+    .duo-price-card p { font-size: 13px; color: var(--duo-text); margin-bottom: 20px; }
+    .duo-price-amount { font-family: var(--font-display); font-size: 38px; font-weight: 700; color: var(--duo-text-dark); margin-bottom: 20px; }
+    .duo-price-amount span { font-size: 14px; color: var(--duo-text); font-family: var(--font-sans); }
+
+    .duo-price-list { list-style: none; margin-bottom: 28px; flex: 1; }
+    .duo-price-list li { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--duo-text-dark); margin-bottom: 10px; font-weight: 600; }
+    .duo-price-list li span.check { color: var(--duo-green-dark); font-weight: 800; font-size: 16px; }
+
+    /* ── FOOTER ── */
+    footer { border-top: 3px solid var(--duo-border); padding: 40px 0; text-align: center; font-size: 13px; color: var(--duo-text); background: #ffffff; }
+
+    /* ── MOBILE & TABLET RESPONSIVE STYLES ── */
+    @media (max-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 32px; }
+      .philo-cards-grid { grid-template-columns: 1fr; gap: 16px; }
+      .features-grid { grid-template-columns: 1fr; gap: 16px; }
+      .pricing-grid { grid-template-columns: 1fr; max-width: 440px; margin: 0 auto; gap: 20px; }
+      .nav-links { display: none; }
+      .hero-title { font-size: 32px; }
+      .hero-sub { font-size: 15px; margin-bottom: 24px; }
+      .hero-actions { flex-direction: column; width: 100%; gap: 12px; }
+      .btn-duo-green, .btn-duo-blue, .btn-duo-white { width: 100%; text-align: center; justify-content: center; }
+      .hero-stats-row { flex-direction: column; gap: 10px; }
+      .philo-head h2, .duo-section-title h2 { font-size: 26px; }
+      .philo-head p, .duo-section-title p { font-size: 14px; }
+      .hero-card-showcase { padding: 18px; border-radius: 22px; }
+      .container { padding: 0 16px; }
+      .hero { padding: 32px 0 24px; }
+      .philosophy-duo { padding: 40px 0; }
+      .features-section { padding: 40px 0; }
+      .pricing-section { padding: 40px 0 50px; }
+      .duo-navbar { padding: 10px 0; }
+    }
+
+    @media (max-width: 500px) {
+      .hero-title { font-size: 26px; line-height: 1.25; }
+      .brand-title { font-size: 20px; }
+      .owl-avatar { width: 36px; height: 36px; font-size: 20px; border-radius: 12px; }
+      .brand-tag { font-size: 9.5px; }
+      .hero-badge-duo { font-size: 11px; padding: 4px 12px; }
+      .duo-price-card { padding: 24px 18px; }
+      .duo-price-amount { font-size: 32px; }
+      .philo-card { padding: 20px 18px; }
+      .duo-feature-card { padding: 20px 18px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── DUOLINGO NAVBAR ── -->
+  <nav class="duo-navbar">
+    <div class="container nav-wrap">
+      <a href="landing.html" class="duo-brand">
+        <div class="owl-avatar">🦉</div>
+        <div class="brand-title-wrap">
+          <span class="brand-title">Thesa AI</span>
+          <span class="brand-tag">Academic Co-Pilot</span>
+        </div>
+      </a>
+
+      <div class="nav-links">
+        <a href="#filosofi">Filosofi</a>
+        <a href="#fitur">Fitur Keren</a>
+        <a href="#harga">Harga Saku Mahasiswa</a>
+      </div>
+
+      <div style="display:flex; gap:12px; align-items:center;">
+        <a href="index.html" class="btn-duo-white">Masuk</a>
+        <a href="index.html" class="btn-duo-green">
+          <span class="material-symbols-rounded">rocket_launch</span>
+          <span>Mulai (Gratis)</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── HERO SECTION ── -->
+  <section class="hero">
+    <div class="container hero-grid">
+      <div>
+        <div class="hero-badge-duo">
+          <span>🦉 Belajar Sambil Selesai Makalah!</span>
+        </div>
+
+        <h1 class="hero-title">
+          Bikin Makalah Bersama AI, <span class="highlight-green">Bukan Bikin Makin Pasif</span> tapi <span class="highlight-blue">Belajar Ringan &amp; Seru!</span>
+        </h1>
+
+        <p class="hero-sub">
+          Rasakan pengalaman menyusun karya ilmiah 3 Bab yang jauh lebih menyenangkan. <strong>Didampingi AI Sokratik yang suportif</strong>, sitasi otomatis APA 7th / IEEE, dan ekspor instan ke Word (.DOCX) &amp; PDF siap kumpul!
+        </p>
+
+        <div class="hero-actions">
+          <a href="index.html" class="btn-duo-green" style="font-size:17px; padding:14px 34px;">
+            <span class="material-symbols-rounded" style="font-size:22px;">auto_awesome</span>
+            <span>Mulai Makalah Pertama (Gratis)</span>
+          </a>
+          <a href="index.html" class="btn-duo-blue" style="font-size:15px; padding:14px 26px;">
+            <span class="material-symbols-rounded" style="font-size:20px;">visibility</span>
+            <span>Pratinjau Workspace</span>
+          </a>
+        </div>
+
+        <div class="hero-stats-row">
+          <div class="hero-stat-item">
+            <span style="font-size:20px;">⚡</span>
+            <span>Format Standar Perguruan Tinggi Indonesia</span>
+          </div>
+          <div class="hero-stat-item">
+            <span style="font-size:20px;">💳</span>
+            <span>Pay-per-Makalah Rp 12.000 (QRIS Instan)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Interactive Preview Card -->
+      <div class="hero-card-showcase">
+        <div class="showcase-header">
+          <div style="font-size:28px;">🦉</div>
+          <div>
+            <strong style="font-family:var(--font-display); font-size:15px; color:var(--duo-blue-dark);">Thesa Owl Co-Pilot</strong>
+            <span style="display:block; font-size:11px; color:#64748b;">Siap membimbing naskahmu step-by-step!</span>
+          </div>
+        </div>
+
+        <div class="showcase-chat-bubble">
+          <strong style="color:var(--duo-green-dark); font-family:var(--font-display);">🦉 Thesa Coach:</strong>
+          <p style="margin-top:4px; color:#334155;">"Bagaimana Anda menyintesis gagasan solusi untuk menjawab rumusan masalah Bab II?"</p>
+        </div>
+
+        <div class="showcase-chat-bubble" style="background:#eef2ff; border-color:#c7d2fe;">
+          <strong style="color:#4338ca; font-family:var(--font-display);">👤 Kamu (Mahasiswa):</strong>
+          <p style="margin-top:4px; color:#312e81;">"Solusi difokuskan pada penguatan regulasi adaptif dan analitika data."</p>
+        </div>
+
+        <div style="background:#f8fafc; border:2px solid #e2e8f0; border-radius:16px; padding:12px; font-size:11.5px; text-align:center;">
+          <span style="font-family:var(--font-display); font-weight:700; color:#16a34a;">✓ Draf Naskah Bab II Langsung TerSusun Rapi &amp; Tersitasi!</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PHILOSOPHY SECTION (DUOLINGO GAMIFIED STYLE) ── -->
+  <section class="philosophy-duo" id="filosofi">
+    <div class="container">
+      <div class="philo-head">
+        <h2>Bikin Makalah Bersama AI: Rasakan Bedanya!</h2>
+        <p>Thesa AI bukan "joki otomatis" yang membuatmu ketergantungan tanpa paham tulisanmu. Kami menghadirkan alur <strong>Co-Authoring &amp; Penalaran Sokratik</strong> yang seru!</p>
+      </div>
+
+      <div class="philo-cards-grid">
+        <div class="philo-card">
+          <div class="philo-icon-box" style="background:var(--duo-purple-light); color:var(--duo-purple-dark);">🧠</div>
+          <h3>Paham Isi Makalahmu</h3>
+          <p>Melalui dialog Sokratik interaktif, kamu otomatis menguasai argumen naskahmu. Kamu siap 100% saat ditanya dosen atau presentasi di depan kelas!</p>
+        </div>
+
+        <div class="philo-card">
+          <div class="philo-icon-box" style="background:var(--duo-green-light); color:var(--duo-green-dark);">⚡</div>
+          <h3>Bebas Stres Blank Page</h3>
+          <p>Tidak perlu pusing menatap layar kosong. Thesa memandu langkah demi langkah dari Bab I hingga Bab III dengan alur yang ringan dan menyenangkan.</p>
+        </div>
+
+        <div class="philo-card">
+          <div class="philo-icon-box" style="background:var(--duo-blue-light); color:var(--duo-blue-dark);">🦉</div>
+          <h3>Rekan Diskusi Suportif</h3>
+          <p>Rasakan pengalaman menyusun karya ilmiah bersama teman diskusi cerdas yang siap membantu 24/7 tanpa menghakimi atau membuatmu merasa tertekan.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FEATURES SECTION ── -->
+  <section class="features-section" id="fitur">
+    <div class="container">
+      <div class="duo-section-title">
+        <h2>Fitur Canggih yang Bikin Tugas Selesai Tanpa Beban</h2>
+        <p>Dirancang khusus untuk kebutuhan makalah kuliah mahasiswa S1 &amp; S2 Indonesia.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="duo-feature-card">
+          <div class="duo-feat-head">
+            <div class="duo-feat-icon" style="background:var(--duo-green);">📚</div>
+            <h3>Sistematika 3 Bab Otomatis</h3>
+          </div>
+          <p>Disusun terstruktur dari Bab I (Pendahuluan), Bab II (Pembahasan &amp; Analisis), hingga Bab III (Penutup &amp; Rekomendasi).</p>
+        </div>
+
+        <div class="duo-feature-card">
+          <div class="duo-feat-head">
+            <div class="duo-feat-icon" style="background:var(--duo-blue);">✍️</div>
+            <h3>Multi-Style Sitasi Otomatis</h3>
+          </div>
+          <p>Dukung gaya sitasi <strong>APA 7th</strong>, <strong>IEEE [1]</strong>, <strong>Harvard</strong>, dan <strong>MLA 9th</strong>. 1-Click menyisipkan sitasi &amp; menyusun Daftar Pustaka.</p>
+        </div>
+
+        <div class="duo-feature-card">
+          <div class="duo-feat-head">
+            <div class="duo-feat-icon" style="background:var(--duo-purple);">🏛️</div>
+            <h3>Adaptif Pedoman Kampus</h3>
+          </div>
+          <p>Otomatis menyesuaikan format pedoman kampusmu (UI, ITB, UGM, UNDIP, UT, dll) serta instruksi khusus dari Dosen Pengampu.</p>
+        </div>
+
+        <div class="duo-feature-card">
+          <div class="duo-feat-head">
+            <div class="duo-feat-icon" style="background:var(--duo-yellow); color:#0f172a;">📄</div>
+            <h3>Ekspor Word (.docx) &amp; PDF</h3>
+          </div>
+          <p>Naskah hasil buatan AI dapat langsung diunduh ke format Microsoft Word (.docx) lengkap dengan Cover Resmi untuk diedit kembali.</p>
+        </div>
+
+        <div class="duo-feature-card">
+          <div class="duo-feat-head">
+            <div class="duo-feat-icon" style="background:var(--duo-red);">⚔️</div>
+            <h3>Simulasi Uji Sidang AI</h3>
+          </div>
+          <p>Latih kemampuan mempertahankan argumen makalahmu di hadapan 2 Dewan Penguji AI sebelum maju ke ruang kuliah.</p>
+        </div>
+
+        <div class="duo-feature-card">
+          <div class="duo-feat-head">
+            <div class="duo-feat-icon" style="background:var(--duo-green-dark);">💳</div>
+            <h3>Pay-per-Makalah (QRIS)</h3>
+          </div>
+          <p>Bayar per tugas kuliahmu (Rp 12.000 / naskah via Instant QRIS). Tanpa jebakan tagihan langganan bulanan berulang.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PRICING SECTION (PLAYFUL 3D CARDS) ── -->
+  <section class="pricing-section" id="harga">
+    <div class="container">
+      <div class="duo-section-title">
+        <h2>Harga Ramah Kantong Mahasiswa</h2>
+        <p>Bayar per tugas makalah saat kamu membutuhkannya. Tanpa biaya tersembunyi.</p>
+      </div>
+
+      <div class="pricing-grid">
+        <!-- Trial -->
+        <div class="duo-price-card">
+          <h3>Trial Pertama</h3>
+          <p>Untuk pengguna baru yang ingin mencoba alur pembuatan.</p>
+          <div class="duo-price-amount">Gratis <span>/ 1 naskah</span></div>
+          <ul class="duo-price-list">
+            <li><span class="check">✓</span> Akses Draf Makalah 3 Bab</li>
+            <li><span class="check">✓</span> Bimbingan Sokratik AI</li>
+            <li><span class="check">✓</span> Pratinjau Naskah Lengkap</li>
+            <li><span class="check">✓</span> Ekspor Word (.docx) &amp; PDF</li>
+          </ul>
+          <a href="index.html" class="btn-duo-white" style="justify-content:center;">Coba Gratis</a>
+        </div>
+
+        <!-- Single Pay-per-Makalah -->
+        <div class="duo-price-card featured">
+          <span class="price-ribbon">PALING POPULER</span>
+          <h3>Single Makalah</h3>
+          <p>Solusi tercepat untuk 1 tugas makalah kuliah siap kumpul.</p>
+          <div class="duo-price-amount" style="color:var(--duo-green-dark);">Rp 12.000 <span>/ naskah</span></div>
+          <ul class="duo-price-list">
+            <li><span class="check">✓</span> Akses Penuh Makalah 3 Bab (6-10 Hal)</li>
+            <li><span class="check">✓</span> Halaman Cover Resmi Kampus</li>
+            <li><span class="check">✓</span> Sitasi Otomatis APA 7th / IEEE</li>
+            <li><span class="check">✓</span> Ekspor Word (.docx) &amp; PDF Bebas Limit</li>
+            <li><span class="check">✓</span> Pembayaran Instan via QRIS</li>
+          </ul>
+          <a href="index.html" class="btn-duo-green" style="justify-content:center;">Mulai Penulisan</a>
+        </div>
+
+        <!-- Paket Semester -->
+        <div class="duo-price-card">
+          <h3>Paket 1 Semester</h3>
+          <p>Paket hemat untuk 4 tugas makalah selama 1 semester.</p>
+          <div class="duo-price-amount">Rp 39.000 <span>/ 4 naskah</span></div>
+          <ul class="duo-price-list">
+            <li><span class="check">✓</span> Kuota 4x Naskah Makalah Penuh</li>
+            <li><span class="check">✓</span> Hemat Rp 9.000 (~Rp 9.750/naskah)</li>
+            <li><span class="check">✓</span> Bonus Cek Plagiarisme Kebahasaan</li>
+            <li><span class="check">✓</span> Simulasi Uji Sidang Sokratik</li>
+          </ul>
+          <a href="index.html" class="btn-duo-blue" style="justify-content:center;">Pilih Paket Semester</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <div class="container">
+      <div style="display:flex; justify-content:center; align-items:center; gap:8px; margin-bottom:10px;">
+        <span style="font-size:24px;">🦉</span>
+        <strong style="font-family:var(--font-display); font-size:18px; color:var(--duo-text-dark);">Thesa AI — Academic Co-Pilot</strong>
+      </div>
+      <p>© 2026 Thesa AI. Hak Cipta Dilindungi Undang-Undang.</p>
+      <p style="margin-top:4px; font-size:12px; color:#94a3b8;">Thesa AI adalah asisten penalaran Sokratik untuk membantu penyusunan karya tulis ilmiah beretika. Seluruh hak cipta ide tetap milik mahasiswa peneliti.</p>
+    </div>
+  </footer>
+
+  <script>
+    function handleSmartAuth(targetPath = 'auth.html') {
+      const user = localStorage.getItem('thesaUser') || sessionStorage.getItem('thesaUser');
+      if (user) {
+        window.location.href = 'index.html';
+      } else {
+        window.location.href = targetPath;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Attach smart navigation to all CTA buttons
+      document.querySelectorAll('a[href="index.html"]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const user = localStorage.getItem('thesaUser') || sessionStorage.getItem('thesaUser');
+          if (!user && !btn.textContent.includes('Workspace') && !btn.textContent.includes('Pratinjau')) {
+            e.preventDefault();
+            window.location.href = 'auth.html';
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
+

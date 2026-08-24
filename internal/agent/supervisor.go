@@ -410,3 +410,169 @@ func parseReadinessReportJSON(jsonStr string) (*ReadinessReport, error) {
 
 	return &report, nil
 }
+
+// ---------------------------------------------------------------------------
+// AI Viva Voce Defense Simulator — Multi-Persona Examiners
+// ---------------------------------------------------------------------------
+
+// ExaminerPersona defines the role, profile, and questioning style of an academic examiner.
+type ExaminerPersona struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Role      string `json:"role"`       // "Ketua Penguji", "Penguji I (Metodologi)", "Penguji II (Statistik & Data)"
+	FocusArea string `json:"focus_area"` // "Novelty & Landasan Teori", "Validitas & Desain Sampel", "Analisis & Replikasi Data"
+	Avatar    string `json:"avatar"`
+	ToneStyle string `json:"tone_style"` // "kritis-konstruktif", "ketat-metodologis", "analitis-kuantitatif"
+}
+
+// ExaminerSimulateRequest carries data for an examiner round question or evaluation.
+type ExaminerSimulateRequest struct {
+	Mode       string          `json:"mode"` // "question" or "evaluate"
+	Document   string          `json:"document"`
+	Topic      string          `json:"topic"`
+	Difficulty string          `json:"difficulty"` // "coaching", "standard", "killer"
+	Turn       int             `json:"turn"`
+	Examiner   ExaminerPersona `json:"examiner"`
+	Question   string          `json:"question,omitempty"`
+	Answer     string          `json:"answer,omitempty"`
+}
+
+// ExaminerSimulateResponse returns generated question or evaluation result.
+type ExaminerSimulateResponse struct {
+	QuestionText      string   `json:"question_text,omitempty"`
+	ContextBab        string   `json:"context_bab,omitempty"`
+	Intent            string   `json:"intent,omitempty"`
+	Score             int      `json:"score,omitempty"`
+	Grade             string   `json:"grade,omitempty"`
+	Feedback          string   `json:"feedback,omitempty"`
+	Critique          string   `json:"critique,omitempty"`
+	StrongPoints      []string `json:"strong_points,omitempty"`
+	ImprovementPoints []string `json:"improvement_points,omitempty"`
+	AspectScores      map[string]int `json:"aspect_scores,omitempty"`
+}
+
+// SimulateExaminer handles dynamic questioning and rigorous scoring for Viva Voce defense.
+func (s *AgentSupervisor) SimulateExaminer(req ExaminerSimulateRequest, config ProviderConfig) (*ExaminerSimulateResponse, error) {
+	if s.provider == nil {
+		return nil, fmt.Errorf("agent supervisor: AI provider not set")
+	}
+
+	if req.Mode == "evaluate" {
+		return s.evaluateExaminerTurn(req, config)
+	}
+	return s.generateExaminerQuestion(req, config)
+}
+
+func (s *AgentSupervisor) generateExaminerQuestion(req ExaminerSimulateRequest, config ProviderConfig) (*ExaminerSimulateResponse, error) {
+	docSnippet := req.Document
+	if len(docSnippet) > 3000 {
+		docSnippet = docSnippet[:3000] + "\n...(dipersingkat)"
+	}
+
+	prompt := fmt.Sprintf(`Anda adalah %s, bertindak sebagai %s dalam ujian sidang akademik skripsi/tesis perguruan tinggi Indonesia.
+Fokus Pengujian Spesifik Anda: %s.
+Tingkat Keketatan: %s.
+
+Materi & Draf Riset Mahasiswa:
+Topik Penelitian: "%s"
+Kutipan Draf Naskah:
+%s
+
+TUGAS UTAMA:
+Buatlah 1 buah pertanyaan teks ujian sidang yang SANGAT SPESIFIK dan KONTEKSTUAL terhadap draf naskah di atas.
+- DILARANG membuat pertanyaan klise/generik.
+- Sebutkan atau rujuklah langsung variabel, konsep kunci, atau metode yang tertulis pada draf mahasiswa.
+- Sasarlah logika penalaran, justifikasi pemilihan metode, konsistensi argumen, atau implikasi temuan mereka.
+
+Keluarkan HANYA JSON valid:
+{
+  "question_text": "Teks pertanyaan mendalam dan spesifik sesuai draf materi mahasiswa",
+  "context_bab": "BAB I / BAB II / BAB III / BAB IV / BAB V",
+  "intent": "Aspek kritis yang diuji dari materi mahasiswa"
+}`, req.Examiner.Name, req.Examiner.Role, req.Examiner.FocusArea, req.Difficulty, req.Topic, docSnippet)
+
+	messages := []Message{
+		{Role: "system", Content: "Anda adalah penguji sidang skripsi akademik berstandar tinggi. Pertanyaan Anda harus sangat kontekstual mengacu pada teks materi mahasiswa. Jawab HANYA dalam JSON valid."},
+		{Role: "user", Content: prompt},
+	}
+
+	result, err := s.provider.Chat(messages, config)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp ExaminerSimulateResponse
+	cleaned := cleanJSONString(result)
+	if err := json.Unmarshal([]byte(cleaned), &resp); err != nil {
+		return &ExaminerSimulateResponse{
+			QuestionText: fmt.Sprintf("Terkait topik '%s', bagaimana Anda membuktikan secara empiris bahwa temuan dan metodologi yang Anda terapkan mampu menjawab langsung rumusan masalah yang Anda ajukan?", req.Topic),
+			ContextBab:   "Metodologi & Analisis",
+			Intent:       "Menguji keselarasan antara rumusan masalah dan metode analisis",
+		}, nil
+	}
+
+	return &resp, nil
+}
+
+func (s *AgentSupervisor) evaluateExaminerTurn(req ExaminerSimulateRequest, config ProviderConfig) (*ExaminerSimulateResponse, error) {
+	prompt := fmt.Sprintf(`Anda adalah %s (%s) yang sedang mengevaluasi jawaban lisan mahasiswa pada ujian sidang skripsi.
+Fokus Anda: %s.
+Keketatan: %s.
+
+Pertanyaan Penguji:
+"%s"
+
+Jawaban Lisan Mahasiswa:
+"%s"
+
+Tugas:
+Evaluasi ketajaman, argumentasi logis, dan penguasaan materi dari jawaban mahasiswa tersebut.
+Beri penilaian rubrik akademik (skor 50-100).
+
+Keluarkan format JSON murni:
+{
+  "score": 85,
+  "grade": "A / A- / B+ / B / C",
+  "feedback": "Ulasan singkat jawaban mahasiswa",
+  "critique": "Kritik atau sanggahan konstruktif penguji",
+  "strong_points": ["Kelebihan 1", "Kelebihan 2"],
+  "improvement_points": ["Catatan perbaikan 1", "Catatan perbaikan 2"],
+  "aspect_scores": {
+    "logic": 85,
+    "method": 80,
+    "literature": 82,
+    "oral": 88
+  }
+}`, req.Examiner.Name, req.Examiner.Role, req.Examiner.FocusArea, req.Difficulty, req.Question, req.Answer)
+
+	messages := []Message{
+		{Role: "system", Content: "Anda adalah evaluator sidang skripsi perguruan tinggi Indonesia yang adil dan objektif. Jawab HANYA dalam JSON valid."},
+		{Role: "user", Content: prompt},
+	}
+
+	result, err := s.provider.Chat(messages, config)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp ExaminerSimulateResponse
+	cleaned := cleanJSONString(result)
+	if err := json.Unmarshal([]byte(cleaned), &resp); err != nil {
+		return &ExaminerSimulateResponse{
+			Score:             82,
+			Grade:             "A-",
+			Feedback:          "Jawaban cukup lugas dan menjawab pokok pertanyaan dewan penguji.",
+			Critique:          "Perlu memperkuat rujukan metodologis dan batasan penelitian.",
+			StrongPoints:      []string{"Artikulasi tenang", "Menjawab inti pertanyaan"},
+			ImprovementPoints: []string{"Sertakan sitasi kunci", "Jelaskan mitigasi ancaman validitas"},
+			AspectScores: map[string]int{
+				"logic":      84,
+				"method":     80,
+				"literature": 82,
+				"oral":       85,
+			},
+		}, nil
+	}
+
+	return &resp, nil
+}

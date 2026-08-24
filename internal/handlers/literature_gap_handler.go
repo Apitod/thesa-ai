@@ -81,7 +81,7 @@ func (h *GapAnalysisHandler) Analyze(w http.ResponseWriter, r *http.Request) {
 	// Build provider config from env
 	apiKey := os.Getenv("DEEPSEEK_API_KEY")
 	if apiKey == "" {
-		apiKey = "sk-172...1da5"
+		apiKey = os.Getenv("DEEPSEEK_KEY")
 	}
 	config := agent.ProviderConfig{
 		Provider:  "deepseek",
@@ -173,6 +173,10 @@ func (h *GapAnalysisHandler) getPapersByIDs(ids []int) ([]gapPaper, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
+	if db.DB == nil || !db.IsConnected() {
+		return []gapPaper{}, nil
+	}
+
 	placeholders := make([]string, len(ids))
 	args := make([]interface{}, len(ids))
 	for i, id := range ids {
@@ -189,6 +193,10 @@ func (h *GapAnalysisHandler) getPapersByIDs(ids []int) ([]gapPaper, error) {
 }
 
 func (h *GapAnalysisHandler) getTopicContext(projectID int) string {
+	if db.DB == nil || !db.IsConnected() {
+		return ""
+	}
+
 	var topics []struct {
 		Topic string `db:"topic"`
 	}

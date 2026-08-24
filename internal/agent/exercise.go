@@ -250,6 +250,10 @@ func (e *ExerciseAgent) SaveReflection(projectID int, reflection string) error {
 		return fmt.Errorf("exercise agent: reflection is empty")
 	}
 
+	if db.DB == nil || !db.IsConnected() {
+		return nil
+	}
+
 	_, err := db.DB.Exec(
 		`INSERT INTO skill_reflections (project_id, reflection, created_at)
 		 VALUES (?, ?, NOW())

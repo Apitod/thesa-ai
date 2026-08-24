@@ -230,12 +230,12 @@ func (h *ExerciseHandler) SaveReflection(w http.ResponseWriter, r *http.Request)
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-// defaultConfig builds a ProviderConfig from the DEEPSEEK_KEY env variable
+// defaultConfig builds a ProviderConfig from the DEEPSEEK_API_KEY / DEEPSEEK_KEY env variable
 // with sensible defaults for exercise AI calls.
 func (h *ExerciseHandler) defaultConfig() agent.ProviderConfig {
-	apiKey := os.Getenv("DEEPSEEK_KEY")
+	apiKey := os.Getenv("DEEPSEEK_API_KEY")
 	if apiKey == "" {
-		apiKey = "sk-b8a...6b53"
+		apiKey = os.Getenv("DEEPSEEK_KEY")
 	}
 	return agent.ProviderConfig{
 		Provider:  "deepseek",

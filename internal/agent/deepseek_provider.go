@@ -60,7 +60,10 @@ func (p *DeepSeekProvider) Chat(messages []Message, config ProviderConfig) (stri
 
 	maxTokens := config.MaxTokens
 	if maxTokens <= 0 {
-		maxTokens = 2048
+		maxTokens = 1500
+	} else if maxTokens > 2500 {
+		// Cap max output tokens to prevent runaway cost
+		maxTokens = 2500
 	}
 
 	temperature := 0.7
@@ -70,12 +73,20 @@ func (p *DeepSeekProvider) Chat(messages []Message, config ProviderConfig) (stri
 		}
 	}
 
+	// Token Economy Optimization: Sliding Context Window (Keep System Prompt + Last 6 message turns max)
+	optimizedMessages := optimizeContextWindow(messages)
+
 	// Convert messages
-	apiMessages := make([]deepSeekMsg, 0, len(messages))
-	for _, m := range messages {
+	apiMessages := make([]deepSeekMsg, 0, len(optimizedMessages))
+	for _, m := range optimizedMessages {
+		content := m.Content
+		// Compress individual turn content if it exceeds 4,000 characters
+		if len(content) > 4000 {
+			content = content[:4000] + "... [Ringkasan konteks otomatis untuk efisiensi token]"
+		}
 		apiMessages = append(apiMessages, deepSeekMsg{
 			Role:    m.Role,
-			Content: m.Content,
+			Content: content,
 		})
 	}
 
@@ -93,27 +104,63 @@ func (p *DeepSeekProvider) Chat(messages []Message, config ProviderConfig) (stri
 	}
 
 	apiURL := "https://api.deepseek.com/chat/completions"
-	httpReq, err := http.NewRequest("POST", apiURL, bytes.NewReader(body))
-	if err != nil {
-		return "", fmt.Errorf("DeepSeekProvider: create request: %w", err)
+
+	var respBody []byte
+	var lastErr error
+
+	// Retry loop with exponential backoff (up to 3 attempts) for transient errors (429, 500, 502, 503, 504)
+	maxRetries := 3
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		httpReq, err := http.NewRequest("POST", apiURL, bytes.NewReader(body))
+		if err != nil {
+			return "", fmt.Errorf("DeepSeekProvider: create request: %w", err)
+		}
+
+		httpReq.Header.Set("Content-Type", "application/json")
+		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
+
+		resp, err := p.httpClient.Do(httpReq)
+		if err != nil {
+			lastErr = fmt.Errorf("http call attempt %d: %w", attempt, err)
+			if attempt < maxRetries {
+				time.Sleep(time.Duration(attempt) * 1200 * time.Millisecond)
+				continue
+			}
+			break
+		}
+
+		respBody, err = io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			lastErr = fmt.Errorf("read response attempt %d: %w", attempt, err)
+			if attempt < maxRetries {
+				time.Sleep(time.Duration(attempt) * 1000 * time.Millisecond)
+				continue
+			}
+			break
+		}
+
+		// Handle transient rate limit (429) or server errors (500, 502, 503, 504)
+		if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500 {
+			lastErr = fmt.Errorf("API returned HTTP %d: %s", resp.StatusCode, string(respBody))
+			if attempt < maxRetries {
+				time.Sleep(time.Duration(attempt*attempt) * 1000 * time.Millisecond)
+				continue
+			}
+			break
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			return "", fmt.Errorf("DeepSeekProvider: API returned HTTP %d: %s", resp.StatusCode, string(respBody))
+		}
+
+		// Success
+		lastErr = nil
+		break
 	}
 
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
-
-	resp, err := p.httpClient.Do(httpReq)
-	if err != nil {
-		return "", fmt.Errorf("DeepSeekProvider: http call: %w", err)
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("DeepSeekProvider: read response: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("DeepSeekProvider: API returned HTTP %d: %s", resp.StatusCode, string(respBody))
+	if lastErr != nil {
+		return "", fmt.Errorf("DeepSeekProvider failed after %d retries: %w", maxRetries, lastErr)
 	}
 
 	var chatResp deepSeekChatResponse
@@ -136,3 +183,33 @@ func (p *DeepSeekProvider) Chat(messages []Message, config ProviderConfig) (stri
 func (p *DeepSeekProvider) Name() string {
 	return "deepseek"
 }
+
+// optimizeContextWindow keeps the system message plus the most recent 6 conversational turns
+// to protect profit margin from exponential token inflation.
+func optimizeContextWindow(messages []Message) []Message {
+	if len(messages) <= 7 {
+		return messages
+	}
+
+	var systemMsgs []Message
+	var convMsgs []Message
+
+	for _, m := range messages {
+		if m.Role == "system" {
+			systemMsgs = append(systemMsgs, m)
+		} else {
+			convMsgs = append(convMsgs, m)
+		}
+	}
+
+	// Keep last 6 conversation turns
+	if len(convMsgs) > 6 {
+		convMsgs = convMsgs[len(convMsgs)-6:]
+	}
+
+	result := make([]Message, 0, len(systemMsgs)+len(convMsgs))
+	result = append(result, systemMsgs...)
+	result = append(result, convMsgs...)
+	return result
+}
+

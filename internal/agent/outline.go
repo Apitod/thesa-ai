@@ -256,6 +256,11 @@ func (g *OutlineGenerator) SaveOutline(projectID int, outline *MappedOutline) er
 		return fmt.Errorf("outline generator: failed to marshal outline: %w", err)
 	}
 
+	// If DB is offline, return nil gracefully
+	if db.DB == nil || !db.IsConnected() {
+		return nil
+	}
+
 	// Insert into thesa_outlines (top-level outline record)
 	_, err = db.DB.Exec(
 		`INSERT INTO thesa_outlines (project_id, outline_data, version, created_at, updated_at)

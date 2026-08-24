@@ -4,11 +4,14 @@
 *.dll
 *.so
 *.dylib
+thesa-server
 risethub-be-new
 risethub-be-old
 *.out
 *_test
 /tmp/
+bin/
+dist/
 
 # Test binary, built with `go test -c`
 *.test
@@ -24,13 +27,33 @@ go.work
 
 # Environment files
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
-# IDE/Editor
+# Database & Backups
+*.db
+*.sqlite
+*.sqlite3
+*.sql.bak
+backup_*.sql
+
+# Output & Coverage
+coverage.out
+*.out
+*.test
+
+# IDE / Editor / OS Junk
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.log
+
