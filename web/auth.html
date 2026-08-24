@@ -625,27 +625,14 @@
         </div>
 
         <div class="form-group">
-          <label for="fullName">Nama Panggilan / Lengkap</label>
+          <label for="fullName">Nama Panggilan / Sapaan</label>
           <div class="input-with-icon">
             <span class="material-symbols-rounded">person</span>
-            <input type="text" id="fullName" placeholder="cth: Alif Awwaz" oninput="checkStep3()">
+            <input type="text" id="fullName" placeholder="cth: Alif, Naufal, Sarah..." oninput="checkStep3()">
           </div>
-        </div>
-
-        <div class="form-group">
-          <label for="institution">Asal Kampus / Sekolah <span class="opt-tag">Opsional</span></label>
-          <div class="input-with-icon">
-            <span class="material-symbols-rounded">account_balance</span>
-            <input type="text" id="institution" placeholder="cth: Universitas Indonesia, ITB, dll.">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="prodi">Jurusan / Bidang Minat <span class="opt-tag">Opsional</span></label>
-          <div class="input-with-icon">
-            <span class="material-symbols-rounded">school</span>
-            <input type="text" id="prodi" placeholder="cth: Informatika, Manajemen, Hukum...">
-          </div>
+          <span style="font-size:11.5px; color:var(--gray-400); margin-top:4px; display:block;">
+            Agar Thesa bisa menyapamu dengan ramah selama berdiskusi.
+          </span>
         </div>
 
         <button class="btn-auth-primary" id="btnStep3Next" onclick="goToStep4()">
@@ -1022,11 +1009,11 @@
     }
 
     async function finishRegistration() {
-      const name = document.getElementById('fullName').value.trim() || 'Peneliti Thesa';
-      const inst = document.getElementById('institution').value.trim() || 'Universitas Indonesia';
-      const prodi = document.getElementById('prodi').value.trim() || 'Informatika';
-      const email = document.getElementById('emailInput').value.trim() || 'peneliti@ui.ac.id';
-      const initialTopic = document.getElementById('initialTopic').value.trim();
+      const name = (document.getElementById('fullName')?.value || '').trim() || 'Peneliti Thesa';
+      const inst = (document.getElementById('institution')?.value || '').trim() || 'Standar Nasional';
+      const prodi = (document.getElementById('prodi')?.value || '').trim() || 'Kajian Akademik';
+      const email = (document.getElementById('emailInput')?.value || '').trim() || 'peneliti@thesa.id';
+      const initialTopic = (document.getElementById('initialTopic')?.value || '').trim();
 
       const profile = {
         name,
