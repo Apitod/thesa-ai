@@ -1,0 +1,66 @@
+version: '3.8'
+
+# ============================================================
+# Thesa AI — Monitoring Stack (Prometheus + Grafana)
+# Usage: docker compose -f docker-compose.monitor.yml up -d
+# Access Grafana: http://localhost:3030  (admin / thesa_monitor)
+# ============================================================
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: thesa_prometheus
+    restart: always
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    networks:
+      - thesa-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: thesa_grafana
+    restart: always
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=thesa_monitor
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3030
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    ports:
+      - "3030:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - thesa-network
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: thesa_alertmanager
+    restart: always
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "9093:9093"
+    networks:
+      - thesa-network
+
+networks:
+  thesa-network:
+    external: true
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local

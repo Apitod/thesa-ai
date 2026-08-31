@@ -1,0 +1,47 @@
+groups:
+  - name: thesa-ai-alerts
+    rules:
+      # --- Availability ---
+      - alert: ThesaAppDown
+        expr: up{job="thesa-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "🚨 Thesa AI backend DOWN"
+          description: "Thesa AI tidak dapat di-scrape selama lebih dari 1 menit."
+
+      # --- High Error Rate ---
+      - alert: HighHTTPErrorRate
+        expr: |
+          sum(rate(http_requests_total{job="thesa-app", status=~"5.."}[5m])) /
+          sum(rate(http_requests_total{job="thesa-app"}[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "⚠️ Error rate HTTP 5xx tinggi (>5%)"
+          description: "Error rate: {{ $value | humanizePercentage }}"
+
+      # --- High Latency ---
+      - alert: HighResponseLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="thesa-app"}[5m])) by (le)
+          ) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "⚠️ Latency P95 > 2 detik"
+          description: "P95 latency: {{ $value }}s"
+
+      # --- Memory Usage ---
+      - alert: HighMemoryUsage
+        expr: go_memstats_heap_inuse_bytes{job="thesa-app"} > 500 * 1024 * 1024
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "⚠️ Penggunaan memori heap > 500MB"
+          description: "Heap in use: {{ $value | humanize1024 }}B"

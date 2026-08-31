@@ -1,0 +1,30 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: 'telegram-alert'
+
+receivers:
+  - name: 'telegram-alert'
+    # Uncomment dan isi BOT_TOKEN & CHAT_ID untuk notifikasi Telegram
+    # telegram_configs:
+    #   - bot_token: '<YOUR_TELEGRAM_BOT_TOKEN>'
+    #     chat_id: <YOUR_CHAT_ID>
+    #     message: |
+    #       🚨 *{{ .GroupLabels.alertname }}*
+    #       Status: {{ .Status }}
+    #       {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+    webhook_configs:
+      - url: 'http://localhost:5001/alert'   # Ganti dengan webhook URL Anda
+        send_resolved: true
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname']
