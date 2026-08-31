@@ -278,18 +278,39 @@ func (h *SupervisorHandler) ExaminerSimulate(w http.ResponseWriter, r *http.Requ
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-// defaultConfig builds a ProviderConfig dynamically using SmartLLMRouter for maximum cost efficiency.
+// defaultConfig builds a ProviderConfig dynamically.
+// It respects AI_PRIMARY_PROVIDER and selects the correct API key accordingly.
+// Falls back to Gemini if DeepSeek key is absent.
 func (h *SupervisorHandler) defaultConfig() agent.ProviderConfig {
-	apiKey := os.Getenv("DEEPSEEK_API_KEY")
-	if apiKey == "" {
-		apiKey = os.Getenv("DEEPSEEK_KEY")
+	primaryProvider := os.Getenv("AI_PRIMARY_PROVIDER")
+	if primaryProvider == "" {
+		primaryProvider = "gemini"
 	}
 
 	router := agent.NewSmartLLMRouter()
 	routed := router.RouteTask(agent.TaskSocraticChat, "gold", 100000)
 
+	var apiKey string
+	provider := primaryProvider
+
+	switch provider {
+	case "deepseek":
+		apiKey = os.Getenv("DEEPSEEK_API_KEY")
+		if apiKey == "" {
+			apiKey = os.Getenv("DEEPSEEK_KEY")
+		}
+		// Fall back to Gemini if DeepSeek key not configured
+		if apiKey == "" {
+			provider = "gemini"
+			apiKey = os.Getenv("GEMINI_API_KEY")
+		}
+	default: // gemini
+		provider = "gemini"
+		apiKey = os.Getenv("GEMINI_API_KEY")
+	}
+
 	return agent.ProviderConfig{
-		Provider:  "deepseek",
+		Provider:  provider,
 		Model:     routed.Model,
 		APIKey:    apiKey,
 		MaxTokens: routed.MaxTokens,

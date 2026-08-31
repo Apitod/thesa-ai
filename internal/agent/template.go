@@ -482,8 +482,31 @@ func parseComplianceReportJSON(jsonStr string) (*ComplianceReport, error) {
 // cleanJSONString removes markdown fences and trims whitespace from AI output.
 func cleanJSONString(s string) string {
 	s = strings.TrimSpace(s)
+
+	// Strip markdown code fences if present
 	s = strings.TrimPrefix(s, "```json")
 	s = strings.TrimPrefix(s, "```")
 	s = strings.TrimSuffix(s, "```")
-	return strings.TrimSpace(s)
+	s = strings.TrimSpace(s)
+
+	// If the response starts with valid JSON delimiters, return as-is
+	if len(s) > 0 && (s[0] == '[' || s[0] == '{') {
+		return s
+	}
+
+	// LLM sometimes prefixes the JSON with preamble text.
+	// Find the first '[' (for arrays) or '{' (for objects) and last matching closer.
+	if idx := strings.Index(s, "["); idx != -1 {
+		if end := strings.LastIndex(s, "]"); end > idx {
+			return s[idx : end+1]
+		}
+	}
+	if idx := strings.Index(s, "{"); idx != -1 {
+		if end := strings.LastIndex(s, "}"); end > idx {
+			return s[idx : end+1]
+		}
+	}
+
+	return s
 }
+
