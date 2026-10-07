@@ -168,6 +168,10 @@ func main() {
 
 	// Cascade Engine (Phase 7)
 	cascadeHandler := handlers.NewCascadeHandler()
+	cascadeEngine := agent.NewCascadeEngine()
+
+	// Conversation Handler (Deliberative Co-Authoring & Bidirectional Corrections)
+	conversationHandler := handlers.NewConversationHandler(supervisor, cascadeEngine)
 
 	// Auth Handler
 	authHandler := handlers.NewAuthHandler()
@@ -185,6 +189,10 @@ func main() {
 	mux.HandleFunc("/api/v1/auth/register", authHandler.Register)
 	mux.HandleFunc("/api/v1/auth/login", authHandler.Login)
 	mux.HandleFunc("/api/v1/auth/me", authHandler.Me)
+
+	// Deliberative Conversation & Co-Authoring routes
+	mux.HandleFunc("/api/v1/conversation/turn", authRateLimit(conversationHandler.Turn))
+	mux.HandleFunc("/api/v1/conversation/recommend", authRateLimit(conversationHandler.Recommend))
 
 	// Payment routes (Midtrans Snap, QRIS & Webhook)
 	mux.HandleFunc("/api/v1/payment/create-order", authRateLimit(paymentHandler.CreateOrder))

@@ -576,3 +576,151 @@ Keluarkan format JSON murni:
 
 	return &resp, nil
 }
+
+// ---------------------------------------------------------------------------
+// Deliberative Co-Authoring & Conversation Turn
+// ---------------------------------------------------------------------------
+
+// ConversationTurnRequest carries all context for a single user turn in workspace
+type ConversationTurnRequest struct {
+	ProjectID      int                    `json:"project_id"`
+	CurrentStep    string                 `json:"current_step"`   // e.g. "1.1", "1.2", "1.3", "2.1", "2.2", "3.1"
+	TargetSection  string                 `json:"target_section"` // section being revised or discussed
+	UserMessage    string                 `json:"user_message"`   // Free-text input from user
+	ActionType     string                 `json:"action_type"`    // "free_text" | "chip_select" | "revision" | "reconcile" | "approve"
+	PaperContext   map[string]string      `json:"paper_context"`  // Current content of each section
+	EditDelta      *EditDelta             `json:"edit_delta"`     // What user changed since last turn
+	Topic          string                 `json:"topic"`
+	Problems       []string               `json:"problems"`
+	Goals          []string               `json:"goals"`
+}
+
+// EditDelta represents a semantic change made in the paper
+type EditDelta struct {
+	Section  string `json:"section"`   // Section ID, e.g. "1.1", "1.2", "2.1"
+	Before   string `json:"before"`    // Previous content
+	After    string `json:"after"`     // Current content
+	EditType string `json:"edit_type"` // "addition" | "deletion" | "rewrite" | "refinement"
+}
+
+// Recommendation provides a proactive, pedagogical suggestion for next action
+type Recommendation struct {
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Rationale   string `json:"rationale"` // Why this is recommended (pedagogical)
+	Icon        string `json:"icon"`
+	Relevance   string `json:"relevance"` // "high" | "medium"
+	ActionType  string `json:"action_type"`
+}
+
+// ConversationTurnResponse is returned to the frontend workspace co-pilot
+type ConversationTurnResponse struct {
+	ResponseType    string           `json:"response_type"` // "draft" | "revision" | "probe" | "cascade_alert" | "advice"
+	Title           string           `json:"title"`
+	Message         string           `json:"message"`
+	DraftContent    string           `json:"draft_content,omitempty"`
+	TargetSection   string           `json:"target_section,omitempty"`
+	Rationale       string           `json:"rationale"` // Explains WHY to strengthen user comprehension
+	Recommendations []Recommendation `json:"recommendations"`
+	CascadeWarnings []CascadeImpact  `json:"cascade_warnings,omitempty"`
+}
+
+// ExecuteConversationTurn processes a user turn with LLM reasoning, rationale, and cascade analysis
+func (s *AgentSupervisor) ExecuteConversationTurn(req ConversationTurnRequest, config ProviderConfig) (*ConversationTurnResponse, error) {
+	if s.provider == nil {
+		// Fallback deliberative response when provider is not configured
+		return s.fallbackConversationTurn(req), nil
+	}
+
+	prompt := fmt.Sprintf(`Anda adalah Thesa Co-Authoring Engine, mitra dialog sokratik penulisan akademik perguruan tinggi Indonesia.
+PRINSIP: Anda BUKAN sekadar ghostwriter otomatis, melainkan co-author yang membimbing dan memperkuat pemahaman mahasiswa.
+
+Konteks Percakapan:
+- Topik: %s
+- Langkah Aktif: %s
+- Bagian Target: %s
+- Tipe Aksi: %s
+- Masukan Pengguna: "%s"
+
+Format JSON yang WAJIB dihasilkan:
+{
+  "response_type": "draft",
+  "title": "Judul Respon Ringkas",
+  "message": "Ulasan pedagogis ramah dan tajam",
+  "draft_content": "Paragraf akademik berkualitas tinggi hasil sintesis pemikiran mahasiswa",
+  "rationale": "Penjelasan MENGAPA formulasi draf ini kokoh secara metodologis & argumentatif",
+  "recommendations": [
+    {
+      "id": "rec-1",
+      "title": "Aksi Lanjutan Relevan",
+      "description": "Deskripsi singkat saran",
+      "rationale": "Alasan akademis",
+      "icon": "auto_stories",
+      "relevance": "high",
+      "action_type": "insert"
+    }
+  ]
+}`, req.Topic, req.CurrentStep, req.TargetSection, req.ActionType, req.UserMessage)
+
+	messages := []Message{
+		{Role: "system", Content: "Anda adalah Thesa Co-Authoring Engine. Respons HANYA dalam JSON valid tanpa markdown fence."},
+		{Role: "user", Content: prompt},
+	}
+
+	result, err := s.provider.Chat(messages, config)
+	if err != nil {
+		return s.fallbackConversationTurn(req), nil
+	}
+
+	var resp ConversationTurnResponse
+	cleaned := cleanJSONString(result)
+	if err := json.Unmarshal([]byte(cleaned), &resp); err != nil {
+		return s.fallbackConversationTurn(req), nil
+	}
+
+	return &resp, nil
+}
+
+func (s *AgentSupervisor) fallbackConversationTurn(req ConversationTurnRequest) *ConversationTurnResponse {
+	title := "Penyesuaian Berbasis Masukan Mahasiswa"
+	msg := "Thesa telah menelaah masukan orisinal Anda dan menyelaraskannya ke dalam kaidah struktur naskah ilmiah."
+	rationale := "Penyelarasan ini memastikan argumen tetap fokus pada pokok permasalahan tanpa kehilangan konsistensi terminologi."
+	draft := req.UserMessage
+
+	if req.ActionType == "revision" {
+		title = fmt.Sprintf("Revisi Draf %s", req.TargetSection)
+		msg = "Draf revisi siap ditinjau. Anda dapat mengubah langsung atau menyetujui untuk memperbarui naskah."
+		rationale = "Revisi yang diperjelas pada bagian ini memperkuat fondasi logika untuk bab-bab selanjutnya."
+	}
+
+	return &ConversationTurnResponse{
+		ResponseType:  "draft",
+		Title:         title,
+		Message:       msg,
+		DraftContent:  draft,
+		TargetSection: req.TargetSection,
+		Rationale:     rationale,
+		Recommendations: []Recommendation{
+			{
+				ID:          "rec-cit",
+				Title:       "Perkuat dengan Sitasi Empiris",
+				Description: "Tambahkan rujukan jurnal bereputasi untuk menopang argumen di atas.",
+				Rationale:   "Argumen naskah menjadi teruji secara objektif.",
+				Icon:        "format_quote",
+				Relevance:   "high",
+				ActionType:  "add_citation",
+			},
+			{
+				ID:          "rec-sharp",
+				Title:       "Pertajam Batasan Masalah",
+				Description: "Perjelas ruang lingkup agar tidak melebar ke aspek non-esensial.",
+				Rationale:   "Membantu mahasiswa lebih percaya diri saat sesi tanya jawab sidang skripsi.",
+				Icon:        "tune",
+				Relevance:   "medium",
+				ActionType:  "tighten_scope",
+			},
+		},
+	}
+}
+

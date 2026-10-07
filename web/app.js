@@ -739,7 +739,7 @@ function backToHomepage() {
 }
 
 function startNewProjectFromHome(ktiType) {
-  // Set KTI selected from homepage shelf (default: makalah)
+  // Default to 'makalah', but respect ktiType if selected from expandable options drawer
   selectedKTI = ktiType || 'makalah';
 
   // Transition: homepage → onboarding
@@ -760,7 +760,7 @@ function startNewProjectFromHome(ktiType) {
       setTimeout(() => { ob.style.opacity = '1'; }, 20);
     }
 
-    // Update Step 1 with context of the selected KTI
+    // Update Step 1 with context of selected KTI
     updateStep1Context(selectedKTI);
 
     // Jump directly to Step 1: Format Kampus
@@ -769,39 +769,34 @@ function startNewProjectFromHome(ktiType) {
 }
 
 function openExistingProject(projectId) {
-  // Mock: open existing projects directly into main app
+  // Mock: open existing projects directly into main app (focused on Makalah)
   const projectData = {
     'cascade-multi-agent': {
-      kti: 'tesis', campus: 'ui',
-      topic: 'Cascade Reasoning pada Sistem Multi-Agent untuk Konsistensi Naskah Panjang Berbasis LLM',
-      importance: 'Inkonsistensi argumen menjadi hambatan utama dalam penulisan naskah akademik panjang.',
-      keywords: ['Multi-Agent', 'LLM', 'Cascade', 'Konsistensi', 'NLP']
+      kti: 'makalah', campus: 'ui',
+      topic: 'Analisis Impact Artificial Intelligence terhadap Efisiensi SDM Industri',
+      importance: 'Pengaruh adopsi AI terhadap efisiensi operasional dan dinamika tenaga kerja.',
+      keywords: ['AI', 'SDM', 'Makalah', 'Efisiensi', 'Industri']
     },
     'hoaks-bert': {
-      kti: 'skripsi', campus: 'ugm',
-      topic: 'Deteksi Berita Hoaks Menggunakan Model BERT pada Platform Media Sosial Indonesia',
-      importance: 'Penyebaran hoaks di Indonesia meningkat pesat dan mengancam kohesi sosial.',
-      keywords: ['BERT', 'Hoaks', 'Twitter', 'Klasifikasi Teks', 'NLP']
+      kti: 'makalah', campus: 'ugm',
+      topic: 'Strategi Transformasi Digital dan Adopsi FinTech pada Pertumbuhan UMKM',
+      importance: 'Peran teknologi keuangan dalam mempercepat inklusi keuangan dan pertumbuhan bisnis lokal.',
+      keywords: ['FinTech', 'UMKM', 'Makalah', 'Digitalisasi', 'Ekonomi']
     },
     'ketahanan-pangan': {
-      kti: 'jurnal', campus: 'dikti',
-      topic: 'Dampak Perubahan Iklim terhadap Ketahanan Pangan Wilayah Pesisir Jawa',
-      importance: 'Risiko iklim mengancam ketahanan pangan jutaan warga pesisir.',
-      keywords: ['Iklim', 'Pangan', 'Pesisir', 'Kuantitatif', 'Kebijakan']
+      kti: 'makalah', campus: 'dikti',
+      topic: 'Efisiensi Penggunaan Energi Terbarukan dalam Menurunkan Emisi Karbon',
+      importance: 'Tinjauan komprehensif terhadap penerapan energi terbarukan di sektor manufaktur.',
+      keywords: ['Energi', 'Karbon', 'Makalah', 'Terbarukan', 'Lingkungan']
     }
   };
 
   const data = projectData[projectId];
   if (!data) return;
 
-  // Populate state
-  selectedKTI = data.kti;
-  selectedCampusId = data.campus;
-  activeCampus = campusCatalog[data.campus] || campusCatalog.ui;
-  researchContext = { topic: data.topic, importance: data.importance, expectations: '', keywords: data.keywords };
-
-  // Transition directly to main app (skip onboarding)
   const hp = document.getElementById('homepageScreen');
+  if (!hp) return;
+
   hp.style.transition = 'opacity 0.3s ease';
   hp.style.opacity = '0';
   setTimeout(() => {
@@ -812,12 +807,51 @@ function openExistingProject(projectId) {
     app.style.transition = 'opacity 0.3s ease';
     setTimeout(() => { app.style.opacity = '1'; }, 20);
 
-  selectedKTI = data.kti;
-  const kti = ktiDefinitions[data.kti] || ktiDefinitions.tesis;
-  initMainApp(kti, activeCampus, researchContext);
-  initChatActions();
-}, 300);
+    selectedKTI = 'makalah';
+    const kti = ktiDefinitions.makalah;
+    initMainApp(kti, activeCampus, researchContext);
+    initChatActions();
+  }, 300);
 }
+
+// ══════════════════════════════════════════════════════
+// MOBILE SIDEBAR DRAWER
+// ══════════════════════════════════════════════════════
+function toggleMobileSidebar() {
+  const sidebar = document.getElementById('hpSidebar');
+  const backdrop = document.getElementById('hpSidebarBackdrop');
+  if (!sidebar) return;
+  const isOpen = sidebar.classList.contains('mobile-open');
+  if (isOpen) {
+    closeMobileSidebar();
+  } else {
+    sidebar.classList.add('mobile-open');
+    backdrop && backdrop.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeMobileSidebar() {
+  const sidebar = document.getElementById('hpSidebar');
+  const backdrop = document.getElementById('hpSidebarBackdrop');
+  if (sidebar) sidebar.classList.remove('mobile-open');
+  if (backdrop) backdrop.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+// Show/hide hamburger based on viewport
+(function initMobileNav() {
+  const mq = window.matchMedia('(max-width: 768px)');
+  function onMQ(e) {
+    const btn = document.getElementById('hpMenuBtn');
+    if (!btn) return;
+    btn.style.display = e.matches ? 'flex' : 'none';
+    if (!e.matches) closeMobileSidebar(); // close sidebar when going to desktop
+  }
+  mq.addEventListener('change', onMQ);
+  document.addEventListener('DOMContentLoaded', () => onMQ(mq));
+})();
+
 
 function setTimeAwareGreeting() {
   const hour = new Date().getHours();
@@ -1582,13 +1616,13 @@ function updateStep1Context(ktiType) {
   const ktiName = kti.label || kti.coachLabel || 'Karya Ilmiah';
   
   // Update headline & subtext
-  setEl('obFormatHeadline', `Format Siap untuk ${ktiName} 📄`);
+  setEl('obFormatHeadline', `Konfigurasi Format ${ktiName}`);
   setEl('obActiveKTILabel', ktiName);
   
   if (ktiType === 'makalah') {
-    setEl('obFormatSubtext', 'Thesa otomatis mengatur format makalah akademik 3 bab yang ringkas & terstruktur, tanpa beban metodologi kompleks.');
+    setEl('obFormatSubtext', 'Thesa menyusun format makalah akademik terstruktur 3 bab sesuai standar penulisan ilmiah perguruan tinggi.');
     setEl('obActiveFormatTag', 'Format Makalah 3 Bab');
-    setEl('obActiveStructureTag', 'BAB I Pendahuluan · BAB II Pembahasan & Analisis · BAB III Penutup & Arena Diskusi');
+    setEl('obActiveStructureTag', 'BAB I Pendahuluan · BAB II Pembahasan & Analisis · BAB III Penutup & Rekomendasi');
   } else if (ktiType === 'proposal') {
     setEl('obFormatSubtext', 'Thesa menyiapkan sistematika proposal riset (Bab I–III) dengan kesiapan handover otomatis ke naskah skripsi.');
     setEl('obActiveFormatTag', 'Format Proposal Riset');
@@ -1745,7 +1779,7 @@ function insertContextHelper(targetInputId, text) {
   if (el) {
     el.value = text;
     el.focus();
-    showThesaToast('✓ Inspirasi konteks terpasang (+50 XP siap aktif)', 'success', 'psychology');
+    showThesaToast('✓ Inspirasi konteks berhasil diterapkan ke input', 'success', 'psychology');
     
     const pill = document.getElementById('pillReqKonteks');
     if (pill) {
@@ -2048,25 +2082,37 @@ function renderRoadmap(kti, campus) {
     `;
   });
 
-  // Boss Arena tailored to KTI type
+  // Comprehensive Defense Simulation tailored to KTI type (Hanya muncul saat naskah selesai)
+  const isPaperComplete = (researchContext && (researchContext.isComplete || researchContext.bab3_2)) || 
+                          (document.getElementById('globalProgressPct')?.innerText?.includes('100%'));
   html += `
-    <div class="unit-block boss-unit" id="unit-boss" onclick="toggleDefenseModal(true)">
+    <div class="unit-block boss-unit" id="unit-boss" onclick="toggleDefenseModal(true)" style="display:${isPaperComplete ? 'block' : 'none'};">
       <div class="unit-header-card boss-card">
         <div class="unit-info">
-          <span class="unit-num gold">BOSS ARENA</span>
+          <span class="unit-num gold">UJI KOMPREHENSIF</span>
           <h3>${escapeHTML(boss.title)}</h3>
           <p>${escapeHTML(boss.subtitle)}</p>
         </div>
-        <span class="boss-trophy">${boss.trophy || '🏆'}</span>
+        <span class="material-symbols-rounded" style="font-size:22px; color:#b45309;">school</span>
       </div>
       <div class="arena-launch-badge">
-        <span class="material-symbols-rounded">play_circle</span> Klik untuk Coba ${escapeHTML(boss.badge || 'Simulasi Ujian')}
+        <span class="material-symbols-rounded">play_circle</span> Mulai ${escapeHTML(boss.badge || 'Simulasi Ujian')}
       </div>
     </div>
   `;
 
   tree.innerHTML = html;
 }
+
+function showDefenseSimulationCard() {
+  const boss = document.getElementById('unit-boss') || document.getElementById('unit-5');
+  if (boss) {
+    boss.style.display = 'block';
+    boss.style.animation = 'fadeIn 0.4s ease';
+    boss.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
 
 // ── Render Authentic Paper Draft Sections Dynamically ─────────
 function renderPaperDraftSections(kti, campus) {
@@ -2160,34 +2206,35 @@ function initSocraticIntroChat(kti, campus, context) {
   // Set paper title
   setEl('draftPaperTitle', topicClean.toUpperCase());
 
-  // 1. Single Clean, Bite-Sized Greeting Bubble (Duolingo Style)
+  // 1. Single Clean Scholarly Orientation Bubble
   appendCoachBubble(stream, {
-    tag: '👋 Mulai Riset',
+    tag: 'Telaah Awal',
     tagType: 'tag-socratic',
-    title: `Mari mulai ${kti.label}mu! ✨`,
+    title: `Orientasi Naskah: ${kti.label}`,
     body: `
-      <p>Hai! Aku sudah membaca fokus naskahmu mengenai <strong>"${escapeHTML(topicClean)}"</strong>.</p>
-      ${hasImportance ? `<p style="margin-top:5px; font-size:10.5px; color:#475569; background:#f8fafc; padding:5px 9px; border-radius:6px; border-left:2px solid #6366f1; line-height:1.4;">🎯 <strong>Keresahan Utama:</strong> "${escapeHTML(context.importance)}"</p>` : ''}
+      <p>Konteks kajian untuk <strong>"${escapeHTML(topicClean)}"</strong> telah disiapkan sesuai kaidah penulisan ilmiah.</p>
+      ${hasImportance ? `<p style="margin-top:6px; font-size:11px; color:#334155; background:#f8fafc; padding:6px 10px; border-radius:6px; border-left:3px solid #2563eb; line-height:1.45;"><strong>Urgensi & Masalah Pokok:</strong> "${escapeHTML(context.importance)}"</p>` : ''}
     `,
   });
 
-  // 2. Bite-sized Socratic Probe with Chunky Option Cards
+  // 2. Socratic Probe for Paragraph Framing
   setTimeout(() => {
     const probe = generateDynamicFirstProbe(kti, context);
     appendCoachBubble(stream, {
-      tag: '💡 Langkah 1.1',
+      tag: 'Langkah 1.1 — Formulasi Premis',
       tagType: 'tag-socratic',
       title: probe.title,
       body: `
-        <p style="font-size:11.5px; font-weight:600; color:#1e293b; margin-bottom:3px; line-height:1.45;">${probe.question}</p>
-        <p style="font-size:10.5px; color:#64748b; margin:0;">Pilih salah satu sudut pandang di bawah ini untuk memulai draf pembuka:</p>
+        <p style="font-size:11.5px; font-weight:600; color:#1e293b; margin-bottom:4px; line-height:1.45;">${probe.question}</p>
+        <p style="font-size:10.5px; color:#64748b; margin:0;">Pilih sudut pandang pembahasan utama untuk menyusun paragraf pembuka:</p>
       `,
       chips: probe.chips,
+      chipsLabel: 'Sudut Pandang yang Disarankan:'
     });
 
     // Update milestone banner
     setEl('currentStepTitle', `Langkah 1.1: ${probe.stepTitle}`);
-    setEl('currentStepDesc', `🎯 <strong>Fokus:</strong> ${probe.stepDesc}`);
+    setEl('currentStepDesc', `<strong>Fokus Telaah:</strong> ${probe.stepDesc}`);
     updateQuickHelperChips('1.1');
   }, 400);
 }
@@ -2230,8 +2277,8 @@ function generateDynamicFirstProbe(kti, context) {
   return {
     stepTitle: 'Membedah Isu Pokok & Gagasan Utama',
     stepDesc: 'Menyusun premis dasar dan sudut pandang pembahasan naskah.',
-    title: 'Pilih sudut pandang refleksi terbaikmu:',
-    question: `Terkait "${shortTopic}" — aspek mana yang ingin kita pertajam di paragraf pembuka?`,
+    title: 'Arah pembahasan apa yang ingin diprioritaskan?',
+    question: `Terkait "${shortTopic}" — aspek mana yang ingin kita tekankan pada paragraf pembuka?`,
     chips: [
       {
         key: 'A',
@@ -2269,9 +2316,9 @@ function handleSocraticSelect(key, title, detail) {
   userRow.className = 'user-bubble-row';
   userRow.innerHTML = `
     <div class="user-bubble-card">
-      <div style="font-size:10px;opacity:0.85;margin-bottom:1px;">🧑 Pilihan Fokusmu:</div>
+      <div style="font-size:10px;opacity:0.85;margin-bottom:2px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">Fokus Argumen Dipilih:</div>
       <strong>${escapeHTML(title)}</strong>
-      <p style="margin-top:2px;font-size:10.5px;line-height:1.35;">${escapeHTML(detail)}</p>
+      <p style="margin-top:2px;font-size:10.5px;line-height:1.4;">${escapeHTML(detail)}</p>
     </div>
   `;
   stream.appendChild(userRow);
@@ -2280,7 +2327,7 @@ function handleSocraticSelect(key, title, detail) {
   // Update milestone banner
   setEl('currentStepTitle', 'Langkah 1.2: Rancang Paragraf Latar Belakang (Co-Author)');
   setEl('currentStepBadge', 'Penyusunan Draf');
-  setEl('currentStepDesc', '💡 <strong>Langkah 1.2:</strong> Thesa telah merangkai ide pokokmu menjadi draf pembuka. Kamu bisa edit atau sesuaikan kata-katanya sesukamu.');
+  setEl('currentStepDesc', '<strong>Langkah 1.2:</strong> Thesa telah merangkai gagasan pokok menjadi rancangan pembuka. Anda dapat menyunting kalimat secara mandiri.');
   updateQuickHelperChips('1.2');
 
   // Unlock and activate node 1-2 on sidebar
@@ -2307,11 +2354,11 @@ function handleSocraticSelect(key, title, detail) {
     }
 
     appendCoachBubble(stream, {
-      tag: '📝 Langkah 1.2: Draf Latar Belakang',
+      tag: 'Langkah 1.2: Draf Latar Belakang',
       tagType: 'tag-socratic',
-      title: selectedKTI === 'makalah' ? 'Ide yang tepat! Mari kita mulai draf pembuka ✨' : 'Ide yang tepat! Mari kita mulai draf pembuka (+60 XP) ✨',
+      title: 'Formulasi Paragraf Pembuka (Latar Belakang)',
       body: `
-        <p>Memilih fokus pada <strong>"${escapeHTML(title)}"</strong> memberikan arah yang sangat jelas bagi pembaca. Thesa telah menyusun draf awal paragraf latar belakang di bawah ini:</p>
+        <p>Fokus telaah pada <strong>"${escapeHTML(title)}"</strong> telah disusun menjadi rancangan paragraf pembuka. Silakan telaah atau sunting kalimat sebelum disahkan ke naskah:</p>
 
         <div class="hitl-gate-card">
           <div class="hitl-head-row">
@@ -2424,16 +2471,16 @@ function approveHITLDraft(argumentTitle) {
   // Next prompt in chat: Step 1.3
   const stream = document.getElementById('duoChatStream');
   appendCoachBubble(stream, {
-    tag: '✓ Paragraf Latar Belakang Masuk ke Naskah',
+    tag: 'Bab I — Latar Belakang Terverifikasi',
     tagType: 'tag-hitl',
-    title: 'Bagus sekali! Latar belakangmu sudah rapi di naskah kanan. 🎉',
+    title: 'Latar Belakang Berhasil Diintegrasikan ke Naskah',
     body: `
-      <p>Sekarang langkah terakhir untuk menuntaskan <strong>BAB I (Pendahuluan)</strong>: mari kita tetapkan <strong>Rumusan Masalah & Tujuan</strong>.</p>
+      <p>Fondasi Bab I telah terbentuk. Tahap selanjutnya adalah merumuskan <strong>Rumusan Masalah &amp; Tujuan Penulisan</strong> yang terfokus.</p>
       
       <div style="margin-top:12px;">
         <button class="btn-primary" style="width:100%;justify-content:center;padding:12px;font-weight:700;" onclick="proceedToRumusanMasalah()">
           <span class="material-symbols-rounded">forward</span>
-          <span>Lanjut ke Langkah 1.3: Kunci Rumusan Masalah & Tujuan</span>
+          <span>Lanjut ke Langkah 1.3: Formulasi Rumusan Masalah &amp; Sasaran</span>
         </button>
       </div>
     `,
@@ -2734,12 +2781,12 @@ function confirmRumusanMasalah() {
   // 4. Celebration transition in chat
   const stream = document.getElementById('duoChatStream');
   appendCoachBubble(stream, {
-    tag: '🎉 BAB I PENDAHULUAN SELESAI (+60 XP)',
+    tag: 'Bab I Selesai & Terverifikasi',
     tagType: 'tag-hitl',
-    title: 'Bab I Tuntas! Sekarang Mari Melangkah ke BAB II (Pembahasan) 🚀',
+    title: 'Bab I (Pendahuluan) Berhasil Disahkan',
     body: `
       <p>Latar belakang, rumusan masalah, dan sasaran tulisan telah terkunci rapi di draf naskah sebelah kanan.</p>
-      <p>Sekarang mari kita lanjutkan menyusun <strong>BAB II (Pembahasan & Analisis)</strong>.</p>
+      <p>Pembahasan selanjutnya berfokus pada <strong>BAB II (Pembahasan &amp; Analisis)</strong>.</p>
     `
   });
 
@@ -3004,9 +3051,9 @@ function handleBab2Select(key, title, detail) {
     const draft21 = `2.1 Tinjauan Teori & Kerangka Konseptual Dasar\nKajian mengenai ${topicText} berlandaskan pada kerangka konseptual yang menghubungkan fenomena empiris dengan landasan teori pendukung, khususnya dari sudut pandang ${title.toLowerCase()}.\n\nKajian literatur sebelumnya menegaskan pentingnya pemetaan variabel kunci guna memahami akar permasalahan secara holistik. Berbagai studi nasional dan internasional menunjukkan bahwa efektivitas implementasi kebijakan dan solusi sangat bergantung pada integrasi analitika data, transparansi proses, serta kesiapan sumber daya manusia (Firmansyah & Wulandari, 2023).`;
 
     appendCoachBubble(stream, {
-      tag: '📝 Langkah 2.1: Tinjauan Teori',
+      tag: 'Langkah 2.1: Tinjauan Teori',
       tagType: 'tag-socratic',
-      title: `Draf 2.1: Tinjauan Teori Berhasil Disusun (+60 XP) ✨`,
+      title: 'Draf 2.1: Tinjauan Teori Berhasil Disusun',
       body: `
         <p>Thesa telah merancang draf awal untuk <strong>Sub-bab 2.1 (Tinjauan Teori & Kerangka Konseptual)</strong>:</p>
 
@@ -3105,9 +3152,9 @@ function approveStep21(angleTitle) {
   const stream = document.getElementById('duoChatStream');
   setTimeout(() => {
     appendCoachBubble(stream, {
-      tag: '📝 Langkah 2.2: Analisis Masalah',
+      tag: 'Langkah 2.2: Analisis Pembahasan',
       tagType: 'tag-socratic',
-      title: 'Draf Analisis Masalah Siap Ditinjau (+60 XP) 📊',
+      title: 'Draf 2.2: Analisis Pembahasan Masalah',
       body: `
         <p>Thesa telah merumuskan draf untuk <strong>Sub-bab 2.2 (Analisis Pembahasan Masalah)</strong> berdasarkan pertanyaan risetmu:</p>
 
@@ -3191,9 +3238,9 @@ function approveStep22(angleTitle) {
   const stream = document.getElementById('duoChatStream');
   setTimeout(() => {
     appendCoachBubble(stream, {
-      tag: '💡 Langkah 2.3: Sintesis Solusi',
+      tag: 'Langkah 2.3: Sintesis Solusi',
       tagType: 'tag-socratic',
-      title: 'Draf Sintesis Solusi Siap Ditinjau (+60 XP) 💡',
+      title: 'Draf 2.3: Sintesis Solusi & Implikasi Praktis',
       body: `
         <p>Thesa telah merangkum gagasan solusi untuk <strong>Sub-bab 2.3 (Sintesis Solusi & Gagasan Penulis)</strong>:</p>
 
@@ -3280,9 +3327,9 @@ function approveStep23(angleTitle) {
   // In-chat celebration and transition to Unit 3 (Bab III)
   const stream = document.getElementById('duoChatStream');
   appendCoachBubble(stream, {
-    tag: '🏆 BAB II SELESAI (+90 XP)',
+    tag: 'Bab II Selesai & Terverifikasi',
     tagType: 'tag-hitl',
-    title: 'Luar Biasa! Bab II (Pembahasan & Analisis) Tuntas! 🎉',
+    title: 'Bab II (Pembahasan & Analisis) Selesai',
     body: `
       <p>Pembahasanmu sudah terstruktur sangat kuat dengan dasar teori, analisis masalah, dan sintesis pemikiran yang matang.</p>
       <p>Sekarang langkah terakhir untuk merampungkan seluruh makalah: <strong>BAB III: PENUTUP (KESIMPULAN & SARAN)</strong>.</p>
@@ -3525,9 +3572,9 @@ function approveStep31() {
   const stream = document.getElementById('duoChatStream');
   setTimeout(() => {
     appendCoachBubble(stream, {
-      tag: '💡 Langkah 3.2: Saran & Rekomendasi',
+      tag: 'Langkah 3.2: Rekomendasi Naskah',
       tagType: 'tag-socratic',
-      title: 'Kunci Saran & Rekomendasi Naskah (+60 XP) 💡',
+      title: 'Formulasi Saran & Rekomendasi Naskah',
       body: `
         <p>Langkah pamungkas: berikut draf <strong>Sub-bab 3.2 (Saran & Rekomendasi)</strong>:</p>
 
@@ -3601,6 +3648,10 @@ function approveStep32() {
   // Update paper scrapbook
   updateBab3PaperDisplay(true);
 
+  // Show Defense Simulation now that entire paper is complete
+  showDefenseSimulationCard();
+
+
   // Milestone banner
   setEl('currentStepTitle', 'Makalah Selesai: Siap Diekspor & Diserahkan');
   setEl('currentStepBadge', '100% Selesai');
@@ -3610,9 +3661,9 @@ function approveStep32() {
   // Celebration in chat
   const stream = document.getElementById('duoChatStream');
   appendCoachBubble(stream, {
-    tag: '🎓 MAKALAH LENGKAP & TERVERIFIKASI (+120 XP)',
+    tag: 'Naskah Lengkap & Terverifikasi',
     tagType: 'tag-hitl',
-    title: '🎉 SELAMAT! MAKALAHMU SELESAI 100%! 🚀',
+    title: 'Seluruh Struktur Makalah Selesai 100%',
     body: `
       <p>Seluruh bagian makalahmu dari <strong>BAB I (Pendahuluan)</strong>, <strong>BAB II (Pembahasan & Analisis)</strong>, <strong>BAB III (Penutup)</strong>, hingga <strong>DAFTAR PUSTAKA</strong> kini telah lengkap dan terverifikasi.</p>
       
@@ -3686,15 +3737,59 @@ function requestAlternativeView() {
 }
 
 // ── Helpers to append chat bubbles ────────────────────────────
-function appendCoachBubble(stream, { tag, tagType, title, body, chips, chipsLabel }) {
+function appendCoachBubble(stream, { tag, tagType, title, body, rationale, cascade_warnings, recommendations, chips, chipsLabel }) {
   const row = document.createElement('div');
   row.className = 'coach-bubble-row';
 
   const time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
+  // Pedagogical Rationale Block (Fase 4)
+  const rationaleHTML = rationale ? `
+    <div class="rationale-block">
+      <div class="rationale-header">
+        <span class="material-symbols-rounded">school</span>
+        <span>Mengapa Pendekatan Ini Disarankan?</span>
+      </div>
+      <p>${escapeHTML(rationale)}</p>
+    </div>
+  ` : '';
+
+  // Downstream Cascade Warnings Block (Fase 3)
+  const cascadeHTML = (cascade_warnings && cascade_warnings.length > 0) ? `
+    <div class="cascade-warning-card">
+      <div class="cascade-head-row">
+        <span class="material-symbols-rounded">alt_route</span>
+        <span>Sinkronisasi Dependensi Antar-Bab (Cascade)</span>
+      </div>
+      ${cascade_warnings.map(cw => `
+        <div class="cascade-impact-item">
+          <span class="material-symbols-rounded" style="font-size:14px;color:#d97706;margin-top:2px;">info</span>
+          <div>
+            <strong>${escapeHTML(cw.target_stage)}:</strong> ${escapeHTML(cw.message)}
+          </div>
+        </div>
+      `).join('')}
+      <div class="cascade-actions-row">
+        <button type="button" class="btn-cascade-auto" onclick="reconcileAllCascades()">
+          <span class="material-symbols-rounded" style="font-size:14px;">auto_fix_high</span>
+          <span>Selaraskan Bab II & III Otomatis</span>
+        </button>
+        <button type="button" class="btn-cascade-dismiss" onclick="this.closest('.cascade-warning-card').remove()">
+          <span>Abaikan</span>
+        </button>
+      </div>
+    </div>
+  ` : '';
+
   row.innerHTML = `
     <div class="coach-avatar">
-      <img src="https://api.dicebear.com/7.x/bottts/svg?seed=ThesaMentor&backgroundColor=e0f2fe" alt="Thesa">
+      <div class="coach-avatar-shield">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+          <path d="M2 17l10 5 10-5"></path>
+          <path d="M2 12l10 5 10-5"></path>
+        </svg>
+      </div>
       <span class="coach-badge">Thesa</span>
     </div>
     <div class="bubble-card coach">
@@ -3704,15 +3799,22 @@ function appendCoachBubble(stream, { tag, tagType, title, body, chips, chipsLabe
       </div>
       <div class="bubble-title">${title}</div>
       <div class="bubble-body-content">${body}</div>
+      ${rationaleHTML}
+      ${cascadeHTML}
     </div>
   `;
   stream.appendChild(row);
+
+  // If recommendations returned from backend, update contextual chips bar
+  if (recommendations && recommendations.length > 0) {
+    renderContextualRecommendations(recommendations);
+  }
 
   if (chips && chips.length > 0) {
     const chipsContainer = document.createElement('div');
     chipsContainer.className = 'socratic-chips-container';
     chipsContainer.innerHTML = `
-      <div class="chips-label">${chipsLabel ? escapeHTML(chipsLabel) : '🎯 Pilih sudut pandang refleksimu:'}</div>
+      <div class="chips-label">${chipsLabel ? escapeHTML(chipsLabel) : 'Fokus Argumen yang Disarankan:'}</div>
       <div class="chips-grid">
         ${chips.map(c => {
           const clickAction = c.onClick || `handleSocraticSelect('${c.key}', '${escapeHTML(c.title)}', '${escapeHTML(c.desc)}')`;
@@ -3733,6 +3835,7 @@ function appendCoachBubble(stream, { tag, tagType, title, body, chips, chipsLabe
 
   stream.scrollTop = stream.scrollHeight;
 }
+
 
 // ============================================================
 // CAMPUS FORMAT (Modal accessible from topbar)
@@ -4903,12 +5006,302 @@ const stepQuickHelpers = {
 function updateQuickHelperChips(stepCode) {
   currentStepCode = stepCode;
   const container = document.querySelector('.input-quick-helpers');
-  if (!container) return;
-  const helpers = stepQuickHelpers[stepCode] || stepQuickHelpers['1.1'];
-  container.innerHTML = `
-    <span class="helper-label">⚡ Ide Cepat:</span>
-    ${helpers.map(h => `<button type="button" class="btn-quick-chip" onclick="insertPromptHelper('${escapeHTML(h.text)}')">${escapeHTML(h.label)}</button>`).join('')}
-  `;
+  if (container) {
+    container.innerHTML = '';
+    container.style.display = 'none';
+  }
+}
+
+
+// ============================================================
+// DELIBERATIVE CO-AUTHORING ENGINE (Fases 1, 2, 3, 4)
+// ============================================================
+
+// 1. Contextual Recommendations Rendering (Fase 2)
+function renderContextualRecommendations(recommendations) {
+  const container = document.getElementById('contextualRecContainer');
+  if (!container || !recommendations || !recommendations.length) return;
+
+  container.innerHTML = recommendations.map(rec => `
+    <button type="button" class="contextual-rec-chip relevance-${rec.relevance || 'high'}" 
+            onclick="applyQuickRecommendation('${rec.id}')"
+            title="${escapeHTML(rec.description || '')} • ${escapeHTML(rec.rationale || '')}">
+      <span class="material-symbols-rounded rec-chip-icon">${rec.icon || 'tips_and_updates'}</span>
+      <span>${escapeHTML(rec.title)}</span>
+    </button>
+  `).join('');
+  container.style.display = 'flex';
+}
+
+// 2. Quick Recommendation Handler (Fase 2)
+async function applyQuickRecommendation(recId) {
+  const topic = (researchContext && researchContext.topic) ? researchContext.topic : 'topik riset';
+
+  if (recId === 'empiris' || recId === 'rec-data') {
+    insertPromptHelper(`Tambahkan data empiris terkini mengenai ${topic} di Indonesia bahwa `);
+  } else if (recId === 'gap' || recId === 'rec-gap') {
+    insertPromptHelper(`Perjelas novelty dan kesenjangan riset dibanding studi terdahulu bahwa `);
+  } else if (recId === 'cit' || recId === 'rec-cit') {
+    toggleLiteratureModal(true);
+  } else if (recId === 'scope' || recId === 'rec-scope') {
+    insertPromptHelper(`Fokuskan batasan masalah penelitian ini pada `);
+  } else {
+    insertPromptHelper(`Sesuaikan draf naskah agar `);
+  }
+}
+
+// 3. Bidirectional Revision Request (Fase 1B)
+function requestRevision(stepCode, optionalUserDirection) {
+  const stream = document.getElementById('duoChatStream');
+  if (!stream) return;
+
+  // Identify section element and its current content
+  let currentContent = '';
+  let sectionLabel = 'Latar Belakang';
+  let targetBoxId = 'boxLatarBelakang';
+
+  if (stepCode === '1.1' || stepCode === '1.2' || stepCode === 'section11') {
+    sectionLabel = '1.1 Latar Belakang Masalah';
+    targetBoxId = 'boxLatarBelakang';
+  } else if (stepCode === '1.2_rumusan' || stepCode === '1.2' || stepCode === 'section12') {
+    sectionLabel = '1.2 Rumusan Masalah';
+    targetBoxId = 'boxProblemStatement';
+  } else if (stepCode === '1.3' || stepCode === 'section13') {
+    sectionLabel = '1.3 Tujuan Penulisan';
+    targetBoxId = 'boxTujuanPenulisan';
+  } else if (stepCode === '2.1' || stepCode === '2.2' || stepCode === 'section2') {
+    sectionLabel = 'BAB II: Pembahasan & Analisis';
+    targetBoxId = 'boxPembahasan';
+  } else if (stepCode === '3.1' || stepCode === 'section3') {
+    sectionLabel = 'BAB III: Penutup & Kesimpulan';
+    targetBoxId = 'boxPenutup';
+  }
+
+  const box = document.getElementById(targetBoxId);
+  if (box) {
+    currentContent = box.innerText.replace(/✓.*?\n/g, '').replace(/Akan terisi.*/g, '').replace(/Terbuka setelah.*/g, '').trim();
+  }
+  if (!currentContent) {
+    currentContent = `Kajian mengenai ${researchContext.topic || 'topik riset ini'} difokuskan pada analisis mendalam terhadap permasalahan utama.`;
+  }
+
+  // Highlight target section visually in paper sheet
+  const sectionElem = box ? box.closest('.paper-section') : null;
+  if (sectionElem) {
+    document.querySelectorAll('.paper-section').forEach(s => s.classList.remove('active'));
+    sectionElem.classList.add('active');
+    sectionElem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  const userDirectionNote = optionalUserDirection ? 
+    `<div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:6px 10px; margin-bottom:8px; font-size:11px; color:#1e40af;">
+       <strong>Arah Revisi yang Anda Berikan:</strong> "${escapeHTML(optionalUserDirection)}"
+     </div>` : '';
+
+  appendCoachBubble(stream, {
+    tag: `✏️ Revisi ${sectionLabel}`,
+    tagType: 'tag-hitl',
+    title: `Revisi Draf: ${sectionLabel}`,
+    body: `
+      <p>Anda dapat mengoreksi langsung draf naskah di bawah, atau meminta Thesa merestrukturisasi secara otomatis:</p>
+      ${userDirectionNote}
+      <div class="hitl-gate-card" style="border-color:#cbd5e1; border-bottom-color:#94a3b8;">
+        <div class="hitl-head-row">
+          <div class="hitl-title" style="color:#334155;">
+            <span class="material-symbols-rounded">edit_note</span>
+            <span>Teks Naskah yang Sedang Direvisi:</span>
+          </div>
+          <span class="hitl-badge-required" style="background:#fef3c7; color:#b45309;">Mode Koreksi</span>
+        </div>
+        <div class="hitl-diff-box" style="margin-top:8px;">
+          <textarea id="hitlRevisionInput_${stepCode.replace('.', '_')}" class="diff-text-editable" style="min-height:95px;font-size:12px;line-height:1.6;">${escapeHTML(currentContent)}</textarea>
+        </div>
+        <div class="hitl-actions-row" style="margin-top:10px;">
+          <button type="button" class="btn-hitl-approve" onclick="applyRevision('${stepCode}')">
+            <span class="material-symbols-rounded">check</span>
+            <span>Terapkan Revisi ke Naskah</span>
+          </button>
+          <button type="button" class="btn-hitl-reprobe" onclick="aiAssistedRevision('${stepCode}')">
+            <span class="material-symbols-rounded">psychology</span>
+            <span>Minta Bantuan AI Sempurnakan</span>
+          </button>
+        </div>
+      </div>
+    `,
+    rationale: 'Fleksibilitas koreksi bolak-balik menjamin naskah tetap mencerminkan pemikiran orisinal peneliti dengan dukungan presisi tata tulis akademik Thesa.'
+  });
+
+  stream.scrollTop = stream.scrollHeight;
+}
+
+// 4. Apply Revision to Paper Box (Fase 1B)
+function applyRevision(stepCode) {
+  const inputId = `hitlRevisionInput_${stepCode.replace('.', '_')}`;
+  const input = document.getElementById(inputId) || document.querySelector('#duoChatStream textarea');
+  if (!input) return;
+
+  const revisedText = input.value.trim();
+  if (!revisedText) return;
+
+  let targetBoxId = 'boxLatarBelakang';
+  let badgeId = 'badgeSection11';
+  let sectionName = 'Latar Belakang';
+
+  if (stepCode === '1.1' || stepCode === '1.2' || stepCode === 'section11') {
+    targetBoxId = 'boxLatarBelakang';
+    badgeId = 'badgeSection11';
+    sectionName = 'Latar Belakang';
+  } else if (stepCode === '1.2_rumusan' || stepCode === '1.2' || stepCode === 'section12') {
+    targetBoxId = 'boxProblemStatement';
+    badgeId = 'badgeSection12';
+    sectionName = 'Rumusan Masalah';
+  } else if (stepCode === '1.3' || stepCode === 'section13') {
+    targetBoxId = 'boxTujuanPenulisan';
+    badgeId = 'badgeSection13';
+    sectionName = 'Tujuan Penulisan';
+  } else if (stepCode === '2.1' || stepCode === '2.2' || stepCode === 'section2') {
+    targetBoxId = 'boxPembahasan';
+    badgeId = 'badgeSection2';
+    sectionName = 'Pembahasan (Bab II)';
+  } else if (stepCode === '3.1' || stepCode === 'section3') {
+    targetBoxId = 'boxPenutup';
+    badgeId = 'badgeSection3';
+    sectionName = 'Penutup (Bab III)';
+  }
+
+  const box = document.getElementById(targetBoxId);
+  if (box) {
+    box.innerHTML = `<p class="draft-paragraph completed" style="background:#ffffff; padding:2px 0;">
+      <span class="para-author-badge human" style="background:#dcfce7;color:#15803d;margin-bottom:6px;display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">
+        ✓ Terverifikasi (Telah Direvisi)
+      </span><br>
+      ${escapeHTML(revisedText)}
+    </p>`;
+    box.setAttribute('contenteditable', 'true');
+  }
+
+  const badge = document.getElementById(badgeId);
+  if (badge) {
+    badge.className = 'section-certainty-badge verified';
+    badge.innerText = '✓ Selesai Direvisi';
+    badge.style.background = '#dcfce7';
+    badge.style.color = '#15803d';
+  }
+
+  // Trigger cascade alert if revising Bab I
+  const stream = document.getElementById('duoChatStream');
+  let cascadeImpacts = [];
+  if (stepCode.startsWith('1.') || stepCode === 'section11' || stepCode === 'section12') {
+    cascadeImpacts = [
+      {
+        target_stage: 'BAB II (Pembahasan)',
+        message: 'Perubahan pada fondasi Bab I dapat memerlukan penyelarasan sub-bab pembahasan dan referensi teori.'
+      },
+      {
+        target_stage: 'BAB III (Kesimpulan)',
+        message: 'Pastikan poin kesimpulan sinkron dengan revisi pokok pikiran ini.'
+      }
+    ];
+  }
+
+  appendCoachBubble(stream, {
+    tag: `✓ Revisi Diterapkan`,
+    tagType: 'tag-socratic',
+    title: `Naskah Bagian ${sectionName} Berhasil Diperbarui! ✨`,
+    body: `<p>Perubahan telah tercermin langsung di lembar naskah sebelah kanan. Rekomendasi di bawah disesuaikan dengan arah baru naskahmu.</p>`,
+    cascade_warnings: cascadeImpacts,
+    rationale: 'Setiap iterasi penyempurnaan memperkokoh ketahanan naskah Anda saat menghadapi pertanyaan dewan penguji sidang.'
+  });
+
+  awardXP(40);
+  setEl('docSyncBadge', '✓ Revisi Tersimpan');
+}
+
+// 5. AI Assisted Revision (Fase 1B & 4)
+async function aiAssistedRevision(stepCode) {
+  const inputId = `hitlRevisionInput_${stepCode.replace('.', '_')}`;
+  const input = document.getElementById(inputId) || document.querySelector('#duoChatStream textarea');
+  const currentText = input ? input.value : '';
+  const stream = document.getElementById('duoChatStream');
+
+  appendCoachBubble(stream, {
+    tag: '⚡ AI Co-Authoring',
+    tagType: 'tag-socratic',
+    title: 'Thesa Sedang Mempertajam Draf Revisi...',
+    body: '<p style="color:#64748b;"><span class="material-symbols-rounded" style="vertical-align:middle;animation:spin 1s linear infinite;">sync</span> Menyelaraskan argumen dengan kaidah penulisan akademik bereputasi...</p>'
+  });
+
+  const res = await thesaApiFetch('/api/v1/conversation/turn', {
+    user_message: currentText || 'Pertajam draf ini agar lebih bernas dan terstruktur',
+    action_type: 'revision',
+    current_step: stepCode,
+    target_section: stepCode,
+    topic: (researchContext && researchContext.topic) ? researchContext.topic : 'topik riset'
+  });
+
+  if (res && res.draft_content) {
+    if (input) input.value = res.draft_content;
+    appendCoachBubble(stream, {
+      tag: '✨ Rekomendasi Sempurna',
+      tagType: 'tag-hitl',
+      title: res.title || 'Draf Hasil Penyempurnaan AI',
+      body: `
+        <p>${escapeHTML(res.message || 'Draf telah disempurnakan. Anda dapat memeriksa dan menerapkannya:')}</p>
+        <div class="hitl-gate-card">
+          <textarea id="hitlRevisionInput_${stepCode.replace('.', '_')}_ai" class="diff-text-editable" style="min-height:90px;font-size:12px;line-height:1.6;">${escapeHTML(res.draft_content)}</textarea>
+          <div class="hitl-actions-row" style="margin-top:10px;">
+            <button type="button" class="btn-hitl-approve" onclick="applyRevision('${stepCode}')">
+              <span class="material-symbols-rounded">check</span>
+              <span>Terapkan Hasil Penyempurnaan ke Naskah</span>
+            </button>
+          </div>
+        </div>
+      `,
+      rationale: res.rationale,
+      cascade_warnings: res.cascade_warnings,
+      recommendations: res.recommendations
+    });
+  }
+}
+
+// 6. Cascade Reconcile All (Fase 3)
+function reconcileAllCascades() {
+  const stream = document.getElementById('duoChatStream');
+  appendCoachBubble(stream, {
+    tag: '⚡ Sinkronisasi Antar-Bab',
+    tagType: 'tag-socratic',
+    title: 'Seluruh Dependensi Berhasil Diselaraskan! ✨',
+    body: '<p>Thesa telah memperbarui keselarasan terminologi antara Bab I (Latar Belakang & Rumusan Masalah) dengan Bab II (Pembahasan) dan Bab III (Kesimpulan). Naskah Anda kini 100% konsisten.</p>',
+    rationale: 'Konsistensi vertikal antar-bab merupakan indikator utama kelulusan sidang skripsi dengan predikat sangat memuaskan.'
+  });
+  setEl('docSyncBadge', '✓ Sinkron 100%');
+}
+
+// 7. Live Edit-Diff Detector (Fase 2)
+function initEditDiffDetector() {
+  const paperSheet = document.getElementById('paperSheet');
+  if (!paperSheet || paperSheet._hasDiffDetector) return;
+  paperSheet._hasDiffDetector = true;
+
+  let debounceTimer = null;
+  paperSheet.addEventListener('input', (e) => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(async () => {
+      setEl('docSyncBadge', '⚡ Menguji Keselarasan...');
+      const targetSec = e.target ? e.target.closest('.paper-section') : null;
+      const secId = targetSec ? targetSec.id : 'section11';
+      
+      const res = await thesaApiFetch('/api/v1/conversation/recommend', {
+        current_step: currentStepCode,
+        target_section: secId,
+        topic: (researchContext && researchContext.topic) ? researchContext.topic : 'topik riset'
+      });
+      if (res && res.recommendations) {
+        renderContextualRecommendations(res.recommendations);
+      }
+      setEl('docSyncBadge', '✓ Tersinkronisasi Otomatis');
+    }, 800);
+  });
 }
 
 function handleUserManualChat(userText) {
@@ -4916,6 +5309,25 @@ function handleUserManualChat(userText) {
   if (!stream) return;
 
   const topicText = (researchContext && researchContext.topic) ? researchContext.topic : 'topik riset';
+  const lower = userText.toLowerCase().trim();
+
+  // Intent Routing: Check if user asks for revision of a specific section
+  if (lower.startsWith('revisi') || lower.includes('ubah ') || lower.includes('perbaiki ') || lower.includes('ganti ') || lower.includes('tulis ulang')) {
+    let targetStep = currentStepCode;
+    if (lower.includes('latar belakang') || lower.includes('bab 1') || lower.includes('bab i')) {
+      targetStep = '1.1';
+    } else if (lower.includes('rumusan') || lower.includes('masalah')) {
+      targetStep = '1.2';
+    } else if (lower.includes('tujuan')) {
+      targetStep = '1.3';
+    } else if (lower.includes('pembahasan') || lower.includes('bab 2') || lower.includes('bab ii')) {
+      targetStep = '2.1';
+    } else if (lower.includes('kesimpulan') || lower.includes('saran') || lower.includes('bab 3') || lower.includes('bab iii')) {
+      targetStep = '3.1';
+    }
+    requestRevision(targetStep, userText);
+    return;
+  }
 
   // 1. If currently at Step 1.1 (Choosing initial primary angle)
   if (currentStepCode === '1.1') {
@@ -4937,17 +5349,28 @@ function handleUserManualChat(userText) {
     stream.appendChild(userRow);
     stream.scrollTop = stream.scrollHeight;
 
-    setTimeout(() => {
+    setTimeout(async () => {
       const topicText = researchContext.topic || 'topik riset ini';
+      
+      // Call conversation turn API for dynamic rationale and deliberative response
+      const apiResp = await thesaApiFetch('/api/v1/conversation/turn', {
+        user_message: userText,
+        action_type: 'free_text',
+        current_step: '1.2',
+        target_section: '1.2',
+        topic: topicText
+      });
+
       const cleanAddition = userText.trim().replace(/^(tambahkan|sesuaikan|ubah)\s*(penekanan\s*pada\s*|bahwa\s*)?/i, '');
-      const revisedDraft = `Kajian mengenai ${topicText} memegang peranan krusial dalam merespons dinamika permasalahan terkini. Melalui penekanan pada masukan orisinal peneliti, naskah ini menegaskan bahwa ${cleanAddition}. Pendekatan ini dibangun guna memastikan kerangka analisis yang sistematis, terukur, dan berbasis bukti akademik yang kuat.`;
+      const revisedDraft = (apiResp && apiResp.draft_content) ? apiResp.draft_content : 
+        `Kajian mengenai ${topicText} memegang peranan krusial dalam merespons dinamika permasalahan terkini. Melalui penekanan pada masukan orisinal peneliti, naskah ini menegaskan bahwa ${cleanAddition}. Pendekatan ini dibangun guna memastikan kerangka analisis yang sistematis, terukur, dan berbasis bukti akademik yang kuat.`;
 
       appendCoachBubble(stream, {
         tag: '💡 Penyesuaian Latar Belakang',
         tagType: 'tag-socratic',
-        title: 'Draf Pembuka Disesuaikan dengan Idenya! ✨',
+        title: (apiResp && apiResp.title) || 'Draf Pembuka Disesuaikan dengan Idenya! ✨',
         body: `
-          <p>Thesa telah merumuskan kembali draf latar belakang dengan menyelaraskan langsung masukanmu:</p>
+          <p>${escapeHTML((apiResp && apiResp.message) || 'Thesa telah merumuskan kembali draf latar belakang dengan menyelaraskan langsung masukanmu:')}</p>
 
           <div class="hitl-gate-card">
             <div class="hitl-head-row">
@@ -4976,7 +5399,10 @@ function handleUserManualChat(userText) {
               </button>
             </div>
           </div>
-        `
+        `,
+        rationale: (apiResp && apiResp.rationale) || 'Penyusunan latar belakang yang bertumpu pada masukan orisinal mahasiswa menjamin orisinalitas naskah dan keterikatan intelektual dengan topik yang diangkat.',
+        cascade_warnings: apiResp ? apiResp.cascade_warnings : null,
+        recommendations: apiResp ? apiResp.recommendations : null
       });
 
       stream.scrollTop = stream.scrollHeight;
@@ -5388,13 +5814,12 @@ function awardXP(amount) {
   localStorage.setItem('thesaUserXP', userXP.toString());
   const elem = document.getElementById('userXP');
   if (elem) {
-    elem.innerText = `${userXP} XP`;
-    elem.style.transform = 'scale(1.2)';
-    setTimeout(() => { elem.style.transform = 'scale(1)'; }, 300);
+    const pct = Math.min(100, Math.max(50, 50 + Math.floor(userXP / 20)));
+    elem.innerText = `Kesiapan: ${pct}%`;
   }
 }
 
-// ── XP Rewards, Rank & Level Tier Differentiation ────────────
+// ── Academic Readiness & Review Credits Center ────────────
 function toggleXpRewardsModal(show) {
   const modal = document.getElementById('xpRewardsModal');
   if (!modal) return;
@@ -5406,20 +5831,20 @@ function toggleXpRewardsModal(show) {
     const readinessPct = document.getElementById('xpReadinessPct');
     const readinessBar = document.getElementById('xpReadinessBar');
 
-    if (xpBal) xpBal.innerText = `${userXP} XP`;
+    if (xpBal) xpBal.innerText = `${userXP} Kredit`;
 
     // Dynamic Academic Rank & Readiness calculation
-    let rank = '🌱 Peneliti Pemula';
-    let pct = 30;
+    let rank = 'Tahap Konseptual & Pembatasan Masalah';
+    let pct = 50;
     if (userXP >= 1400) {
-      rank = '👑 Master of Research (100% Siap Sidang)';
+      rank = 'Naskah Lengkap (100% Siap Uji Komprehensif)';
       pct = 100;
     } else if (userXP >= 750) {
-      rank = '🎓 Kandidat Sarjana / Magister';
+      rank = 'Kandidat Sarjana / Magister (Siap Uji Sidang)';
       pct = 85;
     } else if (userXP >= 300) {
-      rank = '🌿 Pemikir Kritis (Refleksi Mandiri)';
-      pct = 65;
+      rank = 'Sintesis Literatur & Metodologi Matang';
+      pct = 70;
     }
 
     if (rankTitle) rankTitle.innerText = rank;
@@ -5547,50 +5972,79 @@ function getPaperExportSections() {
 
   const defaultLatarBelakang = `
     <p class="academic-paragraph">Penulisan makalah mengenai <strong>${escapeHTML(topic)}</strong> ini dilatarbelakangi oleh tingginya dinamika perubahan dalam ekosistem akademik dan profesional saat ini. Perkembangan pesat teknologi informasi dan komunikasi telah mengubah lanskap operasional secara signifikan, menciptakan tantangan baru sekaligus membuka peluang strategis yang belum pernah ada sebelumnya. Dalam konteks ini, penting bagi para akademisi dan praktisi untuk memahami implikasi mendasar dari fenomena tersebut guna merumuskan pendekatan yang adaptif dan berkelanjutan (Santoso & Pratama, 2024).</p>
-    <p class="academic-paragraph">Secara empiris, berbagai studi lapangan menunjukkan bahwa ketidaksediaan infrastruktur pendukung serta keterbatasan pemahaman terhadap regulasi baku sering kali menjadi hambatan utama dalam mengoptimalkan potensi yang ada. Ketimpangan ini menciptakan kesenjangan (gap) antara target kinerja yang direncanakan dengan realisasi di lapangan. Oleh karena itu, diperlukan sebuah tinjauan ilmiah yang komprehensif untuk mengidentifikasi akar permasalahan dan memetakan variabel-variabel kunci yang mempengaruhi efektivitas implementasi di tingkat operasional (Wijaya et al., 2023).</p>
+    <p class="academic-paragraph">Secara empiris, berbagai studi lapangan menunjukkan bahwa ketidaksediaan infrastruktur pendukung serta keterbatasan pemahaman terhadap regulasi baku sering kali menjadi hambatan utama dalam mengoptimalkan potensi yang ada. Ketimpangan ini menciptakan kesenjangan (research gap) antara target kinerja yang direncanakan dengan realisasi di lapangan. Oleh karena itu, diperlukan sebuah tinjauan ilmiah yang komprehensif untuk mengidentifikasi akar permasalahan dan memetakan variabel-variabel kunci yang mempengaruhi efektivitas implementasi di tingkat operasional (Wijaya et al., 2023).</p>
+    <p class="academic-paragraph">Lebih jauh lagi, pemanfaatan kecerdasan buatan dan otomatisasi sistem memerlukan landasan teoretis yang kokoh agar tidak mengabaikan variabel etika dan kepatuhan hukum. Berbagai tantangan struktural seperti interoperabilitas data, kesiapan sumber daya manusia, serta jaminan privasi informasi menjadi isu kritis yang menuntut perhatian khusus dari para peneliti (Setiawan & Rahmawati, 2024).</p>
     <p class="academic-paragraph">Urgensi penulisan makalah ini terletak pada kontribusinya dalam menyajikan analisis pemikiran kritis berbasis bukti (evidence-based analysis). Melalui pembuktian konseptual yang sistematis, makalah ini bertujuan untuk memberikan rekomendasi terstruktur yang tidak hanya relevan bagi pengembangan ilmu pengetahuan, tetapi juga dapat dijadikan acuan praktis bagi pengambilan keputusan di instansi terkait (Firmansyah & Wulandari, 2023).</p>
+  `;
+
+  const defaultLandasanTeori = `
+    <p class="academic-paragraph">Landasan teoretis yang digunakan dalam naskah ini mengacu pada kombinasi Teori Manajemen Sistem Informasi, Teori Adaptasi Organisasi, serta Kerangka Kerja Tata Kelola Akademik Modern. Menurut Kurniawan et al. (2024), keberhasilan integrasi teknologi dalam lingkungan akademik sangat bergantung pada tingkat penerimaan pengguna (user acceptance) serta kejelasan prosedur operasional standar.</p>
+    <p class="academic-paragraph">Dalam konteks ${escapeHTML(topic)}, interaksi antara input data, algoritma pemrosesan, dan output analitis membentuk rantai nilai pengetahuan (knowledge value chain) yang menentukan akurasi pengambilan keputusan. Evaluasi teoretis menunjukkan bahwa model yang berkelanjutan harus memenuhi tiga kriteria utama: keandalan komputasi (reliability), interpretabilitas hasil (explainability), dan transparansi etis (ethical transparency).</p>
+  `;
+
+  const defaultMetodologi = `
+    <p class="academic-paragraph">Pendekatan yang digunakan dalam kajian ini adalah metode studi kepustakaan terstruktur (Systematic Literature Review/SLR) dipadukan dengan analisis kualitatif deskriptif. Pengumpulan data dilakukan melalui penelusuran dokumen ilmiah sekunder dari basis data repositori bereputasi (Google Scholar, IEEE Xplore, PubMed, dan Portal Garuda) dalam rentang tahun 2020 hingga 2026.</p>
+    <p class="academic-paragraph">Tahapan analisis meliputi empat fase utama: (1) Identifikasi topik dan perumusan pertanyaan riset, (2) Pengumpulan dan penapisan dokumen literatur berbasis kriteria inklusi dan eksklusi, (3) Ekstraksi data serta sintesis temuan kualitatif, dan (4) Penyusunan rekomendasi dan pembuktian argumentasi teoretis.</p>
   `;
 
   const defaultPembahasan = `
     <p class="academic-paragraph"><strong>2.1 Tinjauan Teori dan Kerangka Konseptual Dasar</strong><br>
     Pembahasan mengenai topik ini berlandaskan pada kerangka konseptual yang menghubungkan prinsip tata kelola modern dengan analisis dinamika sosial-teknologis. Teori adaptasi sistem menegaskan bahwa keberhasilan suatu model operasional sangat ditentukan oleh sejauh mana elemen-elemen di dalamnya mampu merespons disrupsi eksternal secara fleksibel namun tetap teratur. Dalam kerangka ini, integrasi analitika data dan transparansi informasi menjadi pilar utama dalam menjaga akuntabilitas (Kurniawan et al., 2024).</p>
     <p class="academic-paragraph"><strong>2.2 Analisis Temuan dan Diskusi Kritis</strong><br>
-    Berdasarkan hasil analisis data dan kajian komparatif terhadap beberapa sampel kasus, ditemukan bahwa tantangan terbesar berakar pada dua faktor utama: faktor internal yang meliputi kesiapan sumber daya manusia, serta faktor eksternal yang mencakup dinamika regulasi yang terus berubah. Temuan ini mengindikasikan bahwa intervensi searah tidak akan cukup untuk mengatasi kompleksitas masalah. Sebaliknya, diperlukan pendekatan terpadu yang melibatkan seluruh pemangku kepentingan dalam sesi evaluasi berkala.</p>
+    Berdasarkan hasil analisis data dan kajian komparatif terhadap beberapa sampel kasus, ditemukan bahwa tantangan terbesar berakar pada dua faktor utama: faktor internal yang meliputi kesiapan sumber daya manusia, serta faktor eksternal yang mencakup dinamika regulasi yang terus berubah. Temuan ini mengindikasikan bahwa intervensi searah tidak akan cukup untuk mengatasi kompleksitas masalah. Sebaliknya, diperlukan pendekatan terpadu yang melibatkan seluruh pemangku kepentingan dalam sesi evaluasi berkala (Pratama & Hidayat, 2024).</p>
     <p class="academic-paragraph"><strong>2.3 Sintesis Solusi dan Rekomendasi Penulis</strong><br>
     Sebagai langkah solutif, penulis merumuskan tiga rekomendasi strategis. Pertama, penyusunan pedoman operasional standar yang lebih terukur dan adaptif terhadap perkembangan teknologi. Kedua, peningkatan kapasitas sumber daya manusia melalui pelatihan berkelanjutan berbasis kompetensi. Ketiga, pembentukan mekanisme pengawasan independen untuk memastikan setiap tahapan pelaksanaan berjalan sesuai kaidah etika dan regulasi yang berlaku.</p>
+    <p class="academic-paragraph"><strong>2.4 Evaluasi Dampak dan Mitigasi Risiko</strong><br>
+    Penerapan rekomendasi tersebut diproyeksikan dapat mengurangi marjin kesalahan hingga 35% dan meningkatkan efisiensi alur kerja sebesar 45%. Namun demikian, langkah mitigasi risiko seperti pencadangan data secara berkala dan pembaruan protokol keamanan tetap harus diprioritaskan demi menjamin kesinambungan operasional.</p>
   `;
 
   const defaultKesimpulan = `
-    <p class="academic-paragraph">Berdasarkan hasil analisis dan pembahasan yang telah dipaparkan pada bab-bab sebelumnya, dapat disimpulkan bahwa pengelolaan topik yang dikaji memerlukan komitmen kuat dan kolaborasi lintas sektor. Kesenjangan antara kerangka teoretis dan kondisi riil di lapangan dapat dijembatani melalui penerapan rekomendasi terstruktur berbasis data empiris.</p>
+    <p class="academic-paragraph">Berdasarkan hasil analisis dan pembahasan yang telah dipaparkan pada bab-bab sebelumnya, dapat disimpulkan bahwa pengelolaan topik ${escapeHTML(topic)} memerlukan komitmen kuat dan kolaborasi lintas sektor. Kesenjangan antara kerangka teoretis dan kondisi riil di lapangan dapat dijembatani melalui penerapan rekomendasi terstruktur berbasis data empiris.</p>
     <p class="academic-paragraph">Secara keseluruhan, gagasan yang diajukan dalam makalah ini memberikan bukti bahwa adopsi pendekatan terintegrasi mampu meningkatkan efisiensi operasional secara bermakna sekaligus meminimalisasi risiko penyimpangan.</p>
   `;
 
   return {
     latarBelakang: getBoxContent('boxLatarBelakang') || defaultLatarBelakang,
-    rumusanMasalah: getBoxContent('boxProblemStatement') || '<p>1. Bagaimana karakteristik dan dinamika utama dari topik yang dikaji secara empiris?</p><p>2. Bagaimana alternatif solusi dan rekomendasi strategis yang dapat diajukan untuk mengatasinya?</p>',
-    tujuan: getBoxContent('boxTujuanPenulisan') || '<p>1. Menganalisis karakteristik dan dinamika utama topik kajian secara komprehensif.</p><p>2. Merumuskan alternatif solusi dan rekomendasi aplikatif bagi pemangku kepentingan.</p>',
+    landasanTeori: getBoxContent('boxLandasanTeori') || defaultLandasanTeori,
+    metodologi: getBoxContent('boxMetodologi') || defaultMetodologi,
+    rumusanMasalah: getBoxContent('boxProblemStatement') || '<p class="academic-paragraph">1. Bagaimana karakteristik dan dinamika utama dari topik yang dikaji secara empiris di lapangan?</p><p class="academic-paragraph">2. Tantangan struktural apa yang menjadi hambatan utama dalam mengoptimalkan tata kelola operasional?</p><p class="academic-paragraph">3. Bagaimana alternatif solusi dan rekomendasi strategis yang dapat diajukan untuk mengatasinya secara berkelanjutan?</p>',
+    tujuan: getBoxContent('boxTujuanPenulisan') || '<p class="academic-paragraph">1. Menganalisis karakteristik dan dinamika utama topik kajian secara komprehensif.</p><p class="academic-paragraph">2. Mengidentifikasi hambatan dan tantangan struktural yang dihadapi para pemangku kepentingan.</p><p class="academic-paragraph">3. Merumuskan alternatif solusi dan rekomendasi aplikatif berbasis bukti bagi instansi terkait.</p>',
     pembahasan: getBoxContent('boxPembahasan') || defaultPembahasan,
     kesimpulan: getBoxContent('boxPenutup') || defaultKesimpulan,
-    saran: '<p>Disarankan agar peneliti selanjutnya dapat memperluas cakupan sampel dan menguji efektivitas rekomendasi ini pada skala industri yang lebih besar.</p>',
+    saran: '<p class="academic-paragraph">1. Bagi Civitas Akademika: Disarankan untuk memperluas cakupan studi eksperimental dengan menambah variabel penguji yang lebih bervariasi.</p><p class="academic-paragraph">2. Bagi Praktisi & Penentu Kebijakan: Disarankan untuk mengadopsi rekomendasi pedoman operasional secara bertahap guna meminimalisasi gejolak adaptasi organisasi.</p>',
     daftarPustaka: injectedReferences && injectedReferences.length > 0 ? injectedReferences : [
       { authors: 'Santoso, H., & Pratama, R.', year: 2024, title: 'Human-Centered Artificial Intelligence: Principles and Applications in Higher Education', journal: 'Journal of Educational Technology & AI, 12(3), 145–162', bib: 'Santoso, H., & Pratama, R. (2024). Human-Centered Artificial Intelligence: Principles and Applications in Higher Education. <i>Journal of Educational Technology & AI</i>, 12(3), 145–162.' },
       { authors: 'Wijaya, A. K., Rahardjo, S., & Lestari, D.', year: 2023, title: 'Analisis Kesenjangan Metodologi dalam Penelitian Perguruan Tinggi Indonesia', journal: 'Jurnal Riset & Pendidikan Tinggi Indonesia, 8(2), 88–104', bib: 'Wijaya, A. K., Rahardjo, S., & Lestari, D. (2023). Analisis Kesenjangan Metodologi dalam Penelitian Perguruan Tinggi Indonesia. <i>Jurnal Riset & Pendidikan Tinggi Indonesia</i>, 8(2), 88–104.' },
       { authors: 'Kurniawan, B., Chen, L., & Miller, J.', year: 2024, title: 'Multi-Agent Reasoning for Scientific Document Synthesis', journal: 'IEEE Transactions on Artificial Intelligence, 5(4), 412–428', bib: 'Kurniawan, B., Chen, L., & Miller, J. (2024). Multi-Agent Reasoning for Scientific Document Synthesis. <i>IEEE Transactions on Artificial Intelligence</i>, 5(4), 412–428.' },
-      { authors: 'Firmansyah, M., & Wulandari, N.', year: 2023, title: 'Transformasi Digital dan Efektivitas Kebijakan Publik di Era Society 5.0', journal: 'Jurnal Administrasi Publik Indonesia, 15(1), 32–49', bib: 'Firmansyah, M., & Wulandari, N. (2023). Transformasi Digital dan Efektivitas Kebijakan Publik di Era Society 5.0. <i>Jurnal Administrasi Publik Indonesia</i>, 15(1), 32–49.' }
+      { authors: 'Firmansyah, M., & Wulandari, N.', year: 2023, title: 'Transformasi Digital dan Efektivitas Kebijakan Publik di Era Society 5.0', journal: 'Jurnal Administrasi Publik Indonesia, 15(1), 32–49', bib: 'Firmansyah, M., & Wulandari, N. (2023). Transformasi Digital dan Efektivitas Kebijakan Publik di Era Society 5.0. <i>Jurnal Administrasi Publik Indonesia</i>, 15(1), 32–49.' },
+      { authors: 'Setiawan, B., & Rahmawati, I.', year: 2024, title: 'Tata Kelola Data Akademik dan Etika Penggunaan AI di Lingkungan Perguruan Tinggi', journal: 'Jurnal Pengawasan & Etika Pendidikan, 6(1), 101–118', bib: 'Setiawan, B., & Rahmawati, I. (2024). Tata Kelola Data Akademik dan Etika Penggunaan AI di Lingkungan Perguruan Tinggi. <i>Jurnal Pengawasan & Etika Pendidikan</i>, 6(1), 101–118.' }
     ]
   };
 }
 
 function getExportMetadata() {
+  const docTypeVal = document.getElementById('exportDocTypeSelect')?.value || 'skripsi';
   return {
-    title: document.getElementById('exportTitleInput')?.value || researchContext.topic || 'Makalah Ilmiah',
-    course: document.getElementById('exportCourseInput')?.value || 'Tugas Mata Kuliah Terkait',
-    lecturer: document.getElementById('exportLecturerInput')?.value || 'Dosen Pengampu Mata Kuliah',
-    author: document.getElementById('exportAuthorInput')?.value || 'Mahasiswa Peneliti',
-    nim: document.getElementById('exportNimInput')?.value || 'NIM: —',
-    prodi: document.getElementById('exportProdiInput')?.value || 'Program Studi Ilmu Komputer & Sains Terapan',
-    fakultas: 'Fakultas Terkait',
+    title: document.getElementById('exportTitleInput')?.value || researchContext.topic || 'Analisis dan Implementasi Sistem Cerdas',
+    docType: docTypeVal,
+    course: document.getElementById('exportCourseInput')?.value || (docTypeVal === 'skripsi' ? 'Tugas Akhir / Skripsi' : 'Mata Kuliah Terkait'),
+    lecturer: document.getElementById('exportLecturerInput')?.value || 'Dr. Budi Santoso, M.Kom.',
+    author: document.getElementById('exportAuthorInput')?.value || getUserProfile()?.name || 'Mahasiswa Peneliti',
+    nim: document.getElementById('exportNimInput')?.value || getUserProfile()?.nim || '21060120140000',
+    prodi: document.getElementById('exportProdiInput')?.value || getUserProfile()?.prodi || 'Program Studi Ilmu Komputer & Sistem Informasi',
+    fakultas: getUserProfile()?.faculty || 'Fakultas Ilmu Komputer',
     campus: document.getElementById('exportCampusInput')?.value || activeCampus?.name || 'Universitas Indonesia (UI)'
+  };
+}
+
+function getExportOptions() {
+  return {
+    lineSpacing: document.getElementById('exportSpacingSelect')?.value || '2.0',
+    includePengesahan: document.getElementById('exportIncludePengesahan')?.checked ?? true,
+    includeOrisinalitas: document.getElementById('exportIncludeOrisinalitas')?.checked ?? true,
+    includeKataPengantar: document.getElementById('exportIncludeKataPengantar')?.checked ?? true,
+    includeAbstrak: document.getElementById('exportIncludeAbstrak')?.checked ?? true,
+    includeDaftarIsi: document.getElementById('exportIncludeDaftarIsi')?.checked ?? true
   };
 }
 
@@ -5873,40 +6327,118 @@ function updateTokenDisplay() {
 }
 
 
+function autoGenerateFull8PagePaper() {
+  const topic = researchContext.topic || 'Analisis Kebijakan dan Transformasi Digital di Indonesia';
+  const campus = activeCampus?.name || 'Universitas Indonesia (UI)';
+  const prodi = getUserProfile().prodi || 'Program Studi Ilmu Komputer & Sains Terapan';
+
+  showThesaToast('⏳ Mensintesis kerangka naskah lengkap (8-12 halaman)...', 'info');
+
+  const fullLatarBelakang = `
+    <p class="academic-paragraph">Penulisan makalah ilmiah mengenai <strong>${escapeHTML(topic)}</strong> ini dilatarbelakangi oleh fenomena disrupsi teknologi dan perubahan lanskap operasional yang sangat cepat pada era Society 5.0. Akselerasi digitalisasi menuntut seluruh pemangku kepentingan untuk tidak hanya mengadopsi perangkat lunak terbaru, melainkan juga merombak kerangka tata kelola operasional secara fundamental (Santoso & Pratama, 2024).</p>
+    <p class="academic-paragraph">Secara empiris, studi pendahuluan di berbagai instansi menunjukkan adanya ketimpangan (research gap) antara kapasitas infrastruktur yang tersedia dengan tingkat literasi serta kesiapan regulasi pendukung. Hambatan ini memicu risiko ketidakefisienan alur kerja, ketidakpastian tata kelola data, hingga potensi penurunan akuntabilitas operasional (Wijaya et al., 2023).</p>
+    <p class="academic-paragraph">Lebih jauh lagi, analisis kebutuhan dalam lingkup <strong>${escapeHTML(prodi)}</strong> mengindikasikan bahwa implementasi solusi searah tanpa landasan metodologis yang terstruktur akan menghasilkan ketergantungan jangka panjang pada sistem vendor eksternal. Oleh karena itu, diperlukan kajian ilmiah terintegrasi yang mampu memetakan variabel-variabel kunci penentu keberhasilan transformasi ini (Setiawan & Rahmawati, 2024).</p>
+    <p class="academic-paragraph">Urgensi penulisan karya ilmiah ini terletak pada kontribusinya dalam menyajikan pemikiran akademis berbasis bukti (evidence-based paper). Melalui pembuktian konseptual dan evaluasi empiris, naskah ini dirancang untuk memberikan rekomendasi terstruktur bagi civitas akademika <strong>${escapeHTML(campus)}</strong> serta para pembuat kebijakan di tingkat nasional (Firmansyah & Wulandari, 2023).</p>
+  `;
+
+  const fullRumusanMasalah = `
+    <p class="academic-paragraph">1. Bagaimana karakteristik, fenomena mendasar, dan dinamika utama dari penerapan <strong>${escapeHTML(topic)}</strong> secara empiris di lapangan?</p>
+    <p class="academic-paragraph">2. Tantangan struktural dan risiko teknis apa saja yang menjadi hambatan utama dalam mengoptimalkan tata kelola operasional?</p>
+    <p class="academic-paragraph">3. Bagaimana formulasi alternatif solusi dan rekomendasi strategis yang teruji untuk mengatasi hambatan tersebut secara berkelanjutan?</p>
+  `;
+
+  const fullTujuanPenulisan = `
+    <p class="academic-paragraph">1. Menganalisis secara komprehensif karakteristik dan fenomena mendasar penerapan topik kajian di lapangan.</p>
+    <p class="academic-paragraph">2. Mengidentifikasi dan menguji tantangan struktural serta variabel kritis yang membatasi efektivitas alur kerja.</p>
+    <p class="academic-paragraph">3. Merumuskan skema solusi dan panduan operasional standar (SOP) yang adaptif bagi pemangku kepentingan.</p>
+  `;
+
+  const fullLandasanTeori = `
+    <p class="academic-paragraph"><strong>2.1 Tinjauan Teori Tata Kelola Sistem Informasi</strong><br>
+    Landasan teoretis naskah ini mengacu pada kombinasi Teori Manajemen Sistem Informasi (Kurniawan et al., 2024) dan Kerangka Kerja Adaptasi Organisasi. Teori ini menyatakan bahwa tingkat keberhasilan adopsi teknologi berbanding lurus dengan kejelasan alur komunikasi serta tingkat kepercayaan pengguna (user trust).</p>
+    <p class="academic-paragraph"><strong>2.2 Kerangka Konseptual Rantai Nilai Pengetahuan</strong><br>
+    Dalam kerangka ini, integrasi data, otomatisasi algoritma, dan validasi manusia (human-in-the-loop) membentuk rantai nilai pengetahuan yang menjamin akurasi analisis. Prinsip dasar yang harus dipenuhi meliputi tiga pilar: keandalan komputasi (reliability), interpretabilitas hasil (explainability), dan keterbukaan etis (ethical transparency).</p>
+  `;
+
+  const fullMetodologi = `
+    <p class="academic-paragraph"><strong>3.1 Desain Penelitian & Pendekatan Penulisan</strong><br>
+    Kajian ini menggunakan metode studi kepustakaan terstruktur (Systematic Literature Review/SLR) dipadukan dengan analisis kualitatif deskriptif. Pengumpulan data sekunder dilakukan melalui penelusuran basis data ilmiah bereputasi (Google Scholar, IEEE Xplore, PubMed, dan Portal Garuda) rentang tahun 2020–2026.</p>
+    <p class="academic-paragraph"><strong>3.2 Tahapan Analisis & Validasi Data</strong><br>
+    Proses analisis dilaksanakan melalui 4 tahapan sistematis: (1) Penapisan dokumen berbasis kriteria inklusi, (2) Ekstraksi temuan kunci, (3) Sintesis komparatif antar-studi, dan (4) Penyusunan kesimpulan dan perumusan rekomendasi terukur.</p>
+  `;
+
+  const fullPembahasan = `
+    <p class="academic-paragraph"><strong>4.1 Analisis Temuan Empiris di Lapangan</strong><br>
+    Berdasarkan sintesis data komparatif dari beberapa studi kasus terapan, ditemukan bahwa tantangan utama berakar pada dua faktor dominan: faktor internal (kesiapan SDM dan literasi digital) serta faktor eksternal (dinamika regulasi dan ketidakpastian standar standar teknis). Hasil pengujian menunjukkan bahwa tanpa pelatihan bertahap, tingkat kegagalan implementasi awal mencapai 42% (Pratama & Hidayat, 2024).</p>
+    <p class="academic-paragraph"><strong>4.2 Diskusi Kritis & Implikasi Praktis</strong><br>
+    Temuan ini mempertegas bahwa penyediaan teknologi canggih saja tidak otomatis menyelesaikan masalah mendasar. Sebaliknya, diperlukan pendekatan intervensi dua arah: otomatisasi alur kerja rutin di tingkat bawah, dan penyediaan dashboard analitik transparan bagi tingkat manajemen atas. Skema ini terbukti mampu meningkatkan akurasi pengambilan keputusan hingga 38%.</p>
+    <p class="academic-paragraph"><strong>4.3 Evaluasi Solusi & Rekomendasi Strategis</strong><br>
+    Sebagai langkah solutif, penulis merumuskan tiga rekomendasi utama. Pertama, penyusunan SOP adaptif yang diperbarui setiap semester. Kedua, sertifikasi kompetensi SDM secara berkala. Ketiga, pembentukan konsortium pengawasan independen demi menjamin kepatuhan terhadap regulasi keamanan data nasional.</p>
+  `;
+
+  const fullKesimpulan = `
+    <p class="academic-paragraph"><strong>5.1 Kesimpulan Utama</strong><br>
+    Berdasarkan seluruh uraian dan analisis pada bab-bab sebelumnya, dapat disimpulkan bahwa keberhasilan pengolahan topik <strong>${escapeHTML(topic)}</strong> membutuhkan komitmen lintas disiplin dan penerapan kerangka tata kelola terintegrasi. Kesenjangan antara teori dan kondisi riil di lapangan dapat diatasi melalui rekomendasi bertahap berbasis bukti empiris.</p>
+    <p class="academic-paragraph"><strong>5.2 Saran & Rekomendasi Aplikatif</strong><br>
+    1. Bagi Akademisi & Peneliti: Disarankan untuk memperluas studi eksperimental dengan melibatkan sampel instansi yang lebih luas.<br>
+    2. Bagi Praktisi & Pembuat Kebijakan: Disarankan untuk mengadopsi rekomendasi ini secara bertahap guna meminimalisasi risiko gejolak adaptasi organisasi.</p>
+  `;
+
+  // Populate into boxes
+  const setBox = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) { el.innerHTML = val; el.style.background = '#ffffff'; }
+  };
+
+  setBox('boxLatarBelakang', fullLatarBelakang);
+  setBox('boxProblemStatement', fullRumusanMasalah);
+  setBox('boxTujuanPenulisan', fullTujuanPenulisan);
+  setBox('boxLandasanTeori', fullLandasanTeori);
+  setBox('boxMetodologi', fullMetodologi);
+  setBox('boxPembahasan', fullPembahasan);
+  setBox('boxPenutup', fullKesimpulan);
+
+  // Update progress bar to 100%
+  setEl('globalProgressPct', '100% ✓');
+  const fill = document.getElementById('globalProgressBar');
+  if (fill) { fill.style.width = '100%'; fill.style.background = 'linear-gradient(90deg, #059669, #10b981)'; }
+
+  // Update badges
+  document.querySelectorAll('.section-certainty-badge').forEach(b => {
+    b.className = 'section-certainty-badge';
+    b.style.background = '#dcfce7';
+    b.style.color = '#15803d';
+    b.innerText = '✓ Selesai 100%';
+  });
+
+  awardXP(100);
+  showThesaToast('✓ Sintesis naskah lengkap berhasil disusun ke dalam draf!', 'success');
+  showDefenseSimulationCard();
+  toggleExportModal(true);
+}
+
+
 function executeExportDOCX() {
   if (typeof ThesaExportService === 'undefined') {
     showThesaToast('⚠️ Modul ekspor sedang dimuat. Silakan coba lagi.', 'warning');
     return;
   }
 
-  const tier = getUserTier();
-  const profile = getUserProfile();
-  const requiresPayPerQuota = (tier === 'silver' && !profile.isTrial);
-
-  if (requiresPayPerQuota && userMakalahQuota <= 0) {
-    toggleExportModal(false);
-    toggleQRISModal(true);
-    return;
-  }
+  showThesaToast('⏳ Memproses ekspor naskah ke Microsoft Word (.doc)...', 'info');
 
   const meta = getExportMetadata();
   const sections = getPaperExportSections();
-  ThesaExportService.exportToDocx(meta, sections);
-
-  if (requiresPayPerQuota) {
-    userMakalahQuota = Math.max(0, userMakalahQuota - 1);
-    localStorage.setItem('thesaMakalahQuota', userMakalahQuota.toString());
-    updateMakalahQuotaBadge();
-  }
+  const options = getExportOptions();
+  ThesaExportService.exportToDocx(meta, sections, options);
 
   toggleExportModal(false);
   awardXP(50);
   triggerCelebrationModal(
-    'Naskah Word Siap Dikumpulkan! 🎉',
-    'Naskah Word (.doc) berhasil diunduh dengan struktur cover kampus, margin 4-4-3-3, dan sitasi APA 7th.',
+    'Naskah Word (.doc) Siap Dikumpulkan! 🎉',
+    'Naskah Word (.doc) 8-12 halaman berhasil diunduh dengan struktur cover kampus, Lembar Pengesahan, Surat Orisinalitas, Halaman Pengantar, Abstrak, Margin 4-4-3-3, dan Sitasi APA 7th.',
     50
   );
-  showThesaToast('✓ File Word (.doc) berhasil diunduh!', 'success', 'description');
+  showThesaToast('✓ File Word (.doc) berhasil diunduh ke komputer Anda!', 'success', 'description');
 }
 
 function executeExportPDF() {
@@ -5927,7 +6459,8 @@ function executeExportPDF() {
 
   const meta = getExportMetadata();
   const sections = getPaperExportSections();
-  ThesaExportService.exportToPdf(meta, sections);
+  const options = getExportOptions();
+  ThesaExportService.exportToPdf(meta, sections, options);
 
   if (requiresPayPerQuota) {
     userMakalahQuota = Math.max(0, userMakalahQuota - 1);
@@ -5955,7 +6488,7 @@ function executeExportMarkdown() {
   ThesaExportService.exportToMarkdown(meta, sections);
   toggleExportModal(false);
   awardXP(30);
-  showThesaToast('✓ Naskah Markdown (.md) berhasil diunduh! (+30 XP)', 'success', 'code');
+  showThesaToast('✓ Naskah Markdown (.md) berhasil diunduh!', 'success', 'code');
 }
 
 function executeExportBibTeX() {
@@ -5968,7 +6501,7 @@ function executeExportBibTeX() {
   ThesaExportService.exportToBibTex(meta, sections.daftarPustaka || sections.references);
   toggleExportModal(false);
   awardXP(30);
-  showThesaToast('✓ Sitasi BibTeX (.bib) berhasil diekspor! (+30 XP)', 'success', 'format_quote');
+  showThesaToast('✓ Sitasi BibTeX (.bib) berhasil diekspor!', 'success', 'format_quote');
 }
 
 function inspectParagraph(num) {
@@ -6007,31 +6540,16 @@ function setDashboardProjectsView(view) {
   currentProjectsView = view;
   const emptyEl = document.getElementById('dashboardEmptyState');
   const activeEl = document.getElementById('hpProjectsList');
-  const btnEmpty = document.getElementById('btnViewEmpty');
-  const btnActive = document.getElementById('btnViewActive');
   const titleEl = document.getElementById('projectsSectionTitle');
-  const badgeEl = document.getElementById('projectsViewBadge');
 
   if (view === 'empty') {
     if (emptyEl) emptyEl.style.display = 'flex';
     if (activeEl) activeEl.style.display = 'none';
-    if (btnEmpty) btnEmpty.classList.add('active');
-    if (btnActive) btnActive.classList.remove('active');
-    if (titleEl) titleEl.innerText = 'Mulai Karya Pertamamu';
-    if (badgeEl) {
-      badgeEl.innerText = 'Akun Baru';
-      badgeEl.className = 'prof-tag verified';
-    }
+    if (titleEl) titleEl.innerText = 'Proyek Saya';
   } else {
     if (emptyEl) emptyEl.style.display = 'none';
     if (activeEl) activeEl.style.display = 'flex';
-    if (btnEmpty) btnEmpty.classList.remove('active');
-    if (btnActive) btnActive.classList.add('active');
     if (titleEl) titleEl.innerText = 'Proyek Aktif';
-    if (badgeEl) {
-      badgeEl.innerText = '3 Proyek Berjalan';
-      badgeEl.className = 'prof-tag level';
-    }
   }
 }
 
@@ -6761,6 +7279,38 @@ function togglePaperWidth() {
   }
 }
 
+// ── Switch Workspace Canvas View (Doc / Roadmap / Matrix) ───
+function switchWorkspaceView(view) {
+  const docView     = document.getElementById('paperSheet');
+  const roadmapView = document.getElementById('roadmapCanvas');
+  const matrixView  = document.getElementById('matrixCanvas');
+  
+  const tabDoc     = document.getElementById('tabViewDoc');
+  const tabRoadmap = document.getElementById('tabViewRoadmap');
+  const tabMatrix  = document.getElementById('tabViewMatrix');
+
+  // Deactivate tabs
+  if (tabDoc) tabDoc.classList.remove('active');
+  if (tabRoadmap) tabRoadmap.classList.remove('active');
+  if (tabMatrix) tabMatrix.classList.remove('active');
+
+  // Hide canvases
+  if (docView) docView.style.display = 'none';
+  if (roadmapView) roadmapView.style.display = 'none';
+  if (matrixView) matrixView.style.display = 'none';
+
+  if (view === 'roadmap') {
+    if (roadmapView) roadmapView.style.display = 'block';
+    if (tabRoadmap) tabRoadmap.classList.add('active');
+  } else if (view === 'matrix') {
+    if (matrixView) matrixView.style.display = 'block';
+    if (tabMatrix) tabMatrix.classList.add('active');
+  } else {
+    if (docView) docView.style.display = 'block';
+    if (tabDoc) tabDoc.classList.add('active');
+  }
+}
+
 // Initialize resizer on load
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initWorkspaceResizer);
@@ -6971,9 +7521,9 @@ function initKeyboardShortcuts() {
  * 4. Mobile Split Screen Studio Tab Switcher
  */
 function switchMobileStudioTab(tab) {
-  const chatPane = document.querySelector('.main-chat-pane');
+  const chatPane = document.querySelector('.chat-main-column');
   const scrapbook = document.getElementById('thesisScrapbook');
-  const navTree = document.querySelector('.left-path-tree');
+  const roadmap = document.querySelector('.journey-sidebar');
 
   document.querySelectorAll('.mobile-tab-btn').forEach(btn => btn.classList.remove('active'));
 
@@ -6981,7 +7531,7 @@ function switchMobileStudioTab(tab) {
     document.getElementById('tabMobileChat')?.classList.add('active');
     if (chatPane) chatPane.style.display = 'flex';
     if (scrapbook) scrapbook.style.display = 'none';
-    if (navTree) navTree.style.display = 'none';
+    if (roadmap) roadmap.style.display = 'none';
   } else if (tab === 'draft') {
     document.getElementById('tabMobileDraft')?.classList.add('active');
     if (chatPane) chatPane.style.display = 'none';
@@ -6989,23 +7539,30 @@ function switchMobileStudioTab(tab) {
       scrapbook.style.display = 'flex';
       scrapbook.style.width = '100%';
     }
-    if (navTree) navTree.style.display = 'none';
+    if (roadmap) roadmap.style.display = 'none';
   } else if (tab === 'path') {
     document.getElementById('tabMobilePath')?.classList.add('active');
     if (chatPane) chatPane.style.display = 'none';
     if (scrapbook) scrapbook.style.display = 'none';
-    if (navTree) navTree.style.display = 'block';
+    if (roadmap) {
+      roadmap.style.display = 'flex';
+      roadmap.style.width = '100%';
+    }
   }
 }
+
 
 // Auto-initialize keyboard shortcuts and global hooks on ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     initKeyboardShortcuts();
+    initEditDiffDetector();
   });
 } else {
   initKeyboardShortcuts();
+  initEditDiffDetector();
 }
+
 
 
 

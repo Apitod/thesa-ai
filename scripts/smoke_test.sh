@@ -26,14 +26,14 @@ run_test() {
   local name="$1"
   local cmd="$2"
   local match="$3"
-  ((total++))
+  total=$((total + 1))
 
   echo -ne "Testing: ${YELLOW}${name}${NC}... "
   output=$(eval "$cmd" 2>&1 || true)
 
   if echo "$output" | grep -q "$match"; then
     echo -e "${GREEN}PASSED ✓${NC}"
-    ((passed++))
+    passed=$((passed + 1))
   else
     echo -e "${RED}FAILED ✗${NC}"
     echo -e "  ${RED}Expected to find:${NC} $match"
