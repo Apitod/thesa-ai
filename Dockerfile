@@ -43,15 +43,15 @@ RUN chown -R thesa:thesagroup /app
 # Run as non-root user for cloud security best practices
 USER thesa
 
-# Default environment configuration
-ENV PORT=8080 \
+# Default environment configuration (7860 for Hugging Face Spaces / cloud platforms)
+ENV PORT=7860 \
     TZ=Asia/Jakarta
 
-EXPOSE 8080
+EXPOSE 7860 8080
 
 # Native container healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:${PORT:-8080}/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:${PORT:-7860}/health || exit 1
 
 # Start production server
 CMD ["/app/thesa-server"]

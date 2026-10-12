@@ -1,3 +1,13 @@
+---
+title: Thesa AI
+emoji: 🎓
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 🎓 Thesa AI
 
 > Platform AI untuk mahasiswa & peneliti — analisis gap literatur, generate outline skripsi, simulasi sidang, dan supervisi sokratik berbasis DeepSeek + Gemini.
