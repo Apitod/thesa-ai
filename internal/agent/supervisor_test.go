@@ -14,6 +14,10 @@ func (m *testMockProvider) StreamChat(messages []Message, config ProviderConfig,
 	return onChunk("Test chunk")
 }
 
+func (m *testMockProvider) Name() string {
+	return "mock"
+}
+
 func TestAgentSupervisor_SimulateExaminer(t *testing.T) {
 	prov := &testMockProvider{}
 	sup := NewAgentSupervisor(prov)

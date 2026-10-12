@@ -20,6 +20,10 @@ func (m *mockAIProvider) StreamChat(messages []agent.Message, config agent.Provi
 	return onChunk("Mock chunk")
 }
 
+func (m *mockAIProvider) Name() string {
+	return "mock"
+}
+
 func TestSupervisorHandler_ExaminerSimulate_Question(t *testing.T) {
 	mockProv := &mockAIProvider{}
 	sup := agent.NewAgentSupervisor(mockProv)
