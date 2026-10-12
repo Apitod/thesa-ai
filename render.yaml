@@ -21,7 +21,7 @@ services:
       - key: DEEPSEEK_MODEL
         value: deepseek-chat
       - key: GEMINI_MODEL
-        value: gemini-1.5-flash
+        value: gemini-2.5-flash
       - key: DEEPSEEK_API_KEY
         sync: false
       - key: GEMINI_API_KEY

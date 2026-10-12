@@ -160,6 +160,13 @@ func convertDatabaseURL(raw string) (string, error) {
 	if params.Get("charset") == "" {
 		params.Set("charset", "utf8mb4")
 	}
+	if params.Get("ssl") != "" || params.Get("sslaccept") != "" || strings.Contains(host, "tidbcloud.com") {
+		if params.Get("tls") == "" {
+			params.Set("tls", "true")
+		}
+		params.Del("ssl")
+		params.Del("sslaccept")
+	}
 
 	return fmt.Sprintf("%s:%s@tcp(%s)/%s?%s", user, pass, host, db, params.Encode()), nil
 }

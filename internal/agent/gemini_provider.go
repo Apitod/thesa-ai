@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -74,9 +75,9 @@ func (p *GeminiProvider) Chat(messages []Message, config ProviderConfig) (string
 		return "", fmt.Errorf("GeminiProvider: API key not set")
 	}
 
-	model := config.Model
-	if model == "" {
-		model = "gemini-1.5-flash"
+	model := strings.TrimSpace(config.Model)
+	if model == "" || model == "gemini-1.5-flash" || model == "gemini-1.5-pro" {
+		model = "gemini-2.5-flash"
 	}
 
 	maxTokens := config.MaxTokens
@@ -128,7 +129,7 @@ func (p *GeminiProvider) Chat(messages []Message, config ProviderConfig) (string
 		return "", fmt.Errorf("GeminiProvider: marshal request: %w", err)
 	}
 
-	apiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, apiKey)
+	apiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent", model)
 
 	var respBody []byte
 	var lastErr error
@@ -142,6 +143,7 @@ func (p *GeminiProvider) Chat(messages []Message, config ProviderConfig) (string
 		}
 
 		httpReq.Header.Set("Content-Type", "application/json")
+		httpReq.Header.Set("X-goog-api-key", apiKey)
 
 		resp, err := p.httpClient.Do(httpReq)
 		if err != nil {
@@ -199,5 +201,14 @@ func (p *GeminiProvider) Chat(messages []Message, config ProviderConfig) (string
 		return "", fmt.Errorf("GeminiProvider: empty candidate response from API")
 	}
 
-	return chatResp.Candidates[0].Content.Parts[0].Text, nil
+	var sb strings.Builder
+	for _, part := range chatResp.Candidates[0].Content.Parts {
+		sb.WriteString(part.Text)
+	}
+
+	if sb.Len() == 0 {
+		return "", fmt.Errorf("GeminiProvider: empty candidate response text from API")
+	}
+
+	return sb.String(), nil
 }

@@ -16,7 +16,7 @@ const auditLogs = [
 const llmTelemetry = {
   totalInvocations: 142,
   tokensProcessed: 184500,
-  primaryProvider: 'gemini-1.5-flash',
+  primaryProvider: 'gemini-2.5-flash',
   secondaryProvider: 'deepseek-chat',
   estimatedCostIDR: 4250.0
 };
@@ -75,7 +75,7 @@ const server = http.createServer((req, res) => {
         app: 'Thesa AI / Fullstack Engine',
         version: '1.0.0',
         database_connected: true,
-        primary_llm: 'gemini-1.5-flash',
+        primary_llm: 'gemini-2.5-flash',
         deepseek_configured: true,
         gemini_configured: true,
         payment_configured: true,

@@ -50,7 +50,7 @@ func (h *HybridProvider) Chat(messages []Message, config ProviderConfig) (string
 		primaryProvider = h.geminiProvider
 		primaryConfig = ProviderConfig{
 			Provider:  "gemini",
-			Model:     getEnvOrDefault("GEMINI_MODEL", "gemini-1.5-flash"),
+			Model:     getEnvOrDefault("GEMINI_MODEL", "gemini-2.5-flash"),
 			APIKey:    geminiKey,
 			MaxTokens: config.MaxTokens,
 			Extra:     config.Extra,
@@ -77,7 +77,7 @@ func (h *HybridProvider) Chat(messages []Message, config ProviderConfig) (string
 		secondaryProvider = h.geminiProvider
 		secondaryConfig = ProviderConfig{
 			Provider:  "gemini",
-			Model:     getEnvOrDefault("GEMINI_MODEL", "gemini-1.5-flash"),
+			Model:     getEnvOrDefault("GEMINI_MODEL", "gemini-2.5-flash"),
 			APIKey:    geminiKey,
 			MaxTokens: config.MaxTokens,
 			Extra:     config.Extra,

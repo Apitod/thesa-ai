@@ -36,10 +36,10 @@ func (h *ConversationHandler) Turn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cfg := agent.ProviderConfig{
-		APIKey:      os.Getenv("DEEPSEEK_API_KEY"),
-		Model:       "deepseek-chat",
-		Temperature: 0.5,
-		MaxTokens:   2000,
+		APIKey:    os.Getenv("DEEPSEEK_API_KEY"),
+		Model:     "deepseek-chat",
+		MaxTokens: 2000,
+		Extra:     map[string]string{"temperature": "0.5"},
 	}
 
 	resp, err := h.supervisor.ExecuteConversationTurn(req, cfg)
@@ -52,7 +52,7 @@ func (h *ConversationHandler) Turn(w http.ResponseWriter, r *http.Request) {
 	if req.EditDelta != nil && h.cascadeEngine != nil {
 		stage := mapSectionToStage(req.EditDelta.Section)
 		if stage != "" {
-			impacts, _ := h.cascadeEngine.Calculate(req.ProjectID, stage)
+			impacts := h.cascadeEngine.CalculateCascade(req.ProjectID, stage)
 			resp.CascadeWarnings = impacts
 		}
 	}

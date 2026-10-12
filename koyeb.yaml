@@ -35,7 +35,7 @@ services:
       - key: DEEPSEEK_MODEL
         value: "deepseek-chat"
       - key: GEMINI_MODEL
-        value: "gemini-1.5-flash"
+        value: "gemini-2.5-flash"
       - key: CORS_ALLOWED_ORIGINS
         value: "*"
       - key: RATE_LIMIT_PER_MINUTE
