@@ -4690,7 +4690,28 @@ let currentUserProfile = {
   covenantQ2: 'Saya telah membaca literatur dasar tentang prompt chaining, multi-agent frameworks, dan evaluasi koherensi naskah akademik.'
 };
 
+function checkAuthSession() {
+  const token = localStorage.getItem('thesa_token') || sessionStorage.getItem('thesa_token');
+  const user = localStorage.getItem('thesaUser') || sessionStorage.getItem('thesaUser');
+  if (!token && !user) {
+    window.location.href = 'auth.html';
+    return false;
+  }
+  return true;
+}
+
+function logoutUser() {
+  if (confirm('Apakah Anda yakin ingin keluar dari akun Thesa AI?')) {
+    localStorage.removeItem('thesa_token');
+    sessionStorage.removeItem('thesa_token');
+    localStorage.removeItem('thesaUser');
+    sessionStorage.removeItem('thesaUser');
+    window.location.href = 'auth.html';
+  }
+}
+
 function loadUserProfile() {
+  if (!checkAuthSession()) return;
   try {
     const stored = sessionStorage.getItem('thesaUser') || localStorage.getItem('thesaUser');
     if (stored) {

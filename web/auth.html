@@ -442,19 +442,101 @@
     }
     .privacy-note .material-symbols-rounded { font-size: 14px; }
 
-    /* Dev quick skip */
-    .dev-skip-bar {
-      position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
-      background: rgba(17,24,39,0.85); color: rgba(255,255,255,0.9);
-      font-size: 11.5px; padding: 6px 14px; border-radius: var(--r-full);
-      backdrop-filter: blur(8px); z-index: 999;
-      display: flex; align-items: center; gap: 10px;
+    /* Auth Mode Tabs */
+    .auth-mode-tabs {
+      display: flex;
+      background: var(--gray-100);
+      padding: 4px;
+      border-radius: var(--r-xl);
+      margin-bottom: 24px;
+      gap: 4px;
+      border: 1px solid var(--gray-200);
     }
-    .dev-skip-bar button {
-      background: rgba(255,255,255,0.2); border: none; color: #fff;
-      padding: 3px 10px; border-radius: var(--r-full);
-      font-size: 11px; font-weight: 700;
+    .auth-mode-tab {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 14px;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--gray-500);
+      background: transparent;
+      border: none;
+      border-radius: var(--r-lg);
+      cursor: pointer;
+      transition: all 0.18s ease;
     }
+    .auth-mode-tab:hover {
+      color: var(--gray-900);
+    }
+    .auth-mode-tab.active {
+      background: var(--white);
+      color: var(--brand);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+    .auth-mode-tab .material-symbols-rounded {
+      font-size: 18px;
+    }
+
+    /* Auth Alerts */
+    .auth-alert {
+      display: none;
+      padding: 11px 14px;
+      border-radius: var(--r-md);
+      font-size: 12.5px;
+      margin-bottom: 16px;
+      align-items: center;
+      gap: 8px;
+      line-height: 1.45;
+    }
+    .auth-alert.error {
+      display: flex;
+      background: #fef2f2;
+      border: 1.5px solid #fecaca;
+      color: #b91c1c;
+    }
+    .auth-alert.success {
+      display: flex;
+      background: #ecfdf5;
+      border: 1.5px solid #a7f3d0;
+      color: #047857;
+    }
+    .auth-alert .material-symbols-rounded {
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .btn-toggle-pass {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--gray-400);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px;
+      border-radius: 4px;
+      transition: color 0.15s;
+    }
+    .btn-toggle-pass:hover {
+      color: var(--gray-700);
+    }
+    .btn-toggle-pass .material-symbols-rounded {
+      font-size: 18px;
+    }
+
+    .password-hint {
+      font-size: 11.5px;
+      margin-top: 5px;
+      color: var(--gray-400);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .password-hint.valid { color: var(--green-600); }
+    .password-hint.invalid { color: #dc2626; }
 
     @media (max-width: 900px) {
       .auth-brand-panel { display: none; }
@@ -514,473 +596,523 @@
   <div class="auth-form-panel">
     <div class="auth-form-inner">
 
-      <!-- STEP INDICATOR -->
-      <div class="auth-step-indicator">
-        <div class="step-dot active" id="dot1"></div>
-        <div class="step-dot-line" id="line12"></div>
-        <div class="step-dot" id="dot2"></div>
-        <div class="step-dot-line" id="line23"></div>
-        <div class="step-dot" id="dot3"></div>
-        <div class="step-dot-line" id="line34"></div>
-        <div class="step-dot" id="dot4"></div>
-        <div class="step-dot-line" id="line45"></div>
-        <div class="step-dot" id="dot5"></div>
+      <!-- AUTH MODE TABS -->
+      <div class="auth-mode-tabs">
+        <button type="button" class="auth-mode-tab active" id="tabLogin" onclick="switchAuthMode('login')">
+          <span class="material-symbols-rounded">login</span>
+          Masuk
+        </button>
+        <button type="button" class="auth-mode-tab" id="tabRegister" onclick="switchAuthMode('register')">
+          <span class="material-symbols-rounded">person_add</span>
+          Daftar Akun Baru
+        </button>
       </div>
-      <div class="auth-step-label" id="stepLabel">Langkah 1 dari 5 — Masukkan Email</div>
 
       <!-- ═══════════════════════════════════════════════
-           STEP 1: Email Entry (Simple & Friendly)
+           VIEW 1: MASUK (LOGIN)
            ═══════════════════════════════════════════════ -->
-      <div id="step1" class="auth-step-screen">
+      <div id="loginView" class="auth-step-screen">
         <div class="auth-heading">
-          <h2>Mulai langkah risetmu! ✨</h2>
-          <p>Masukkan email kampus (.ac.id) atau email pribadimu. Bebas, mana saja yang nyaman bagimu.</p>
+          <h2>Selamat Datang Kembali 👋</h2>
+          <p>Masuk ke akun Thesa AI untuk melanjutkan bimbingan dan riset naskahmu.</p>
         </div>
 
-        <div id="emailFriendlyBanner" style="display:none;"></div>
+        <div id="loginAlert" class="auth-alert"></div>
 
-        <div class="form-group">
-          <label for="emailInput">Alamat Email</label>
-          <div class="input-with-icon">
-            <span class="material-symbols-rounded">alternate_email</span>
-            <input type="email" id="emailInput" placeholder="nama@kampus.ac.id atau nama@gmail.com"
-                   oninput="checkEmailInput(this.value)" autocomplete="email">
+        <form id="loginForm" onsubmit="event.preventDefault(); handleLogin();">
+          <div class="form-group">
+            <label for="loginEmail">Alamat Email</label>
+            <div class="input-with-icon">
+              <span class="material-symbols-rounded">alternate_email</span>
+              <input type="email" id="loginEmail" placeholder="nama@kampus.ac.id atau email pribadimu"
+                     required autocomplete="email">
+            </div>
           </div>
-        </div>
 
-        <button class="btn-auth-primary" id="btnSendOTP" onclick="goToStep2()" disabled>
-          <span class="material-symbols-rounded">arrow_forward</span>
-          Lanjut Verifikasi
-        </button>
+          <div class="form-group">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label for="loginPassword" style="margin-bottom:0;">Kata Sandi</label>
+            </div>
+            <div class="input-with-icon">
+              <span class="material-symbols-rounded">lock</span>
+              <input type="password" id="loginPassword" placeholder="Masukkan kata sandi akunmu"
+                     required autocomplete="current-password">
+              <button type="button" class="btn-toggle-pass" id="eyeLogin" onclick="togglePasswordVisibility('loginPassword', 'eyeLogin')" title="Tampilkan/Sembunyikan kata sandi">
+                <span class="material-symbols-rounded">visibility</span>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-auth-primary" id="btnLoginSubmit">
+            <span class="material-symbols-rounded">login</span>
+            Masuk ke Dashboard
+          </button>
+        </form>
 
         <div class="auth-alt-link">
-          Sudah punya akun? <a href="#" onclick="quickLogin()">Masuk langsung</a>
+          Belum punya akun Thesa? <a href="javascript:void(0)" onclick="switchAuthMode('register')">Daftar sekarang (Gratis)</a>
         </div>
 
         <div class="privacy-note">
-          <span class="material-symbols-rounded">lock</span>
-          Data akunmu aman dan tidak akan dibagikan ke pihak manapun.
+          <span class="material-symbols-rounded">verified_user</span>
+          Sesi terlindungi dengan enkripsi SHA-256 &amp; TLS Cloud.
         </div>
       </div>
 
       <!-- ═══════════════════════════════════════════════
-           STEP 2: OTP (Fast & Simple)
+           VIEW 2: DAFTAR AKUN BARU (REGISTER WIZARD)
            ═══════════════════════════════════════════════ -->
-      <div id="step2" class="auth-step-screen" style="display:none;">
-        <div class="auth-heading">
-          <h2>Verifikasi Cepat 📬</h2>
-          <p>Email: <strong id="emailDisplay">emailmu</strong></p>
+      <div id="registerView" style="display:none;">
+
+        <!-- STEP INDICATOR -->
+        <div class="auth-step-indicator">
+          <div class="step-dot active" id="dot1"></div>
+          <div class="step-dot-line" id="line12"></div>
+          <div class="step-dot" id="dot2"></div>
+          <div class="step-dot-line" id="line23"></div>
+          <div class="step-dot" id="dot3"></div>
+        </div>
+        <div class="auth-step-label" id="stepLabel">Langkah 1 dari 3 — Buat Akun &amp; Kata Sandi</div>
+
+        <!-- ── Register Step 1: Akun & Sandi ───────────── -->
+        <div id="regStep1" class="auth-step-screen">
+          <div class="auth-heading">
+            <h2>Mulai Langkah Risetmu 🎓</h2>
+            <p>Gunakan email kampus (.ac.id) atau email umum untuk mendaftar.</p>
+          </div>
+
+          <div id="regAlert1" class="auth-alert"></div>
+          <div id="emailFriendlyBanner" style="display:none;"></div>
+
+          <div class="form-group">
+            <label for="regEmail">Alamat Email</label>
+            <div class="input-with-icon">
+              <span class="material-symbols-rounded">alternate_email</span>
+              <input type="email" id="regEmail" placeholder="nama@kampus.ac.id atau nama@gmail.com"
+                     oninput="checkRegEmail(this.value)" autocomplete="email">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="regPassword">Kata Sandi (Minimal 6 Karakter)</label>
+            <div class="input-with-icon">
+              <span class="material-symbols-rounded">lock</span>
+              <input type="password" id="regPassword" placeholder="Buat kata sandi akun"
+                     oninput="checkRegPassword()" autocomplete="new-password">
+              <button type="button" class="btn-toggle-pass" id="eyeReg1" onclick="togglePasswordVisibility('regPassword', 'eyeReg1')">
+                <span class="material-symbols-rounded">visibility</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="regPasswordConfirm">Konfirmasi Kata Sandi</label>
+            <div class="input-with-icon">
+              <span class="material-symbols-rounded">lock_reset</span>
+              <input type="password" id="regPasswordConfirm" placeholder="Ulangi kata sandi di atas"
+                     oninput="checkRegPassword()" autocomplete="new-password">
+              <button type="button" class="btn-toggle-pass" id="eyeReg2" onclick="togglePasswordVisibility('regPasswordConfirm', 'eyeReg2')">
+                <span class="material-symbols-rounded">visibility</span>
+              </button>
+            </div>
+            <div id="passHint" class="password-hint"></div>
+          </div>
+
+          <button type="button" class="btn-auth-primary" id="btnRegNext1" onclick="nextRegStep(2)" disabled>
+            <span class="material-symbols-rounded">arrow_forward</span>
+            Lanjut ke Profil Mahasiswa
+          </button>
+
+          <div class="auth-alt-link">
+            Sudah punya akun? <a href="javascript:void(0)" onclick="switchAuthMode('login')">Masuk di sini</a>
+          </div>
         </div>
 
-        <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:12px 16px; margin-bottom:16px; text-align:center;">
-          <div style="font-weight:700; color:#1d4ed8; font-size:14px; margin-bottom:4px;">⚡ Kode Verifikasi Instan: <code style="background:#dbeafe; padding:2px 8px; border-radius:6px; font-size:16px; font-weight:800; letter-spacing:2px;">123456</code></div>
-          <div style="font-size:12px; color:#3b82f6;">Gunakan kode di atas untuk langsung masuk tanpa perlu menunggu email masuk ke inbox.</div>
-        </div>
+        <!-- ── Register Step 2: Profil Akademik ───────── -->
+        <div id="regStep2" class="auth-step-screen" style="display:none;">
+          <div class="auth-heading">
+            <h2>Profil Akademikmu 👋</h2>
+            <p>Bantu Thesa menyesuaikan gaya bimbingan, tingkat kedalaman, dan standar sitasi.</p>
+          </div>
 
-        <div style="text-align:center; margin-bottom:12px;">
-          <button class="btn-demo-otp" onclick="autoFillDemoOTP()">
-            <span class="material-symbols-rounded" style="font-size:14px;">bolt</span>
-            Isi Kode Otomatis (123456)
+          <div id="regAlert2" class="auth-alert"></div>
+
+          <div class="form-group">
+            <label>Jenjang Pendidikan / Riset</label>
+            <div class="level-grid">
+              <div class="level-card" onclick="selectLevel(this,'Makalah/D3')" data-level="Makalah/D3">
+                <span class="level-emoji">📝</span>
+                <div class="level-info"><strong>Makalah / D3</strong><span>Tugas / karya terapan</span></div>
+              </div>
+              <div class="level-card selected" onclick="selectLevel(this,'S1')" data-level="S1">
+                <span class="level-emoji">🎓</span>
+                <div class="level-info"><strong>Sarjana (S1)</strong><span>Skripsi / proposal</span></div>
+              </div>
+              <div class="level-card" onclick="selectLevel(this,'S2')" data-level="S2">
+                <span class="level-emoji">🔬</span>
+                <div class="level-info"><strong>Magister (S2)</strong><span>Tesis / publikasi</span></div>
+              </div>
+              <div class="level-card" onclick="selectLevel(this,'Jurnal')" data-level="Jurnal">
+                <span class="level-emoji">📚</span>
+                <div class="level-info"><strong>Artikel Jurnal</strong><span>Publikasi ilmiah</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="regFullName">Nama Lengkap / Panggilan <span style="color:#ef4444;">*</span></label>
+            <div class="input-with-icon">
+              <span class="material-symbols-rounded">person</span>
+              <input type="text" id="regFullName" placeholder="cth: Alif Awwaz / Sarah Nabila" oninput="checkRegStep2()">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="regInstitution">Asal Kampus / Universitas</label>
+            <div class="input-with-icon">
+              <span class="material-symbols-rounded">school</span>
+              <input type="text" id="regInstitution" placeholder="cth: Universitas Indonesia, ITB, dsb">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="regProdi">Program Studi / Jurusan</label>
+            <div class="input-with-icon">
+              <span class="material-symbols-rounded">local_library</span>
+              <input type="text" id="regProdi" placeholder="cth: Ilmu Komputer, Manajemen, Psikologi">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="regTopic">Topik / Rencana Penelitian <span class="opt-tag">Opsional</span></label>
+            <div class="input-with-icon">
+              <span class="material-symbols-rounded">lightbulb</span>
+              <input type="text" id="regTopic" placeholder="cth: Pengaruh AI pada efektivitas belajar...">
+            </div>
+          </div>
+
+          <button type="button" class="btn-auth-primary" id="btnRegNext2" onclick="nextRegStep(3)">
+            <span class="material-symbols-rounded">arrow_forward</span>
+            Lanjut Pilih Paket
+          </button>
+          <button type="button" class="btn-auth-secondary" onclick="nextRegStep(1)">
+            <span class="material-symbols-rounded">arrow_back</span>
+            Kembali
           </button>
         </div>
 
-        <div class="otp-grid" id="otpGrid">
-          <input class="otp-cell" maxlength="1" type="text" inputmode="numeric" id="otp1" oninput="moveOTP(this,1)">
-          <input class="otp-cell" maxlength="1" type="text" inputmode="numeric" id="otp2" oninput="moveOTP(this,2)">
-          <input class="otp-cell" maxlength="1" type="text" inputmode="numeric" id="otp3" oninput="moveOTP(this,3)">
-          <input class="otp-cell" maxlength="1" type="text" inputmode="numeric" id="otp4" oninput="moveOTP(this,4)">
-          <input class="otp-cell" maxlength="1" type="text" inputmode="numeric" id="otp5" oninput="moveOTP(this,5)">
-          <input class="otp-cell" maxlength="1" type="text" inputmode="numeric" id="otp6" oninput="moveOTP(this,6)">
-        </div>
-
-        <button class="btn-auth-primary" id="btnVerifyOTP" onclick="verifyOTP()" disabled>
-          <span class="material-symbols-rounded">check</span>
-          Konfirmasi &amp; Lanjut
-        </button>
-        <button class="btn-auth-secondary" onclick="showStep(1)">
-          <span class="material-symbols-rounded">arrow_back</span>
-          Ganti email
-        </button>
-      </div>
-
-      <!-- ═══════════════════════════════════════════════
-           STEP 3: Friendly Profile (Low Friction)
-           ═══════════════════════════════════════════════ -->
-      <div id="step3" class="auth-step-screen" style="display:none;">
-        <div class="auth-heading">
-          <h2>Yuk kenalan sebentar! 👋</h2>
-          <p>Biar Thesa bisa menyesuaikan tingkat bimbingan dan gaya bahasa yang pas untukmu.</p>
-        </div>
-
-        <div class="form-group">
-          <label>Mau bimbingan untuk jenjang apa?</label>
-          <div class="level-grid">
-            <div class="level-card" onclick="selectLevel(this,'Makalah/D3')" data-level="Makalah/D3">
-              <span class="level-emoji">📝</span>
-              <div class="level-info"><strong>Makalah / D3</strong><span>Tugas atau karya terapan</span></div>
-            </div>
-            <div class="level-card selected" onclick="selectLevel(this,'S1')" data-level="S1">
-              <span class="level-emoji">🎓</span>
-              <div class="level-info"><strong>Sarjana (S1)</strong><span>Skripsi atau proposal</span></div>
-            </div>
-            <div class="level-card" onclick="selectLevel(this,'S2')" data-level="S2">
-              <span class="level-emoji">🔬</span>
-              <div class="level-info"><strong>Magister (S2)</strong><span>Tesis atau publikasi</span></div>
-            </div>
-            <div class="level-card" onclick="selectLevel(this,'Jurnal')" data-level="Jurnal">
-              <span class="level-emoji">📚</span>
-              <div class="level-info"><strong>Artikel Jurnal</strong><span>Publikasi ilmiah</span></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="fullName">Nama Panggilan / Sapaan</label>
-          <div class="input-with-icon">
-            <span class="material-symbols-rounded">person</span>
-            <input type="text" id="fullName" placeholder="cth: Alif, Naufal, Sarah..." oninput="checkStep3()">
-          </div>
-          <span style="font-size:11.5px; color:var(--gray-400); margin-top:4px; display:block;">
-            Agar Thesa bisa menyapamu dengan ramah selama berdiskusi.
-          </span>
-        </div>
-
-        <button class="btn-auth-primary" id="btnStep3Next" onclick="goToStep4()">
-          <span class="material-symbols-rounded">arrow_forward</span>
-          Lanjut
-        </button>
-        <button class="btn-auth-secondary" onclick="showStep(2)">
-          <span class="material-symbols-rounded">arrow_back</span>
-          Kembali
-        </button>
-      </div>
-
-      <!-- ═══════════════════════════════════════════════
-           STEP 4: Principles & Collaboration (Warm, no stress)
-           ═══════════════════════════════════════════════ -->
-      <div id="step4" class="auth-step-screen" style="display:none;">
-        <div class="auth-heading">
-          <h2>Prinsip Kolaborasi dengan Thesa 🤝</h2>
-          <p>Thesa dirancang agar kamu semakin percaya diri saat sidang. Tiga prinsip ini yang akan kita pegang bersama:</p>
-        </div>
-
-        <div class="principle-cards">
-          <div class="principle-card checked" onclick="togglePrinciple(this)">
-            <div class="p-check"><span class="material-symbols-rounded">check</span></div>
-            <div class="p-content">
-              <strong>Thesa adalah Teman Diskusi</strong>
-              <span>Kamu yang menentukan ide dan keputusan akhir setiap kalimat naskahmu.</span>
-            </div>
+        <!-- ── Register Step 3: Pilih Paket & Selesai ─── -->
+        <div id="regStep3" class="auth-step-screen" style="display:none;">
+          <div class="auth-heading">
+            <h2>Pilih Paket Langganan 💎</h2>
+            <p>Semua paket memberimu akses ke bimbingan Thesa AI. Kamu bisa upgrade kapan saja.</p>
           </div>
 
-          <div class="principle-card checked" onclick="togglePrinciple(this)">
-            <div class="p-check"><span class="material-symbols-rounded">check</span></div>
-            <div class="p-content">
-              <strong>Siap Diajak Berpikir Kritis</strong>
-              <span>Thesa akan mengajukan pertanyaan pemantik agar argumenmu kokoh dan tidak mudah disanggah dosen.</span>
-            </div>
+          <div id="regAlert3" class="auth-alert"></div>
+
+          <!-- Billing toggle -->
+          <div class="pricing-toggle-row">
+            <span class="pricing-toggle-label active" id="labelMonthly">Bulanan</span>
+            <button type="button" class="toggle-switch monthly" id="billingToggle" onclick="toggleBilling()" aria-label="Toggle billing period"></button>
+            <span class="pricing-toggle-label" id="labelAnnual">Tahunan</span>
+            <span class="pricing-save-tag" id="savingTag" style="display:none;">Hemat 32%</span>
           </div>
 
-          <div class="principle-card checked" onclick="togglePrinciple(this)">
-            <div class="p-check"><span class="material-symbols-rounded">check</span></div>
-            <div class="p-content">
-              <strong>Bebas Eksplorasi Tanpa Takut Salah</strong>
-              <span>Riset adalah proses belajar. Thesa akan membimbingmu step-by-step dari nol.</span>
-            </div>
-          </div>
-        </div>
+          <div class="pricing-cards">
 
-        <div class="form-group" style="margin-top: 16px;">
-          <label for="initialTopic">Punya topik atau keresahan yang ingin kamu bahas pertama kali? <span class="opt-tag">Opsional</span></label>
-          <div class="input-with-icon">
-            <span class="material-symbols-rounded">lightbulb</span>
-            <input type="text" id="initialTopic" placeholder="cth: Pengaruh AI pada cara belajar mahasiswa...">
-          </div>
-        </div>
-
-        <button class="btn-auth-primary" id="btnFinish" onclick="goToStep5()">
-          <span class="material-symbols-rounded">arrow_forward</span>
-          Lanjut Pilih Paket
-        </button>
-        <button class="btn-auth-secondary" onclick="showStep(3)">
-          <span class="material-symbols-rounded">arrow_back</span>
-          Kembali
-        </button>
-      </div>
-
-      <!-- ═══════════════════════════════════════════════
-           STEP 5: Choose Plan (Silver / Gold / Platinum)
-           ═══════════════════════════════════════════════ -->
-      <div id="step5" class="auth-step-screen" style="display:none;">
-        <div class="auth-heading">
-          <h2>Pilih paketmu 🚀</h2>
-          <p>Semua paket memberimu akses ke bimbingan AI Thesa. Pilih yang paling sesuai dengan intensitas risetmu.</p>
-        </div>
-
-        <!-- Billing toggle -->
-        <div class="pricing-toggle-row">
-          <span class="pricing-toggle-label active" id="labelMonthly">Bulanan</span>
-          <button class="toggle-switch monthly" id="billingToggle" onclick="toggleBilling()" aria-label="Toggle billing period"></button>
-          <span class="pricing-toggle-label" id="labelAnnual">Tahunan</span>
-          <span class="pricing-save-tag" id="savingTag" style="display:none;">Hemat 32%</span>
-        </div>
-
-        <div class="pricing-cards">
-
-          <!-- Silver -->
-          <div class="pricing-card" id="planSilver" onclick="selectPlan('silver')">
-            <div class="pricing-card-radio"></div>
-            <div class="pricing-card-head">
-              <span class="pricing-card-icon">🥈</span>
-              <div>
-                <div class="pricing-card-name">Silver</div>
-                <div class="pricing-card-tagline">Deposit saldo · Khusus modul Makalah</div>
+            <!-- Silver -->
+            <div class="pricing-card" id="planSilver" onclick="selectPlan('silver')">
+              <div class="pricing-card-radio"></div>
+              <div class="pricing-card-head">
+                <span class="pricing-card-icon">🥈</span>
+                <div>
+                  <div class="pricing-card-name">Silver</div>
+                  <div class="pricing-card-tagline">Deposit saldo · Khusus modul Makalah</div>
+                </div>
+              </div>
+              <div class="pricing-card-price">
+                <span class="pricing-price-main">Rp 15.000</span>
+                <span class="pricing-price-per">/ deposit awal</span>
+              </div>
+              <div class="pricing-features">
+                <div class="pricing-feat"><span class="material-symbols-rounded">check</span> <strong>Rp 12.000</strong> per 1 pembuatan makalah</div>
+                <div class="pricing-feat"><span class="material-symbols-rounded">check</span> Sisa saldo Rp 3.000 tersimpan di akun</div>
+                <div class="pricing-feat"><span class="material-symbols-rounded">check</span> 3 histori proyek tersimpan</div>
+                <div class="pricing-feat muted"><span class="material-symbols-rounded">lock</span> Modul Skripsi, Tesis, Jurnal</div>
+                <div class="pricing-feat muted"><span class="material-symbols-rounded">lock</span> Research Direction &amp; Pustaka</div>
               </div>
             </div>
-            <div class="pricing-card-price">
-              <span class="pricing-price-main">Rp 15.000</span>
-              <span class="pricing-price-per">/ deposit awal</span>
+
+            <!-- Gold -->
+            <div class="pricing-card popular selected" id="planGold" onclick="selectPlan('gold')">
+              <div class="pricing-card-popular-tag">Paling Populer</div>
+              <div class="pricing-card-radio"></div>
+              <div class="pricing-card-head">
+                <span class="pricing-card-icon">🥇</span>
+                <div>
+                  <div class="pricing-card-name">Gold</div>
+                  <div class="pricing-card-tagline">Semua modul KTI · Kuota token mingguan</div>
+                </div>
+              </div>
+              <div class="pricing-card-price" id="goldPrice">
+                <span class="pricing-price-main">Rp 49.000</span>
+                <span class="pricing-price-per">/ bulan</span>
+              </div>
+              <div class="pricing-features">
+                <div class="pricing-feat"><span class="material-symbols-rounded">check</span> Semua modul KTI (Skripsi, Tesis, dll.)</div>
+                <div class="pricing-feat"><span class="material-symbols-rounded">check</span> Kuota 250.000 token AI / minggu</div>
+                <div class="pricing-feat"><span class="material-symbols-rounded">check</span> Personal Research Direction di Profil</div>
+                <div class="pricing-feat"><span class="material-symbols-rounded">check</span> Bimbingan Sokratik Berkelanjutan</div>
+                <div class="pricing-feat muted"><span class="material-symbols-rounded">lock</span> Pustaka Riset &amp; Peta Tematik</div>
+              </div>
             </div>
-            <div class="pricing-features">
-              <div class="pricing-feat"><span class="material-symbols-rounded">check</span> <strong>Rp 12.000</strong> per 1 pembuatan makalah</div>
-              <div class="pricing-feat"><span class="material-symbols-rounded">check</span> Sisa saldo Rp 3.000 tersimpan di akun</div>
-              <div class="pricing-feat"><span class="material-symbols-rounded">check</span> 3 histori proyek tersimpan</div>
-              <div class="pricing-feat muted"><span class="material-symbols-rounded">lock</span> Modul Skripsi, Tesis, Jurnal</div>
-              <div class="pricing-feat muted"><span class="material-symbols-rounded">lock</span> Research Direction & Pustaka</div>
+
+            <!-- Platinum -->
+            <div class="pricing-card" id="planPlatinum" onclick="selectPlan('platinum')">
+              <div class="pricing-card-radio"></div>
+              <div class="pricing-card-head">
+                <span class="pricing-card-icon">💎</span>
+                <div>
+                  <div class="pricing-card-name">Platinum</div>
+                  <div class="pricing-card-tagline">Fitur terlengkap + Pustaka Riset &amp; Peta Tematik</div>
+                </div>
+              </div>
+              <div class="pricing-card-price" id="platinumPrice">
+                <span class="pricing-price-main">Rp 249.000</span>
+                <span class="pricing-price-per">/ bulan</span>
+              </div>
+              <div class="pricing-features">
+                <div class="pricing-feat"><span class="material-symbols-rounded">check</span> Semua fitur Gold + Pustaka Riset Penuh</div>
+                <div class="pricing-feat"><span class="material-symbols-rounded">check</span> Peta Tematik Jaringan Riset &amp; Arsip Sitasi</div>
+                <div class="pricing-feat"><span class="material-symbols-rounded">check</span> Kuota AI Prioritas 1.500.000 token / bulan</div>
+                <div class="pricing-feat"><span class="material-symbols-rounded">check</span> Prioritas paling awal modul baru</div>
+              </div>
+
+              <!-- Platinum Trial Option -->
+              <div style="margin-top:12px;padding:10px 12px;background:#f5f3ff;border:1.5px dashed #8b5cf6;border-radius:12px;" onclick="event.stopPropagation();">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <label style="font-size:11.5px;font-weight:800;color:#6d28d9;display:flex;align-items:center;gap:5px;cursor:pointer;">
+                    <input type="checkbox" id="platinumTrialCheck" onchange="togglePlatinumTrial(this.checked)" style="accent-color:#7c3aed;">
+                    Aktifkan Uji Coba 3 Hari Gratis (Trial)
+                  </label>
+                  <span style="font-size:10px;font-weight:800;background:#7c3aed;color:#fff;padding:1px 6px;border-radius:4px;">GRATIS 3 HARI</span>
+                </div>
+                <div id="trialNoticeText" style="font-size:10.5px;color:#7c3aed;margin-top:4px;line-height:1.4;">
+                  * Selama trial: Maksimal 3 sesi naskah. Fitur ekspor hasil dibuka setelah aktivasi.
+                </div>
+              </div>
             </div>
+
+          </div><!-- /pricing-cards -->
+
+          <button type="button" class="btn-auth-primary" id="btnRegSubmit" onclick="handleRegister()">
+            <span class="material-symbols-rounded">rocket_launch</span>
+            Buat Akun &amp; Mulai Riset!
+          </button>
+          <button type="button" class="btn-auth-secondary" onclick="nextRegStep(2)">
+            <span class="material-symbols-rounded">arrow_back</span>
+            Kembali
+          </button>
+
+          <div class="privacy-note">
+            <span class="material-symbols-rounded">lock</span>
+            Data akunmu aman dan tersimpan di database Thesa AI terenkripsi.
           </div>
-
-          <!-- Gold -->
-          <div class="pricing-card popular selected" id="planGold" onclick="selectPlan('gold')">
-            <div class="pricing-card-popular-tag">Paling Populer</div>
-            <div class="pricing-card-radio"></div>
-            <div class="pricing-card-head">
-              <span class="pricing-card-icon">🥇</span>
-              <div>
-                <div class="pricing-card-name">Gold</div>
-                <div class="pricing-card-tagline">Semua modul KTI · Kuota token mingguan</div>
-              </div>
-            </div>
-            <div class="pricing-card-price" id="goldPrice">
-              <span class="pricing-price-main">Rp 49.000</span>
-              <span class="pricing-price-per">/ bulan</span>
-            </div>
-            <div class="pricing-features">
-              <div class="pricing-feat"><span class="material-symbols-rounded">check</span> Semua modul KTI (Skripsi, Tesis, dll.)</div>
-              <div class="pricing-feat"><span class="material-symbols-rounded">check</span> Kuota 250.000 token AI / minggu (Bisa isi ulang)</div>
-              <div class="pricing-feat"><span class="material-symbols-rounded">check</span> Personal Research Direction di Profil</div>
-              <div class="pricing-feat"><span class="material-symbols-rounded">check</span> Pencapaian & XP penuh</div>
-              <div class="pricing-feat muted"><span class="material-symbols-rounded">lock</span> Pustaka Riset & Peta Tematik</div>
-            </div>
-          </div>
-
-          <!-- Platinum -->
-          <div class="pricing-card" id="planPlatinum" onclick="selectPlan('platinum')">
-            <div class="pricing-card-radio"></div>
-            <div class="pricing-card-head">
-              <span class="pricing-card-icon">💎</span>
-              <div>
-                <div class="pricing-card-name">Platinum</div>
-                <div class="pricing-card-tagline">Fitur terlengkap + Pustaka Riset & Peta Tematik</div>
-              </div>
-            </div>
-            <div class="pricing-card-price" id="platinumPrice">
-              <span class="pricing-price-main">Rp 249.000</span>
-              <span class="pricing-price-per">/ bulan</span>
-            </div>
-            <div class="pricing-features">
-              <div class="pricing-feat"><span class="material-symbols-rounded">check</span> Semua fitur Gold + Pustaka Riset Penuh</div>
-              <div class="pricing-feat"><span class="material-symbols-rounded">check</span> Peta Tematik Jaringan Riset & Arsip Sitasi</div>
-              <div class="pricing-feat"><span class="material-symbols-rounded">check</span> Kuota AI Prioritas 1.500.000 token / bulan</div>
-              <div class="pricing-feat"><span class="material-symbols-rounded">check</span> Prioritas paling awal modul baru</div>
-            </div>
-
-            <!-- Platinum Trial Option -->
-            <div style="margin-top:12px;padding:10px 12px;background:#f5f3ff;border:1.5px dashed #8b5cf6;border-radius:12px;" onclick="event.stopPropagation();">
-              <div style="display:flex;align-items:center;justify-content:space-between;">
-                <label style="font-size:11.5px;font-weight:800;color:#6d28d9;display:flex;align-items:center;gap:5px;cursor:pointer;">
-                  <input type="checkbox" id="platinumTrialCheck" onchange="togglePlatinumTrial(this.checked)" style="accent-color:#7c3aed;">
-                  Aktifkan Uji Coba 3 Hari Gratis (Trial)
-                </label>
-                <span style="font-size:10px;font-weight:800;background:#7c3aed;color:#fff;padding:1px 6px;border-radius:4px;">GRATIS 3 HARI</span>
-              </div>
-              <div id="trialNoticeText" style="font-size:10.5px;color:#7c3aed;margin-top:4px;line-height:1.4;">
-                * Selama trial: Maksimal 3 sesi makalah. Fitur cetak/ekspor hasil terkunci.
-              </div>
-            </div>
-          </div>
-
-        </div><!-- /pricing-cards -->
-
-        <button class="btn-auth-primary" onclick="finishRegistration()">
-          <span class="material-symbols-rounded">rocket_launch</span>
-          Mulai Riset dengan Thesa!
-        </button>
-        <button class="btn-auth-secondary" onclick="showStep(4)">
-          <span class="material-symbols-rounded">arrow_back</span>
-          Kembali
-        </button>
-
-        <div class="privacy-note">
-          <span class="material-symbols-rounded">lock</span>
-          Pembayaran diproses setelah akun aktif · Batalkan kapan saja
         </div>
-      </div>
+
+      </div><!-- /registerView -->
 
     </div><!-- /auth-form-inner -->
   </div><!-- /auth-form-panel -->
 
-  <!-- Quick Demo Skip -->
-  <div class="dev-skip-bar">
-    ⚡ Mode Cepat
-    <button onclick="skipToHomepage()">Langsung ke Dashboard →</button>
-  </div>
-
   <script>
-    // ── State ──────────────────────────────────────────────────
-    let currentStep = 1;
+    // ── Application State ──────────────────────────────────────
+    let activeAuthMode = 'login';
+    let currentRegStep = 1;
     let selectedLevelVal = 'S1';
-    let isAcademicEmail = false;
+    let selectedPlan = 'gold';
+    let isAnnual = false;
+    let isPlatinumTrial = false;
 
-    function showStep(n) {
-      for (let i = 1; i <= 5; i++) {
-        const el = document.getElementById('step' + i);
-        if (el) el.style.display = i === n ? 'block' : 'none';
+    // ── Switch between Login & Register ─────────────────────────
+    function switchAuthMode(mode) {
+      activeAuthMode = mode;
+      const tabLogin = document.getElementById('tabLogin');
+      const tabRegister = document.getElementById('tabRegister');
+      const loginView = document.getElementById('loginView');
+      const registerView = document.getElementById('registerView');
+
+      if (mode === 'login') {
+        tabLogin.classList.add('active');
+        tabRegister.classList.remove('active');
+        loginView.style.display = 'block';
+        registerView.style.display = 'none';
+        clearAlerts();
+        setTimeout(() => document.getElementById('loginEmail')?.focus(), 50);
+      } else {
+        tabLogin.classList.remove('active');
+        tabRegister.classList.add('active');
+        loginView.style.display = 'none';
+        registerView.style.display = 'block';
+        clearAlerts();
+        setRegStep(1);
+        setTimeout(() => document.getElementById('regEmail')?.focus(), 50);
       }
-      currentStep = n;
-      updateStepUI(n);
     }
 
-    function updateStepUI(n) {
+    // ── Wizard Step Navigation ─────────────────────────────────
+    function setRegStep(step) {
+      currentRegStep = step;
+      for (let i = 1; i <= 3; i++) {
+        const el = document.getElementById('regStep' + i);
+        if (el) el.style.display = i === step ? 'block' : 'none';
+      }
+
       const labels = [
-        'Langkah 1 dari 5 — Masukkan Email',
-        'Langkah 2 dari 5 — Verifikasi Kode',
-        'Langkah 3 dari 5 — Profil Belajarmu',
-        'Langkah 4 dari 5 — Prinsip Kolaborasi',
-        'Langkah 5 dari 5 — Pilih Paket'
+        'Langkah 1 dari 3 — Buat Akun & Kata Sandi',
+        'Langkah 2 dari 3 — Profil Mahasiswa',
+        'Langkah 3 dari 3 — Pilih Paket Langganan'
       ];
-      document.getElementById('stepLabel').textContent = labels[n - 1];
+      const stepLabel = document.getElementById('stepLabel');
+      if (stepLabel) stepLabel.textContent = labels[step - 1];
 
-      for (let i = 1; i <= 5; i++) {
+      for (let i = 1; i <= 3; i++) {
         const dot = document.getElementById('dot' + i);
-        dot.className = 'step-dot';
-        if (i < n) dot.classList.add('done');
-        if (i === n) dot.classList.add('active');
+        if (dot) {
+          dot.className = 'step-dot';
+          if (i < step) dot.classList.add('done');
+          if (i === step) dot.classList.add('active');
+        }
       }
-      for (let i = 1; i <= 4; i++) {
+      for (let i = 1; i <= 2; i++) {
         const line = document.getElementById('line' + i + (i + 1));
-        if (line) line.className = 'step-dot-line' + (i < n ? ' done' : '');
+        if (line) line.className = 'step-dot-line' + (i < step ? ' done' : '');
       }
     }
 
-    // ── Step 1: Email ──────────────────────────────────────────
-    function checkEmailInput(val) {
-      const btn = document.getElementById('btnSendOTP');
+    function nextRegStep(step) {
+      if (step === 2) {
+        if (!validateStep1()) return;
+      } else if (step === 3) {
+        const name = (document.getElementById('regFullName')?.value || '').trim();
+        if (!name) {
+          showAuthAlert('regAlert2', 'Nama lengkap wajib diisi agar Thesa bisa menyapamu.', 'error');
+          document.getElementById('regFullName')?.focus();
+          return;
+        }
+      }
+      setRegStep(step);
+    }
+
+    // ── Input Validations ──────────────────────────────────────
+    function checkRegEmail(val) {
       const banner = document.getElementById('emailFriendlyBanner');
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       const isValid = emailRegex.test(val.trim());
 
-      btn.disabled = !isValid;
-
       if (!isValid) {
-        banner.style.display = 'none';
-        isAcademicEmail = false;
+        if (banner) banner.style.display = 'none';
+        checkRegPassword();
         return;
       }
 
-      isAcademicEmail = val.toLowerCase().includes('.ac.id');
-      banner.style.display = 'flex';
-      if (isAcademicEmail) {
-        banner.className = 'email-friendly-banner academic';
-        banner.innerHTML = `
-          <span class="material-symbols-rounded">school</span>
-          <span><strong>Keren!</strong> Email kampus terdeteksi — format pedoman kampusmu bisa otomatis terhubung.</span>`;
-      } else {
-        banner.className = 'email-friendly-banner general';
-        banner.innerHTML = `
-          <span class="material-symbols-rounded">check_circle</span>
-          <span><strong>Mantap!</strong> Emailmu siap digunakan untuk mulai belajar bersama Thesa.</span>`;
+      const isAcademic = val.toLowerCase().includes('.ac.id') || val.toLowerCase().includes('.edu');
+      if (banner) {
+        banner.style.display = 'flex';
+        if (isAcademic) {
+          banner.className = 'email-friendly-banner academic';
+          banner.innerHTML = `
+            <span class="material-symbols-rounded">school</span>
+            <span><strong>Email Kampus Terdeteksi!</strong> Tingkat kepercayaan akademik (Trust Score) disetel ke 95%.</span>`;
+        } else {
+          banner.className = 'email-friendly-banner general';
+          banner.innerHTML = `
+            <span class="material-symbols-rounded">check_circle</span>
+            <span><strong>Email Valid.</strong> Siap digunakan untuk akun Thesa AI.</span>`;
+        }
       }
+      checkRegPassword();
     }
 
-    function goToStep2() {
-      const email = document.getElementById('emailInput').value.trim() || 'peneliti@kampus.ac.id';
-      document.getElementById('emailDisplay').textContent = email;
-      showStep(2);
-      autoFillDemoOTP();
-    }
+    function checkRegPassword() {
+      const email = (document.getElementById('regEmail')?.value || '').trim();
+      const pass = document.getElementById('regPassword')?.value || '';
+      const confirm = document.getElementById('regPasswordConfirm')?.value || '';
+      const hint = document.getElementById('passHint');
+      const btn = document.getElementById('btnRegNext1');
 
-    // ── Step 2: OTP ────────────────────────────────────────────
-    function autoFillDemoOTP() {
-      const digits = ['1','2','3','4','5','6'];
-      digits.forEach((d, i) => {
-        const cell = document.getElementById('otp' + (i + 1));
-        cell.value = d;
-        cell.classList.add('filled');
-      });
-      document.getElementById('btnVerifyOTP').disabled = false;
-      document.getElementById('btnVerifyOTP').focus();
-    }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const emailValid = emailRegex.test(email);
 
-    function moveOTP(el, idx) {
-      const val = el.value.replace(/\D/g, '');
-      el.value = val;
-      if (val) {
-        el.classList.add('filled');
-        if (idx < 6) document.getElementById('otp' + (idx + 1)).focus();
+      let passValid = false;
+      if (!pass) {
+        if (hint) { hint.textContent = ''; hint.className = 'password-hint'; }
+      } else if (pass.length < 6) {
+        if (hint) {
+          hint.textContent = 'Kata sandi minimal 6 karakter (saat ini ' + pass.length + ' karakter).';
+          hint.className = 'password-hint invalid';
+        }
+      } else if (confirm && pass !== confirm) {
+        if (hint) {
+          hint.textContent = 'Konfirmasi kata sandi belum cocok.';
+          hint.className = 'password-hint invalid';
+        }
+      } else if (confirm && pass === confirm) {
+        if (hint) {
+          hint.textContent = '✓ Kata sandi cocok dan memenuhi syarat.';
+          hint.className = 'password-hint valid';
+        }
+        passValid = true;
       } else {
-        el.classList.remove('filled');
+        if (hint) {
+          hint.textContent = 'Minimal 6 karakter terpenuhi. Silakan masukkan konfirmasi sandi.';
+          hint.className = 'password-hint';
+        }
       }
-      checkOTP();
+
+      if (btn) btn.disabled = !(emailValid && passValid);
     }
 
-    function checkOTP() {
-      let code = '';
-      for (let i = 1; i <= 6; i++) code += document.getElementById('otp' + i).value;
-      document.getElementById('btnVerifyOTP').disabled = code.length < 6;
+    function validateStep1() {
+      const email = (document.getElementById('regEmail')?.value || '').trim();
+      const pass = document.getElementById('regPassword')?.value || '';
+      const confirm = document.getElementById('regPasswordConfirm')?.value || '';
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        showAuthAlert('regAlert1', 'Masukkan alamat email yang valid.', 'error');
+        return false;
+      }
+      if (pass.length < 6) {
+        showAuthAlert('regAlert1', 'Kata sandi minimal 6 karakter.', 'error');
+        return false;
+      }
+      if (pass !== confirm) {
+        showAuthAlert('regAlert1', 'Kata sandi dan konfirmasi kata sandi tidak cocok.', 'error');
+        return false;
+      }
+      return true;
     }
 
-    function verifyOTP() {
-      showStep(3);
-      setTimeout(() => document.getElementById('fullName').focus(), 100);
+    function checkRegStep2() {
+      const name = (document.getElementById('regFullName')?.value || '').trim();
+      const btn = document.getElementById('btnRegNext2');
+      if (btn) btn.disabled = name.length === 0;
     }
 
-    // ── Step 3: Profile ────────────────────────────────────────
     function selectLevel(el, level) {
       document.querySelectorAll('.level-card').forEach(c => c.classList.remove('selected'));
       el.classList.add('selected');
       selectedLevelVal = level;
     }
 
-    function checkStep3() {
-      const name = document.getElementById('fullName').value.trim();
-      document.getElementById('btnStep3Next').disabled = name.length === 0;
-    }
-
-    function goToStep4() {
-      showStep(4);
-    }
-
-    // ── Step 4: Collaboration ──────────────────────────────────
-    function togglePrinciple(el) {
-      el.classList.toggle('checked');
-    }
-
-    function goToStep5() {
-      showStep(5);
-    }
-
-    // ── Step 5: Pricing ────────────────────────────────────────
-    let selectedPlan = 'gold';
-    let isAnnual = false;
-    let isPlatinumTrial = false;
-
+    // ── Pricing Plan Selection ─────────────────────────────────
     function selectPlan(plan) {
       selectedPlan = plan;
       document.querySelectorAll('.pricing-card').forEach(c => c.classList.remove('selected'));
       const card = document.getElementById('plan' + plan.charAt(0).toUpperCase() + plan.slice(1));
       if (card) card.classList.add('selected');
-      
+
       const trialBox = document.getElementById('platinumTrialCheck');
       if (trialBox && plan !== 'platinum') {
         trialBox.checked = false;
@@ -1006,7 +1138,6 @@
       lA.classList.toggle('active', isAnnual);
       saveTag.style.display = isAnnual ? 'inline-block' : 'none';
 
-      // Update prices
       const goldPriceEl = document.getElementById('goldPrice');
       const platPriceEl = document.getElementById('platinumPrice');
       if (isAnnual) {
@@ -1018,41 +1149,135 @@
       }
     }
 
-    async function finishRegistration() {
-      const name = (document.getElementById('fullName')?.value || '').trim() || 'Peneliti Thesa';
-      const inst = (document.getElementById('institution')?.value || '').trim() || 'Standar Nasional';
-      const prodi = (document.getElementById('prodi')?.value || '').trim() || 'Kajian Akademik';
-      const email = (document.getElementById('emailInput')?.value || '').trim() || 'peneliti@thesa.id';
-      const initialTopic = (document.getElementById('initialTopic')?.value || '').trim();
+    // ── Toggle Password Visibility ─────────────────────────────
+    function togglePasswordVisibility(inputId, btnId) {
+      const input = document.getElementById(inputId);
+      const btn = document.getElementById(btnId);
+      if (!input || !btn) return;
+      const icon = btn.querySelector('.material-symbols-rounded');
+      if (input.type === 'password') {
+        input.type = 'text';
+        if (icon) icon.textContent = 'visibility_off';
+      } else {
+        input.type = 'password';
+        if (icon) icon.textContent = 'visibility';
+      }
+    }
 
-      const profile = {
-        name,
-        level: selectedLevelVal || 'S1',
-        institution: inst,
-        prodi: prodi,
-        email: email,
-        isAcademicEmail: email.toLowerCase().includes('.ac.id'),
-        trustScore: email.toLowerCase().includes('.ac.id') ? 95 : 85,
-        tier: selectedPlan || 'gold',
-        isTrial: isPlatinumTrial && selectedPlan === 'platinum',
-        trialDaysLeft: isPlatinumTrial ? 3 : 0,
-        trialSessionsRemaining: isPlatinumTrial ? 3 : 0,
-        silverBalance: selectedPlan === 'silver' ? 15000 : 0,
-        goldTokens: selectedPlan === 'gold' ? 250000 : 0,
-        platinumTokens: selectedPlan === 'platinum' ? 1500000 : 0,
-        billingCycle: isAnnual ? 'annual' : 'monthly',
-        registeredAt: new Date().toISOString(),
-        covenantQ1: 'Saya berkomitmen untuk belajar dan menyusun riset ini secara mandiri dengan bimbingan Thesa.',
-        covenantQ2: initialTopic || 'Menemukan gap penelitian dan merumuskan argumen yang kuat.'
-      };
+    // ── Alerts Helper ──────────────────────────────────────────
+    function showAuthAlert(elId, msg, type = 'error') {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      el.className = 'auth-alert ' + type;
+      const iconName = type === 'error' ? 'error' : 'check_circle';
+      el.innerHTML = `<span class="material-symbols-rounded">${iconName}</span><span>${msg}</span>`;
+      el.style.display = 'flex';
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function clearAlerts() {
+      ['loginAlert', 'regAlert1', 'regAlert2', 'regAlert3'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.style.display = 'none'; el.textContent = ''; }
+      });
+    }
+
+    // ── API: Handle Login ──────────────────────────────────────
+    async function handleLogin() {
+      clearAlerts();
+      const submitBtn = document.getElementById('btnLoginSubmit');
+      const email = (document.getElementById('loginEmail')?.value || '').trim();
+      const password = document.getElementById('loginPassword')?.value || '';
+
+      if (!email || !password) {
+        showAuthAlert('loginAlert', 'Email dan kata sandi wajib diisi.', 'error');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">sync</span> Memverifikasi...';
 
       try {
-        const resp = await fetch('/api/v1/auth/register', {
+        const res = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span class="material-symbols-rounded">login</span> Masuk ke Dashboard';
+          showAuthAlert('loginAlert', data.message || 'Email atau kata sandi tidak cocok.', 'error');
+          return;
+        }
+
+        // Store Token
+        if (data.token) {
+          localStorage.setItem('thesa_token', data.token);
+          sessionStorage.setItem('thesa_token', data.token);
+        }
+
+        // Store User Profile
+        const u = data.user || {};
+        const userProfile = {
+          id: u.id,
+          name: u.name || 'Mahasiswa Peneliti',
+          level: u.level || 'S1',
+          institution: u.institution || 'Universitas Indonesia',
+          prodi: u.prodi || 'Program Studi',
+          email: u.email || email,
+          isAcademicEmail: (u.email || email).toLowerCase().includes('.ac.id'),
+          trustScore: u.trustScore || 85,
+          tier: u.tier || 'gold',
+          silverBalance: u.tier === 'silver' ? 15000 : 0,
+          goldTokens: u.tier === 'gold' ? 250000 : 0,
+          platinumTokens: u.tier === 'platinum' ? 1500000 : 0,
+          registeredAt: u.registeredAt || new Date().toISOString()
+        };
+
+        localStorage.setItem('thesaUser', JSON.stringify(userProfile));
+        sessionStorage.setItem('thesaUser', JSON.stringify(userProfile));
+
+        submitBtn.innerHTML = '<span class="material-symbols-rounded">check</span> Berhasil! Mengalihkan...';
+        setTimeout(() => {
+          window.location.href = 'app.html';
+        }, 300);
+
+      } catch (err) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span class="material-symbols-rounded">login</span> Masuk ke Dashboard';
+        showAuthAlert('loginAlert', 'Gagal menghubungi server: ' + err.message, 'error');
+      }
+    }
+
+    // ── API: Handle Register ───────────────────────────────────
+    async function handleRegister() {
+      clearAlerts();
+      const submitBtn = document.getElementById('btnRegSubmit');
+      const email = (document.getElementById('regEmail')?.value || '').trim();
+      const password = document.getElementById('regPassword')?.value || '';
+      const name = (document.getElementById('regFullName')?.value || '').trim() || 'Mahasiswa Peneliti';
+      const inst = (document.getElementById('regInstitution')?.value || '').trim() || 'Universitas';
+      const prodi = (document.getElementById('regProdi')?.value || '').trim() || 'Kajian Akademik';
+      const topic = (document.getElementById('regTopic')?.value || '').trim();
+
+      if (!email || !password) {
+        setRegStep(1);
+        showAuthAlert('regAlert1', 'Email dan kata sandi wajib diisi.', 'error');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="material-symbols-rounded" style="animation:spin 1s linear infinite;">sync</span> Mendaftarkan akun...';
+
+      try {
+        const res = await fetch('/api/v1/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: email,
-            password: 'thesa2026_default_password',
+            password: password,
             name: name,
             institution: inst,
             prodi: prodi,
@@ -1060,98 +1285,74 @@
             tier: selectedPlan || 'gold'
           })
         });
-        if (resp.ok) {
-          const resData = await resp.json();
-          if (resData.token) {
-            localStorage.setItem('thesa_token', resData.token);
-            sessionStorage.setItem('thesa_token', resData.token);
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span class="material-symbols-rounded">rocket_launch</span> Buat Akun &amp; Mulai Riset!';
+          
+          if (res.status === 409) {
+            showAuthAlert('regAlert3', data.message || 'Email ini sudah terdaftar. Silakan beralih ke tab Masuk.', 'error');
+          } else {
+            showAuthAlert('regAlert3', data.message || 'Pendaftaran gagal. Periksa kembali data Anda.', 'error');
           }
+          return;
         }
-      } catch (e) {
-        console.warn('[Thesa Auth] Backend registration offline, using client storage fallback:', e);
-      }
 
-      const profileStr = JSON.stringify(profile);
-      sessionStorage.setItem('thesaUser', profileStr);
-      localStorage.setItem('thesaUser', profileStr);
-      window.location.href = 'app.html';
-    }
-
-    async function quickLogin() {
-      const demoProfile = {
-        name: 'Alif Awwaz',
-        level: 'S2',
-        institution: 'Universitas Indonesia',
-        prodi: 'Ilmu Komputer',
-        email: 'alif.awwaz@ui.ac.id',
-        isAcademicEmail: true,
-        trustScore: 95,
-        tier: 'gold',
-        isTrial: false,
-        silverBalance: 15000,
-        goldTokens: 215000,
-        platinumTokens: 1500000,
-        registeredAt: '2026-01-15T08:00:00Z',
-        covenantQ1: 'Mengevaluasi inkonsistensi naskah akademik pada model NLP bahasa Indonesia.',
-        covenantQ2: 'Memahami dasar transformer dan evaluasi koherensi naskah.',
-        researchCompass: {
-          field: 'Informatika & AI',
-          subField: 'Natural Language Processing & Evaluasi Naskah',
-          keywords: 'Multi-Agent, LLM Coherence, Cascade Reasoning, Evaluasi Akademik, Human-AI',
-          methodology: 'Eksperimen Komputasional / R&D',
-          target: 'Publikasi Jurnal SINTA / Scopus',
-          grandTheme: 'Mengeksplorasi bagaimana model bahasa besar (LLM) dapat diajak berpikir logis berjenjang tanpa mengalami delusi argumentasi, demi menjaga integritas karya tulis ilmiah.',
-          sourcesConfig: { mode: 'auto', sources: ['scholar', 'ieee', 'semantic', 'sinta', 'scopus', 'doaj'] }
+        // Store Token
+        if (data.token) {
+          localStorage.setItem('thesa_token', data.token);
+          sessionStorage.setItem('thesa_token', data.token);
         }
-      };
 
-      try {
-        const resp = await fetch('/api/v1/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: 'alif.awwaz@ui.ac.id',
-            password: 'thesa2026'
-          })
-        });
-        if (resp.ok) {
-          const resData = await resp.json();
-          if (resData.token) {
-            localStorage.setItem('thesa_token', resData.token);
-            sessionStorage.setItem('thesa_token', resData.token);
-          }
-        }
-      } catch (e) {
-        console.warn('[Thesa Auth] Backend login offline, using client storage fallback:', e);
-      }
+        // Store User Profile
+        const u = data.user || {};
+        const userProfile = {
+          id: u.id,
+          name: u.name || name,
+          level: u.level || selectedLevelVal || 'S1',
+          institution: u.institution || inst,
+          prodi: u.prodi || prodi,
+          email: u.email || email,
+          isAcademicEmail: email.toLowerCase().includes('.ac.id'),
+          trustScore: u.trustScore || (email.toLowerCase().includes('.ac.id') ? 95 : 85),
+          tier: selectedPlan || 'gold',
+          isTrial: isPlatinumTrial && selectedPlan === 'platinum',
+          trialDaysLeft: isPlatinumTrial ? 3 : 0,
+          trialSessionsRemaining: isPlatinumTrial ? 3 : 0,
+          silverBalance: selectedPlan === 'silver' ? 15000 : 0,
+          goldTokens: selectedPlan === 'gold' ? 250000 : 0,
+          platinumTokens: selectedPlan === 'platinum' ? 1500000 : 0,
+          billingCycle: isAnnual ? 'annual' : 'monthly',
+          registeredAt: new Date().toISOString(),
+          covenantQ1: 'Saya berkomitmen untuk belajar dan menyusun riset ini secara mandiri dengan bimbingan Thesa.',
+          covenantQ2: topic || 'Menemukan gap penelitian dan merumuskan argumen yang kuat.'
+        };
 
-      const demoStr = JSON.stringify(demoProfile);
-      sessionStorage.setItem('thesaUser', demoStr);
-      localStorage.setItem('thesaUser', demoStr);
-      window.location.href = 'app.html';
-    }
+        localStorage.setItem('thesaUser', JSON.stringify(userProfile));
+        sessionStorage.setItem('thesaUser', JSON.stringify(userProfile));
 
-    function skipToHomepage() {
-      if (!sessionStorage.getItem('thesaUser') && !localStorage.getItem('thesaUser')) {
-        quickLogin();
-      } else {
-        window.location.href = 'app.html';
+        submitBtn.innerHTML = '<span class="material-symbols-rounded">check</span> Akun Berhasil Dibuat! Mengalihkan...';
+        setTimeout(() => {
+          window.location.href = 'app.html';
+        }, 400);
+
+      } catch (err) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span class="material-symbols-rounded">rocket_launch</span> Buat Akun &amp; Mulai Riset!';
+        showAuthAlert('regAlert3', 'Gagal menghubungi server: ' + err.message, 'error');
       }
     }
 
-
+    // ── Initial Setup ──────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
-      updateStepUI(1);
-    });
+      const urlParams = new URLSearchParams(window.location.search);
+      const modeParam = urlParams.get('mode');
 
-    document.addEventListener('keydown', (e) => {
-      if (currentStep !== 2) return;
-      if (e.key === 'Backspace') {
-        const active = document.activeElement;
-        if (active.classList.contains('otp-cell') && !active.value) {
-          const idx = parseInt(active.id.replace('otp', ''));
-          if (idx > 1) document.getElementById('otp' + (idx - 1)).focus();
-        }
+      if (modeParam === 'register') {
+        switchAuthMode('register');
+      } else {
+        switchAuthMode('login');
       }
     });
   </script>

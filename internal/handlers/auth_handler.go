@@ -118,6 +118,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(req.Password) < 6 {
+		writeJSON(w, http.StatusBadRequest, AuthResponse{Success: false, Message: "Kata sandi minimal 6 karakter."})
+		return
+	}
+
 	if req.FullName == "" {
 		req.FullName = "Mahasiswa Peneliti"
 	}
@@ -139,11 +144,18 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	var user User
 	if db.DB != nil && db.IsConnected() {
+		// Check if email already registered
+		var count int
+		_ = db.DB.Get(&count, `SELECT COUNT(*) FROM users WHERE email = ?`, req.Email)
+		if count > 0 {
+			writeJSON(w, http.StatusConflict, AuthResponse{Success: false, Message: "Email ini sudah terdaftar. Silakan masuk menggunakan kata sandi Anda."})
+			return
+		}
+
 		// Insert into MySQL
 		res, err := db.DB.Exec(`
 			INSERT INTO users (email, password_hash, full_name, institution, prodi, level, tier, trust_score, created_at, updated_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-			ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), full_name = VALUES(full_name)
 		`, req.Email, passHash, req.FullName, req.Institution, req.Prodi, req.Level, req.Tier, trustScore)
 
 		if err != nil {
@@ -173,6 +185,12 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// Fallback in-memory
 		memoryStore.mu.Lock()
+		if _, exists := memoryStore.users[req.Email]; exists {
+			memoryStore.mu.Unlock()
+			writeJSON(w, http.StatusConflict, AuthResponse{Success: false, Message: "Email ini sudah terdaftar. Silakan masuk menggunakan kata sandi Anda."})
+			return
+		}
+
 		newID := len(memoryStore.users) + 1
 		user = User{
 			ID:          newID,
@@ -273,26 +291,10 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		memoryStore.mu.RUnlock()
 
 		if !exists || !verifyPassword(req.Password, u.PasswordHash) {
-			// Auto-allow quick demo login for convenience
-			if req.Password == "thesa2026" || req.Password == "password" {
-				user = User{
-					ID:          1,
-					Email:       req.Email,
-					FullName:    "Mahasiswa Risethub",
-					Institution: "Universitas Indonesia",
-					Prodi:       "Ilmu Komputer",
-					Level:       "S1",
-					Tier:        "gold",
-					TrustScore:  90,
-					CreatedAt:   time.Now(),
-				}
-			} else {
-				writeJSON(w, http.StatusUnauthorized, AuthResponse{Success: false, Message: "Email atau kata sandi tidak sesuai."})
-				return
-			}
-		} else {
-			user = u.User
+			writeJSON(w, http.StatusUnauthorized, AuthResponse{Success: false, Message: "Email atau kata sandi tidak sesuai."})
+			return
 		}
+		user = u.User
 
 		memoryStore.mu.Lock()
 		memoryStore.sessions[token] = &SessionData{

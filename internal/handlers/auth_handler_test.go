@@ -57,6 +57,26 @@ func TestAuthHandler_Register(t *testing.T) {
 	if emptyRec.Code != http.StatusBadRequest {
 		t.Errorf("expected status %d for empty register, got %d", http.StatusBadRequest, emptyRec.Code)
 	}
+
+	// Test case 3: Short password (< 6 chars)
+	shortPassBody, _ := json.Marshal(RegisterRequest{
+		Email:    "short@kampus.ac.id",
+		Password: "123",
+	})
+	shortPassReq := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewBuffer(shortPassBody))
+	shortPassRec := httptest.NewRecorder()
+	h.Register(shortPassRec, shortPassReq)
+	if shortPassRec.Code != http.StatusBadRequest {
+		t.Errorf("expected status %d for short password, got %d", http.StatusBadRequest, shortPassRec.Code)
+	}
+
+	// Test case 4: Duplicate registration (same email test.student@ui.ac.id)
+	dupReq := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewBuffer(reqBody))
+	dupRec := httptest.NewRecorder()
+	h.Register(dupRec, dupReq)
+	if dupRec.Code != http.StatusConflict {
+		t.Errorf("expected status %d for duplicate registration, got %d", http.StatusConflict, dupRec.Code)
+	}
 }
 
 func TestAuthHandler_Login(t *testing.T) {
