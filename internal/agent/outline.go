@@ -123,9 +123,9 @@ func parseGeneratedOutlineJSON(jsonStr string) (*MappedOutline, error) {
 	cleaned := cleanJSONString(jsonStr)
 
 	var parsed struct {
-		Sections   []OutlineSection   `json:"sections"`
+		Sections   []OutlineSection     `json:"sections"`
 		Reqs       TemplateRequirements `json:"requirements"`
-		Deviations []TemplateDeviation `json:"deviations"`
+		Deviations []TemplateDeviation  `json:"deviations"`
 	}
 
 	if err := json.Unmarshal([]byte(cleaned), &parsed); err != nil {

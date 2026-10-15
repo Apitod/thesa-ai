@@ -16,11 +16,11 @@ type DeepSeekProvider struct {
 
 // ChatRequest is the JSON payload sent to the DeepSeek API.
 type deepSeekChatRequest struct {
-	Model       string           `json:"model"`
-	Messages    []deepSeekMsg    `json:"messages"`
-	MaxTokens   int              `json:"max_tokens,omitempty"`
-	Temperature float64          `json:"temperature,omitempty"`
-	Stream      bool             `json:"stream"`
+	Model       string        `json:"model"`
+	Messages    []deepSeekMsg `json:"messages"`
+	MaxTokens   int           `json:"max_tokens,omitempty"`
+	Temperature float64       `json:"temperature,omitempty"`
+	Stream      bool          `json:"stream"`
 }
 
 type deepSeekMsg struct {
@@ -212,4 +212,3 @@ func optimizeContextWindow(messages []Message) []Message {
 	result = append(result, convMsgs...)
 	return result
 }
-

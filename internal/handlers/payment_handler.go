@@ -6,278 +6,228 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"risethub_os/backend/internal/db"
 	"risethub_os/backend/internal/payment"
 )
 
-// PaymentHandler manages order creation, webhooks, and transaction verification.
-type PaymentHandler struct {
-	midtrans *payment.MidtransClient
-}
+const (
+	minimumTopUp  = 10000
+	maximumTopUp  = 10000000
+	goldPrice     = 99000
+	platinumPrice = 249000
+)
 
-// NewPaymentHandler creates a new PaymentHandler instance.
+// PaymentHandler manages Midtrans orders and verified callbacks.
+type PaymentHandler struct{ midtrans *payment.MidtransClient }
+
 func NewPaymentHandler() *PaymentHandler {
-	return &PaymentHandler{
-		midtrans: payment.NewMidtransClient(),
-	}
+	return &PaymentHandler{midtrans: payment.NewMidtransClient()}
 }
 
 type CreateOrderRequest struct {
-	PackageID   string  `json:"package_id"`   // "single" | "semester"
-	Amount      float64 `json:"amount"`       // 12000 or 39000
-	UserEmail   string  `json:"user_email"`
-	UserName    string  `json:"user_name"`
-	PaymentType string  `json:"payment_type"` // "qris" | "snap"
+	TopupType string  `json:"topup_type"` // topup, upgrade-gold, upgrade-platinum
+	Amount    float64 `json:"amount"`     // only used for a custom topup
 }
 
 type CreateOrderResponse struct {
 	Success         bool    `json:"success"`
 	Message         string  `json:"message,omitempty"`
-	OrderID         string  `json:"order_id"`
-	PackageID       string  `json:"package_id"`
-	PackageName     string  `json:"package_name"`
-	Amount          float64 `json:"amount"`
-	Status          string  `json:"status"`
+	OrderID         string  `json:"order_id,omitempty"`
+	PackageID       string  `json:"package_id,omitempty"`
+	PackageName     string  `json:"package_name,omitempty"`
+	Amount          float64 `json:"amount,omitempty"`
+	Status          string  `json:"status,omitempty"`
 	SnapToken       string  `json:"snap_token,omitempty"`
 	SnapRedirectURL string  `json:"snap_redirect_url,omitempty"`
-	QRISCode        string  `json:"qris_code,omitempty"`
 }
 
-// CreateOrder handles order initiation and Snap token / QRIS generation.
+func authenticatedUser(r *http.Request) (*User, bool) {
+	return ValidateUserSession(extractBearerToken(r))
+}
+
+func orderDetails(kind string, requested float64) (float64, string, error) {
+	switch kind {
+	case "topup":
+		if math.IsNaN(requested) || math.IsInf(requested, 0) || requested < minimumTopUp || requested > maximumTopUp || math.Trunc(requested) != requested {
+			return 0, "", fmt.Errorf("nominal top up harus berupa angka bulat Rp10.000–Rp10.000.000")
+		}
+		return requested, fmt.Sprintf("Top Up Saldo Thesa Rp %.0f", requested), nil
+	case "upgrade-gold":
+		return goldPrice, "Upgrade Gold Thesa AI (1 bulan)", nil
+	case "upgrade-platinum":
+		return platinumPrice, "Upgrade Platinum Thesa AI (1 bulan)", nil
+	default:
+		return 0, "", fmt.Errorf("jenis pembayaran tidak valid")
+	}
+}
+
+// CreateOrder creates a QRIS-only Snap order for the authenticated account.
 func (h *PaymentHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		writeJSON(w, http.StatusMethodNotAllowed, CreateOrderResponse{Success: false, Message: "Method tidak diizinkan."})
 		return
 	}
-
+	user, ok := authenticatedUser(r)
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, CreateOrderResponse{Success: false, Message: "Silakan masuk kembali untuk melakukan pembayaran."})
+		return
+	}
 	var req CreateOrderRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]interface{}{"success": false, "message": "Invalid request body"})
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, CreateOrderResponse{Success: false, Message: "Data pembayaran tidak valid."})
 		return
 	}
-
-	req.UserEmail = strings.TrimSpace(req.UserEmail)
-	if req.UserEmail == "" {
-		req.UserEmail = "mahasiswa@thesa.id"
-	}
-	if req.UserName == "" {
-		req.UserName = "Mahasiswa Thesa"
-	}
-
-	packageName := "1x Makalah Penuh (3 Bab + Ekspor)"
-	creditsToAdd := 1
-	if req.PackageID == "semester" {
-		req.Amount = 39000
-		packageName = "Paket 4x Makalah (1 Semester)"
-		creditsToAdd = 4
-	} else {
-		req.PackageID = "single"
-		req.Amount = 12000
-	}
-
-	// Generate unique Order ID: THESA-{timestamp}-{random_hex}
-	randBytes := make([]byte, 3)
-	rand.Read(randBytes)
-	orderID := fmt.Sprintf("THESA-%d-%s", time.Now().Unix(), hex.EncodeToString(randBytes))
-
-	// Request Snap Transaction from Midtrans
-	snapReq := payment.SnapTransactionRequest{
-		TransactionDetails: payment.TransactionDetails{
-			OrderID:     orderID,
-			GrossAmount: req.Amount,
-		},
-		CustomerDetails: payment.CustomerDetails{
-			Email:     req.UserEmail,
-			FirstName: req.UserName,
-		},
-		ItemDetails: []payment.ItemDetail{
-			{
-				ID:       req.PackageID,
-				Price:    req.Amount,
-				Quantity: 1,
-				Name:     packageName,
-			},
-		},
-	}
-
-	snapResp, err := h.midtrans.CreateSnapTransaction(snapReq)
+	amount, packageName, err := orderDetails(strings.TrimSpace(req.TopupType), req.Amount)
 	if err != nil {
-		log.Printf("[Thesa Payment] Snap transaction error: %v", err)
+		writeJSON(w, http.StatusBadRequest, CreateOrderResponse{Success: false, Message: err.Error()})
+		return
 	}
-
-	snapToken := ""
-	snapRedirectURL := ""
-	if snapResp != nil {
-		snapToken = snapResp.Token
-		snapRedirectURL = snapResp.RedirectURL
+	if db.DB == nil || !db.IsConnected() {
+		writeJSON(w, http.StatusServiceUnavailable, CreateOrderResponse{Success: false, Message: "Layanan pembayaran sedang tidak tersedia."})
+		return
 	}
-
-	// Save order to database if connected
-	if db.DB != nil {
-		query := `INSERT INTO orders (order_id, user_id, user_email, package_id, package_name, amount, status, payment_type, snap_token, snap_redirect_url)
-		          VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`
-		_, err := db.DB.Exec(query, orderID, 1, req.UserEmail, req.PackageID, packageName, req.Amount, req.PaymentType, snapToken, snapRedirectURL)
-		if err != nil {
-			log.Printf("[Thesa Payment] Could not save order to database: %v", err)
-		}
+	random := make([]byte, 6)
+	if _, err := rand.Read(random); err != nil {
+		writeJSON(w, http.StatusInternalServerError, CreateOrderResponse{Success: false, Message: "Gagal membuat order pembayaran."})
+		return
 	}
-
-	log.Printf("[Thesa Payment] Order created: %s | Amount: Rp %.0f | Package: %s | User: %s", orderID, req.Amount, req.PackageID, req.UserEmail)
-
-	writeJSON(w, http.StatusOK, CreateOrderResponse{
-		Success:         true,
-		OrderID:         orderID,
-		PackageID:       req.PackageID,
-		PackageName:     packageName,
-		Amount:          req.Amount,
-		Status:          "pending",
-		SnapToken:       snapToken,
-		SnapRedirectURL: snapRedirectURL,
-		QRISCode:        fmt.Sprintf("00020101021226580014ID.LINKAJA.WWW01189360091800000000000215%s51440014ID.DANA.WWW0215000000000000000520458125303360540%0.0f5802ID5911THESA_AI6007JAKARTA62070703A016304%s", orderID, req.Amount, hex.EncodeToString(randBytes)),
+	orderID := fmt.Sprintf("THESA-%s-%d-%s", strings.ToUpper(req.TopupType), time.Now().UnixMilli(), hex.EncodeToString(random))
+	snapResp, err := h.midtrans.CreateSnapTransaction(payment.SnapTransactionRequest{
+		TransactionDetails: payment.TransactionDetails{OrderID: orderID, GrossAmount: amount},
+		CustomerDetails:    payment.CustomerDetails{Email: user.Email, FirstName: user.FullName},
+		ItemDetails:        []payment.ItemDetail{{ID: req.TopupType, Price: amount, Quantity: 1, Name: packageName}},
+		EnabledPayments:    []string{"qris"},
 	})
-	_ = creditsToAdd
+	if err != nil || snapResp == nil || snapResp.Token == "" {
+		log.Printf("[Thesa Payment] create Snap order failed: %v", err)
+		writeJSON(w, http.StatusBadGateway, CreateOrderResponse{Success: false, Message: "Gateway pembayaran belum dapat membuat order. Coba lagi sebentar."})
+		return
+	}
+	_, err = db.DB.Exec(`INSERT INTO orders (order_id, user_id, user_email, package_id, package_name, amount, status, payment_type, snap_token, snap_redirect_url) VALUES (?, ?, ?, ?, ?, ?, 'pending', 'qris', ?, ?)`, orderID, user.ID, user.Email, req.TopupType, packageName, amount, snapResp.Token, snapResp.RedirectURL)
+	if err != nil {
+		log.Printf("[Thesa Payment] saving order failed: %v", err)
+		writeJSON(w, http.StatusInternalServerError, CreateOrderResponse{Success: false, Message: "Order pembayaran tidak dapat disimpan."})
+		return
+	}
+	writeJSON(w, http.StatusOK, CreateOrderResponse{Success: true, OrderID: orderID, PackageID: req.TopupType, PackageName: packageName, Amount: amount, Status: "pending", SnapToken: snapResp.Token, SnapRedirectURL: snapResp.RedirectURL})
 }
 
-// Webhook processes asynchronous payment status notifications from Midtrans.
+// Webhook accepts only a signed Midtrans notification. The transition and
+// benefit are atomic, so provider retries cannot add balance twice.
 func (h *PaymentHandler) Webhook(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
 	var notif payment.WebhookNotification
-	if err := json.NewDecoder(r.Body).Decode(&notif); err != nil {
-		log.Printf("[Thesa Webhook] Error parsing webhook payload: %v", err)
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&notif); err != nil {
 		http.Error(w, "Invalid payload", http.StatusBadRequest)
 		return
 	}
-
-	log.Printf("[Thesa Webhook] Received notification: Order %s | Status: %s | Amount: %s | Type: %s",
-		notif.OrderID, notif.TransactionStatus, notif.GrossAmount, notif.PaymentType)
-
-	// Verify cryptographic signature
 	if !h.midtrans.VerifySignature(notif.OrderID, notif.StatusCode, notif.GrossAmount, notif.SignatureKey) {
-		log.Printf("[Thesa Webhook] WARNING: Invalid signature for order %s!", notif.OrderID)
 		http.Error(w, "Invalid signature", http.StatusForbidden)
 		return
 	}
-
-	// Determine new order status
-	isSettled := false
-	orderStatus := "pending"
-
-	switch notif.TransactionStatus {
-	case "capture", "settlement":
-		if notif.FraudStatus == "accept" || notif.FraudStatus == "" {
-			orderStatus = "settled"
-			isSettled = true
-		}
-	case "deny", "cancel", "expire":
-		orderStatus = "failed"
-	case "pending":
-		orderStatus = "pending"
-	}
-
-	// Update order and record transaction in MySQL
-	if db.DB != nil {
-		grossVal, _ := strconv.ParseFloat(notif.GrossAmount, 64)
-		rawBytes, _ := json.Marshal(notif)
-
-		// 1. Log transaction
-		trxQuery := `INSERT INTO payment_transactions (order_id, transaction_id, payment_type, gross_amount, transaction_status, fraud_status, signature_key, raw_payload)
-		             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-		_, _ = db.DB.Exec(trxQuery, notif.OrderID, notif.TransactionID, notif.PaymentType, grossVal, notif.TransactionStatus, notif.FraudStatus, notif.SignatureKey, string(rawBytes))
-
-		// 2. Update Order status
-		if isSettled {
-			updateQuery := `UPDATE orders SET status = 'settled', settled_at = NOW(), payment_type = ? WHERE order_id = ?`
-			_, err := db.DB.Exec(updateQuery, notif.PaymentType, notif.OrderID)
-			if err != nil {
-				log.Printf("[Thesa Webhook] Could not update order to settled: %v", err)
-			}
-
-			// Add credits to user
-			_, _ = db.DB.Exec(`UPDATE users u JOIN orders o ON u.id = o.user_id SET u.credits = u.credits + 1, u.tier = 'platinum' WHERE o.order_id = ?`, notif.OrderID)
-			log.Printf("[Thesa Webhook] Order %s successfully settled! User access unlocked.", notif.OrderID)
-		} else {
-			_, _ = db.DB.Exec(`UPDATE orders SET status = ? WHERE order_id = ?`, orderStatus, notif.OrderID)
-		}
-	}
-
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"status":   "ok",
-		"order_id": notif.OrderID,
-		"settled":  isSettled,
-	})
-}
-
-// GetStatus checks the current status of an order for frontend polling.
-func (h *PaymentHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
-	orderID := r.URL.Query().Get("order_id")
-	if orderID == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "order_id parameter is required"})
+	if db.DB == nil || !db.IsConnected() {
+		http.Error(w, "Database unavailable", http.StatusServiceUnavailable)
 		return
 	}
-
+	settled := (notif.TransactionStatus == "settlement" || notif.TransactionStatus == "capture") && (notif.FraudStatus == "" || notif.FraudStatus == "accept")
 	status := "pending"
-	var settledAt *time.Time
-	var amount float64
-	var packageName string
-
-	if db.DB != nil {
-		var o struct {
-			Status      string     `db:"status"`
-			Amount      float64    `db:"amount"`
-			PackageName string     `db:"package_name"`
-			SettledAt   *time.Time `db:"settled_at"`
-		}
-		err := db.DB.Get(&o, "SELECT status, amount, package_name, settled_at FROM orders WHERE order_id = ?", orderID)
-		if err == nil {
-			status = o.Status
-			amount = o.Amount
-			packageName = o.PackageName
-			settledAt = o.SettledAt
-		}
+	if settled {
+		status = "settled"
+	} else if notif.TransactionStatus == "deny" || notif.TransactionStatus == "cancel" || notif.TransactionStatus == "expire" {
+		status = "failed"
 	}
-
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"success":      true,
-		"order_id":     orderID,
-		"status":       status,
-		"amount":       amount,
-		"package_name": packageName,
-		"settled":      status == "settled",
-		"settled_at":   settledAt,
-	})
-}
-
-// SimulatePayment allows testing instant payment settlement in development/sandbox.
-func (h *PaymentHandler) SimulatePayment(w http.ResponseWriter, r *http.Request) {
-	orderID := r.URL.Query().Get("order_id")
-	if orderID == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "order_id required"})
+	tx, err := db.DB.Beginx()
+	if err != nil {
+		http.Error(w, "Database unavailable", http.StatusServiceUnavailable)
 		return
 	}
-
-	if db.DB != nil {
-		_, err := db.DB.Exec(`UPDATE orders SET status = 'settled', settled_at = NOW() WHERE order_id = ?`, orderID)
-		if err != nil {
-			log.Printf("[Thesa Payment Simulation] Update error: %v", err)
-		}
-		// Also increment credits
-		_, _ = db.DB.Exec(`UPDATE users SET credits = credits + 1, tier = 'platinum' WHERE id = 1`)
+	defer tx.Rollback()
+	var order struct {
+		UserID    int     `db:"user_id"`
+		PackageID string  `db:"package_id"`
+		Amount    float64 `db:"amount"`
+		Status    string  `db:"status"`
 	}
+	if err := tx.Get(&order, `SELECT user_id, package_id, amount, status FROM orders WHERE order_id = ? FOR UPDATE`, notif.OrderID); err != nil {
+		http.Error(w, "Unknown order", http.StatusNotFound)
+		return
+	}
+	providerAmount, err := strconv.ParseFloat(notif.GrossAmount, 64)
+	if err != nil || math.Abs(providerAmount-order.Amount) > 0.001 {
+		log.Printf("[Thesa Payment] amount mismatch for %s", notif.OrderID)
+		http.Error(w, "Invalid amount", http.StatusBadRequest)
+		return
+	}
+	if settled && order.Status == "pending" {
+		if err := applyOrderBenefit(tx, order.UserID, order.PackageID, order.Amount); err != nil {
+			log.Printf("[Thesa Payment] applying benefit failed: %v", err)
+			http.Error(w, "Unable to settle order", http.StatusInternalServerError)
+			return
+		}
+		if _, err := tx.Exec(`UPDATE orders SET status = 'settled', settled_at = NOW(), payment_type = ? WHERE order_id = ? AND status = 'pending'`, notif.PaymentType, notif.OrderID); err != nil {
+			http.Error(w, "Unable to settle order", http.StatusInternalServerError)
+			return
+		}
+	} else if !settled && order.Status == "pending" {
+		_, _ = tx.Exec(`UPDATE orders SET status = ?, payment_type = ? WHERE order_id = ?`, status, notif.PaymentType, notif.OrderID)
+	}
+	raw, _ := json.Marshal(notif)
+	_, _ = tx.Exec(`INSERT INTO payment_transactions (order_id, transaction_id, payment_type, gross_amount, transaction_status, fraud_status, raw_payload) VALUES (?, ?, ?, ?, ?, ?, ?)`, notif.OrderID, notif.TransactionID, notif.PaymentType, order.Amount, notif.TransactionStatus, notif.FraudStatus, string(raw))
+	if err := tx.Commit(); err != nil {
+		http.Error(w, "Unable to settle order", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "settled": settled})
+}
 
-	log.Printf("[Thesa Payment Simulation] Order %s forcefully settled for demo verification.", orderID)
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"success":  true,
-		"order_id": orderID,
-		"status":   "settled",
-		"message":  "Pembayaran QRIS berhasil diverifikasi secara instan.",
-	})
+func applyOrderBenefit(tx *sqlx.Tx, userID int, packageID string, amount float64) error {
+	switch packageID {
+	case "topup":
+		_, err := tx.Exec(`UPDATE users SET silver_balance = silver_balance + ? WHERE id = ?`, amount, userID)
+		return err
+	case "upgrade-gold":
+		_, err := tx.Exec(`UPDATE users SET tier = CASE WHEN tier = 'platinum' THEN tier ELSE 'gold' END WHERE id = ?`, userID)
+		return err
+	case "upgrade-platinum":
+		_, err := tx.Exec(`UPDATE users SET tier = 'platinum' WHERE id = ?`, userID)
+		return err
+	default:
+		return fmt.Errorf("unknown package %q", packageID)
+	}
+}
+
+// GetStatus exposes an order only to its owner.
+func (h *PaymentHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
+	user, ok := authenticatedUser(r)
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]any{"success": false, "message": "Sesi tidak valid."})
+		return
+	}
+	orderID := strings.TrimSpace(r.URL.Query().Get("order_id"))
+	if orderID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"success": false, "message": "order_id wajib diisi."})
+		return
+	}
+	var order struct {
+		Status      string  `db:"status"`
+		Amount      float64 `db:"amount"`
+		PackageName string  `db:"package_name"`
+	}
+	if db.DB == nil || db.DB.Get(&order, `SELECT status, amount, package_name FROM orders WHERE order_id = ? AND user_id = ?`, orderID, user.ID) != nil {
+		writeJSON(w, http.StatusNotFound, map[string]any{"success": false, "message": "Order tidak ditemukan."})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"success": true, "order_id": orderID, "status": order.Status, "amount": order.Amount, "package_name": order.PackageName, "settled": order.Status == "settled"})
 }

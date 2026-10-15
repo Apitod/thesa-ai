@@ -12,7 +12,7 @@ import (
 
 // TemplateStructure is the structured outline extracted from a template/panduan.
 type TemplateStructure struct {
-	Sections     []TemplateSection   `json:"sections"`
+	Sections     []TemplateSection    `json:"sections"`
 	Requirements TemplateRequirements `json:"requirements"`
 	HasPDF       bool                 `json:"has_pdf"`
 	Source       string               `json:"source"` // "pdf" | "input" | "regex"
@@ -28,19 +28,19 @@ type TemplateRequirements struct {
 
 // TemplateSection describes a single chapter or section in the writing guide.
 type TemplateSection struct {
-	Label       string           `json:"label"`       // e.g. "Bab 1", "Bab 2"
-	Title       string           `json:"title"`       // e.g. "Pendahuluan", "Kajian Pustaka"
-	Description string           `json:"description"`
-	Required    bool             `json:"required"`
+	Label       string            `json:"label"` // e.g. "Bab 1", "Bab 2"
+	Title       string            `json:"title"` // e.g. "Pendahuluan", "Kajian Pustaka"
+	Description string            `json:"description"`
+	Required    bool              `json:"required"`
 	SubSections []TemplateSection `json:"sub_sections,omitempty"`
 }
 
 // MappedOutline is the result of mapping a template structure to a canonical
 // blueprint outline that can be consumed by the Outline Agent.
 type MappedOutline struct {
-	Sections     []OutlineSection   `json:"sections"`
+	Sections     []OutlineSection     `json:"sections"`
 	Requirements TemplateRequirements `json:"requirements"`
-	Deviations   []TemplateDeviation `json:"deviations,omitempty"`
+	Deviations   []TemplateDeviation  `json:"deviations,omitempty"`
 }
 
 // OutlineSection is a single node in the mapped blueprint outline.
@@ -64,10 +64,10 @@ type TemplateDeviation struct {
 
 // StyleGuide holds formatting and citation rules derived from a template.
 type StyleGuide struct {
-	ActiveRules          []string `json:"active_rules"`
-	CitationStyle        string   `json:"citation_style"`
-	FormatRequirements   []string `json:"format_requirements"`
-	ValidationChecklist  []string `json:"validation_checklist"`
+	ActiveRules         []string `json:"active_rules"`
+	CitationStyle       string   `json:"citation_style"`
+	FormatRequirements  []string `json:"format_requirements"`
+	ValidationChecklist []string `json:"validation_checklist"`
 }
 
 // ComplianceIssue describes a single rule violation found in a draft.
@@ -159,7 +159,7 @@ func parseTemplateStructureJSON(jsonStr string, source string) (*TemplateStructu
 	cleaned := cleanJSONString(jsonStr)
 
 	var parsed struct {
-		Sections     []TemplateSection   `json:"sections"`
+		Sections     []TemplateSection    `json:"sections"`
 		Requirements TemplateRequirements `json:"requirements"`
 		HasPDF       bool                 `json:"has_pdf"`
 		Source       string               `json:"source"`
@@ -261,9 +261,9 @@ func parseMappedOutlineJSON(jsonStr string, fallbackReqs TemplateRequirements) (
 	cleaned := cleanJSONString(jsonStr)
 
 	var parsed struct {
-		Sections   []OutlineSection   `json:"sections"`
+		Sections   []OutlineSection     `json:"sections"`
 		Reqs       TemplateRequirements `json:"requirements"`
-		Deviations []TemplateDeviation `json:"deviations"`
+		Deviations []TemplateDeviation  `json:"deviations"`
 	}
 
 	if err := json.Unmarshal([]byte(cleaned), &parsed); err != nil {
@@ -509,4 +509,3 @@ func cleanJSONString(s string) string {
 
 	return s
 }
-

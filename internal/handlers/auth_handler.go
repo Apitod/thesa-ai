@@ -16,15 +16,16 @@ import (
 
 // User represents an authenticated Thesa AI user.
 type User struct {
-	ID          int       `db:"id" json:"id"`
-	Email       string    `db:"email" json:"email"`
-	FullName    string    `db:"full_name" json:"name"`
-	Institution string    `db:"institution" json:"institution"`
-	Prodi       string    `db:"prodi" json:"prodi"`
-	Level       string    `db:"level" json:"level"`
-	Tier        string    `db:"tier" json:"tier"`
-	TrustScore  int       `db:"trust_score" json:"trustScore"`
-	CreatedAt   time.Time `db:"created_at" json:"registeredAt"`
+	ID            int       `db:"id" json:"id"`
+	Email         string    `db:"email" json:"email"`
+	FullName      string    `db:"full_name" json:"name"`
+	Institution   string    `db:"institution" json:"institution"`
+	Prodi         string    `db:"prodi" json:"prodi"`
+	Level         string    `db:"level" json:"level"`
+	Tier          string    `db:"tier" json:"tier"`
+	SilverBalance float64   `db:"silver_balance" json:"silverBalance"`
+	TrustScore    int       `db:"trust_score" json:"trustScore"`
+	CreatedAt     time.Time `db:"created_at" json:"registeredAt"`
 }
 
 // In-memory fallback user and session store when DB is disconnected
@@ -61,7 +62,7 @@ func init() {
 			Institution: "Universitas Indonesia",
 			Prodi:       "Ilmu Komputer",
 			Level:       "S2",
-			Tier:        "gold",
+			Tier:        "silver",
 			TrustScore:  95,
 			CreatedAt:   time.Now(),
 		},
@@ -83,7 +84,6 @@ type RegisterRequest struct {
 	Institution string `json:"institution"`
 	Prodi       string `json:"prodi"`
 	Level       string `json:"level"`
-	Tier        string `json:"tier"`
 }
 
 type LoginRequest struct {
@@ -129,9 +129,9 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	if req.Level == "" {
 		req.Level = "S1"
 	}
-	if req.Tier == "" {
-		req.Tier = "gold"
-	}
+	// Registration is intentionally free. Never accept a tier from the client:
+	// upgrades are granted only after a verified payment callback.
+	const initialTier = "silver"
 
 	trustScore := 85
 	if strings.HasSuffix(req.Email, ".ac.id") || strings.Contains(req.Email, ".edu") {
@@ -156,7 +156,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		res, err := db.DB.Exec(`
 			INSERT INTO users (email, password_hash, full_name, institution, prodi, level, tier, trust_score, created_at, updated_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-		`, req.Email, passHash, req.FullName, req.Institution, req.Prodi, req.Level, req.Tier, trustScore)
+		`, req.Email, passHash, req.FullName, req.Institution, req.Prodi, req.Level, initialTier, trustScore)
 
 		if err != nil {
 			log.Printf("[Thesa Auth] DB Register error: %v", err)
@@ -172,7 +172,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 			Institution: req.Institution,
 			Prodi:       req.Prodi,
 			Level:       req.Level,
-			Tier:        req.Tier,
+			Tier:        initialTier,
 			TrustScore:  trustScore,
 			CreatedAt:   time.Now(),
 		}
@@ -199,7 +199,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 			Institution: req.Institution,
 			Prodi:       req.Prodi,
 			Level:       req.Level,
-			Tier:        req.Tier,
+			Tier:        initialTier,
 			TrustScore:  trustScore,
 			CreatedAt:   time.Now(),
 		}
@@ -249,18 +249,19 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	if db.DB != nil && db.IsConnected() {
 		var u struct {
-			ID           int    `db:"id"`
-			Email        string `db:"email"`
-			PasswordHash string `db:"password_hash"`
-			FullName     string `db:"full_name"`
-			Institution  string `db:"institution"`
-			Prodi        string `db:"prodi"`
-			Level        string `db:"level"`
-			Tier         string `db:"tier"`
-			TrustScore   int    `db:"trust_score"`
+			ID            int     `db:"id"`
+			Email         string  `db:"email"`
+			PasswordHash  string  `db:"password_hash"`
+			FullName      string  `db:"full_name"`
+			Institution   string  `db:"institution"`
+			Prodi         string  `db:"prodi"`
+			Level         string  `db:"level"`
+			Tier          string  `db:"tier"`
+			TrustScore    int     `db:"trust_score"`
+			SilverBalance float64 `db:"silver_balance"`
 		}
 
-		err := db.DB.Get(&u, `SELECT id, email, password_hash, full_name, institution, prodi, level, tier, trust_score FROM users WHERE email = ? LIMIT 1`, req.Email)
+		err := db.DB.Get(&u, `SELECT id, email, password_hash, full_name, institution, prodi, level, tier, silver_balance, trust_score FROM users WHERE email = ? LIMIT 1`, req.Email)
 		if err != nil {
 			writeJSON(w, http.StatusUnauthorized, AuthResponse{Success: false, Message: "Email atau kata sandi tidak sesuai."})
 			return
@@ -272,15 +273,16 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		}
 
 		user = User{
-			ID:          u.ID,
-			Email:       u.Email,
-			FullName:    u.FullName,
-			Institution: u.Institution,
-			Prodi:       u.Prodi,
-			Level:       u.Level,
-			Tier:        u.Tier,
-			TrustScore:  u.TrustScore,
-			CreatedAt:   time.Now(),
+			ID:            u.ID,
+			Email:         u.Email,
+			FullName:      u.FullName,
+			Institution:   u.Institution,
+			Prodi:         u.Prodi,
+			Level:         u.Level,
+			Tier:          u.Tier,
+			SilverBalance: u.SilverBalance,
+			TrustScore:    u.TrustScore,
+			CreatedAt:     time.Now(),
 		}
 
 		_, _ = db.DB.Exec(`INSERT INTO user_sessions (user_id, token, expires_at, created_at) VALUES (?, ?, ?, NOW())`, user.ID, token, expiresAt)
@@ -343,7 +345,7 @@ func ValidateUserSession(token string) (*User, bool) {
 	if db.DB != nil && db.IsConnected() {
 		var u User
 		query := `
-			SELECT u.id, u.email, u.full_name, u.institution, u.prodi, u.level, u.tier, u.trust_score, u.created_at
+			SELECT u.id, u.email, u.full_name, u.institution, u.prodi, u.level, u.tier, u.silver_balance, u.trust_score, u.created_at
 			FROM user_sessions s
 			JOIN users u ON s.user_id = u.id
 			WHERE s.token = ? AND s.expires_at > NOW()

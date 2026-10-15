@@ -38,8 +38,8 @@ type ResearchGap struct {
 
 // LiteratureAgent combines PubMed search with AI-powered analysis.
 type LiteratureAgent struct {
-	provider  AIProvider
-	pubmed    *PubMedClient
+	provider AIProvider
+	pubmed   *PubMedClient
 }
 
 // NewLiteratureAgent creates a new LiteratureAgent.
@@ -199,11 +199,11 @@ func parsePaperSummaryJSON(jsonStr string, paper PaperDetail) (PaperSummary, err
 	}
 
 	var parsed struct {
-		Summary        string    `json:"summary"`
-		KeyFindings    []string  `json:"key_findings"`
-		Methodology    string    `json:"methodology"`
-		Limitations    []string  `json:"limitations"`
-		RelevanceScore float64   `json:"relevance_score"`
+		Summary        string   `json:"summary"`
+		KeyFindings    []string `json:"key_findings"`
+		Methodology    string   `json:"methodology"`
+		Limitations    []string `json:"limitations"`
+		RelevanceScore float64  `json:"relevance_score"`
 	}
 
 	if err := json.Unmarshal([]byte(cleaned), &parsed); err != nil {
@@ -307,7 +307,7 @@ func parseGapAnalysisJSON(jsonStr string) (GapAnalysis, error) {
 	}
 
 	var parsed struct {
-		IdentifiedGaps  []struct {
+		IdentifiedGaps []struct {
 			Area        string `json:"area"`
 			Description string `json:"description"`
 			Evidence    string `json:"evidence"`

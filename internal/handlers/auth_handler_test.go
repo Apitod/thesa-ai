@@ -19,7 +19,6 @@ func TestAuthHandler_Register(t *testing.T) {
 		Institution: "Universitas Indonesia",
 		Prodi:       "Ilmu Komputer",
 		Level:       "S1",
-		Tier:        "gold",
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewBuffer(reqBody))
@@ -47,6 +46,9 @@ func TestAuthHandler_Register(t *testing.T) {
 	}
 	if resp.User.TrustScore != 95 {
 		t.Errorf("expected trust score 95 for academic email, got %d", resp.User.TrustScore)
+	}
+	if resp.User.Tier != "silver" {
+		t.Errorf("expected free registration to start on silver, got %q", resp.User.Tier)
 	}
 
 	// Test case 2: Empty email & password

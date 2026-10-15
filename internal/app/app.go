@@ -211,6 +211,9 @@ func NewMux() *http.ServeMux {
 
 	conversationHandler := handlers.NewConversationHandler(supervisor, cascadeEngine)
 	authHandler := handlers.NewAuthHandler()
+	projectHandler := handlers.NewProjectHandler()
+	paperHandler := handlers.NewPaperHandler(litProvider)
+	literatureSearchHandler := handlers.NewLiteratureSearchHandler()
 	paymentHandler := handlers.NewPaymentHandler()
 	adminHandler := handlers.NewAdminHandler(serverStartTime)
 
@@ -220,6 +223,12 @@ func NewMux() *http.ServeMux {
 	mux.HandleFunc("/api/v1/auth/register", authHandler.Register)
 	mux.HandleFunc("/api/v1/auth/login", authHandler.Login)
 	mux.HandleFunc("/api/v1/auth/me", authHandler.Me)
+	mux.HandleFunc("/api/v1/projects/create", authRateLimit(projectHandler.Create))
+	mux.HandleFunc("/api/v1/projects/save", authRateLimit(projectHandler.Save))
+	mux.HandleFunc("/api/v1/projects/list", authRateLimit(projectHandler.List))
+	mux.HandleFunc("/api/v1/projects/get", authRateLimit(projectHandler.Get))
+	mux.HandleFunc("/api/v1/paper/generate", authRateLimit(paperHandler.Generate))
+	mux.HandleFunc("/api/v1/literature/search", authRateLimit(literatureSearchHandler.Search))
 
 	// Deliberative Conversation routes
 	mux.HandleFunc("/api/v1/conversation/turn", authRateLimit(conversationHandler.Turn))
@@ -229,7 +238,6 @@ func NewMux() *http.ServeMux {
 	mux.HandleFunc("/api/v1/payment/create-order", authRateLimit(paymentHandler.CreateOrder))
 	mux.HandleFunc("/api/v1/payment/webhook", paymentHandler.Webhook)
 	mux.HandleFunc("/api/v1/payment/status", paymentHandler.GetStatus)
-	mux.HandleFunc("/api/v1/payment/simulate", paymentHandler.SimulatePayment)
 
 	// Admin routes
 	mux.HandleFunc("/api/v1/admin/stats", security.RequireAdminAuth(adminHandler.GetDashboardStats))

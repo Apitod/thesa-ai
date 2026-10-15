@@ -3,6 +3,7 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // ---------------------------------------------------------------------------
@@ -77,10 +78,10 @@ type DocumentMetadata struct {
 
 // ReadinessReport provides an overall readiness score for a document.
 type ReadinessReport struct {
-	OverallScore int               `json:"overall_score"`
-	Status       string            `json:"status"`
-	PerAspect    map[string]int    `json:"per_aspect"`
-	NextActions  []string          `json:"next_actions"`
+	OverallScore int            `json:"overall_score"`
+	Status       string         `json:"status"`
+	PerAspect    map[string]int `json:"per_aspect"`
+	NextActions  []string       `json:"next_actions"`
 }
 
 // ---------------------------------------------------------------------------
@@ -439,15 +440,15 @@ type ExaminerSimulateRequest struct {
 
 // ExaminerSimulateResponse returns generated question or evaluation result.
 type ExaminerSimulateResponse struct {
-	QuestionText      string   `json:"question_text,omitempty"`
-	ContextBab        string   `json:"context_bab,omitempty"`
-	Intent            string   `json:"intent,omitempty"`
-	Score             int      `json:"score,omitempty"`
-	Grade             string   `json:"grade,omitempty"`
-	Feedback          string   `json:"feedback,omitempty"`
-	Critique          string   `json:"critique,omitempty"`
-	StrongPoints      []string `json:"strong_points,omitempty"`
-	ImprovementPoints []string `json:"improvement_points,omitempty"`
+	QuestionText      string         `json:"question_text,omitempty"`
+	ContextBab        string         `json:"context_bab,omitempty"`
+	Intent            string         `json:"intent,omitempty"`
+	Score             int            `json:"score,omitempty"`
+	Grade             string         `json:"grade,omitempty"`
+	Feedback          string         `json:"feedback,omitempty"`
+	Critique          string         `json:"critique,omitempty"`
+	StrongPoints      []string       `json:"strong_points,omitempty"`
+	ImprovementPoints []string       `json:"improvement_points,omitempty"`
 	AspectScores      map[string]int `json:"aspect_scores,omitempty"`
 }
 
@@ -504,11 +505,7 @@ Keluarkan HANYA JSON valid:
 	var resp ExaminerSimulateResponse
 	cleaned := cleanJSONString(result)
 	if err := json.Unmarshal([]byte(cleaned), &resp); err != nil {
-		return &ExaminerSimulateResponse{
-			QuestionText: fmt.Sprintf("Terkait topik '%s', bagaimana Anda membuktikan secara empiris bahwa temuan dan metodologi yang Anda terapkan mampu menjawab langsung rumusan masalah yang Anda ajukan?", req.Topic),
-			ContextBab:   "Metodologi & Analisis",
-			Intent:       "Menguji keselarasan antara rumusan masalah dan metode analisis",
-		}, nil
+		return nil, fmt.Errorf("Gemini examiner question response is not valid JSON: %w", err)
 	}
 
 	return &resp, nil
@@ -558,20 +555,7 @@ Keluarkan format JSON murni:
 	var resp ExaminerSimulateResponse
 	cleaned := cleanJSONString(result)
 	if err := json.Unmarshal([]byte(cleaned), &resp); err != nil {
-		return &ExaminerSimulateResponse{
-			Score:             82,
-			Grade:             "A-",
-			Feedback:          "Jawaban cukup lugas dan menjawab pokok pertanyaan dewan penguji.",
-			Critique:          "Perlu memperkuat rujukan metodologis dan batasan penelitian.",
-			StrongPoints:      []string{"Artikulasi tenang", "Menjawab inti pertanyaan"},
-			ImprovementPoints: []string{"Sertakan sitasi kunci", "Jelaskan mitigasi ancaman validitas"},
-			AspectScores: map[string]int{
-				"logic":      84,
-				"method":     80,
-				"literature": 82,
-				"oral":       85,
-			},
-		}, nil
+		return nil, fmt.Errorf("Gemini examiner evaluation response is not valid JSON: %w", err)
 	}
 
 	return &resp, nil
@@ -583,16 +567,16 @@ Keluarkan format JSON murni:
 
 // ConversationTurnRequest carries all context for a single user turn in workspace
 type ConversationTurnRequest struct {
-	ProjectID      int                    `json:"project_id"`
-	CurrentStep    string                 `json:"current_step"`   // e.g. "1.1", "1.2", "1.3", "2.1", "2.2", "3.1"
-	TargetSection  string                 `json:"target_section"` // section being revised or discussed
-	UserMessage    string                 `json:"user_message"`   // Free-text input from user
-	ActionType     string                 `json:"action_type"`    // "free_text" | "chip_select" | "revision" | "reconcile" | "approve"
-	PaperContext   map[string]string      `json:"paper_context"`  // Current content of each section
-	EditDelta      *EditDelta             `json:"edit_delta"`     // What user changed since last turn
-	Topic          string                 `json:"topic"`
-	Problems       []string               `json:"problems"`
-	Goals          []string               `json:"goals"`
+	ProjectID     int               `json:"project_id"`
+	CurrentStep   string            `json:"current_step"`   // e.g. "1.1", "1.2", "1.3", "2.1", "2.2", "3.1"
+	TargetSection string            `json:"target_section"` // section being revised or discussed
+	UserMessage   string            `json:"user_message"`   // Free-text input from user
+	ActionType    string            `json:"action_type"`    // "free_text" | "chip_select" | "revision" | "reconcile" | "approve"
+	PaperContext  map[string]string `json:"paper_context"`  // Current content of each section
+	EditDelta     *EditDelta        `json:"edit_delta"`     // What user changed since last turn
+	Topic         string            `json:"topic"`
+	Problems      []string          `json:"problems"`
+	Goals         []string          `json:"goals"`
 }
 
 // EditDelta represents a semantic change made in the paper
@@ -629,8 +613,7 @@ type ConversationTurnResponse struct {
 // ExecuteConversationTurn processes a user turn with LLM reasoning, rationale, and cascade analysis
 func (s *AgentSupervisor) ExecuteConversationTurn(req ConversationTurnRequest, config ProviderConfig) (*ConversationTurnResponse, error) {
 	if s.provider == nil {
-		// Fallback deliberative response when provider is not configured
-		return s.fallbackConversationTurn(req), nil
+		return nil, fmt.Errorf("agent supervisor: AI provider not configured")
 	}
 
 	prompt := fmt.Sprintf(`Anda adalah Thesa Co-Authoring Engine, mitra dialog sokratik penulisan akademik perguruan tinggi Indonesia.
@@ -642,6 +625,9 @@ Konteks Percakapan:
 - Bagian Target: %s
 - Tipe Aksi: %s
 - Masukan Pengguna: "%s"
+- Masalah Riset: %s
+- Tujuan Riset: %s
+- Isi naskah saat ini: %s
 
 Format JSON yang WAJIB dihasilkan:
 {
@@ -661,7 +647,7 @@ Format JSON yang WAJIB dihasilkan:
       "action_type": "insert"
     }
   ]
-}`, req.Topic, req.CurrentStep, req.TargetSection, req.ActionType, req.UserMessage)
+}`, req.Topic, req.CurrentStep, req.TargetSection, req.ActionType, req.UserMessage, strings.Join(req.Problems, "; "), strings.Join(req.Goals, "; "), formatPaperContext(req.PaperContext))
 
 	messages := []Message{
 		{Role: "system", Content: "Anda adalah Thesa Co-Authoring Engine. Respons HANYA dalam JSON valid tanpa markdown fence."},
@@ -670,57 +656,28 @@ Format JSON yang WAJIB dihasilkan:
 
 	result, err := s.provider.Chat(messages, config)
 	if err != nil {
-		return s.fallbackConversationTurn(req), nil
+		return nil, fmt.Errorf("generate conversation response: %w", err)
 	}
 
 	var resp ConversationTurnResponse
 	cleaned := cleanJSONString(result)
 	if err := json.Unmarshal([]byte(cleaned), &resp); err != nil {
-		return s.fallbackConversationTurn(req), nil
+		return nil, fmt.Errorf("Gemini returned invalid conversation JSON: %w", err)
 	}
 
 	return &resp, nil
 }
 
-func (s *AgentSupervisor) fallbackConversationTurn(req ConversationTurnRequest) *ConversationTurnResponse {
-	title := "Penyesuaian Berbasis Masukan Mahasiswa"
-	msg := "Thesa telah menelaah masukan orisinal Anda dan menyelaraskannya ke dalam kaidah struktur naskah ilmiah."
-	rationale := "Penyelarasan ini memastikan argumen tetap fokus pada pokok permasalahan tanpa kehilangan konsistensi terminologi."
-	draft := req.UserMessage
-
-	if req.ActionType == "revision" {
-		title = fmt.Sprintf("Revisi Draf %s", req.TargetSection)
-		msg = "Draf revisi siap ditinjau. Anda dapat mengubah langsung atau menyetujui untuk memperbarui naskah."
-		rationale = "Revisi yang diperjelas pada bagian ini memperkuat fondasi logika untuk bab-bab selanjutnya."
+func formatPaperContext(context map[string]string) string {
+	if len(context) == 0 {
+		return "(belum ada)"
 	}
-
-	return &ConversationTurnResponse{
-		ResponseType:  "draft",
-		Title:         title,
-		Message:       msg,
-		DraftContent:  draft,
-		TargetSection: req.TargetSection,
-		Rationale:     rationale,
-		Recommendations: []Recommendation{
-			{
-				ID:          "rec-cit",
-				Title:       "Perkuat dengan Sitasi Empiris",
-				Description: "Tambahkan rujukan jurnal bereputasi untuk menopang argumen di atas.",
-				Rationale:   "Argumen naskah menjadi teruji secara objektif.",
-				Icon:        "format_quote",
-				Relevance:   "high",
-				ActionType:  "add_citation",
-			},
-			{
-				ID:          "rec-sharp",
-				Title:       "Pertajam Batasan Masalah",
-				Description: "Perjelas ruang lingkup agar tidak melebar ke aspek non-esensial.",
-				Rationale:   "Membantu mahasiswa lebih percaya diri saat sesi tanya jawab sidang skripsi.",
-				Icon:        "tune",
-				Relevance:   "medium",
-				ActionType:  "tighten_scope",
-			},
-		},
+	parts := make([]string, 0, len(context))
+	for section, content := range context {
+		if len(content) > 1200 {
+			content = content[:1200] + "…"
+		}
+		parts = append(parts, section+": "+content)
 	}
+	return strings.Join(parts, "\n")
 }
-

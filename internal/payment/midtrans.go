@@ -102,12 +102,8 @@ func (c *MidtransClient) apiBaseURL() string {
 
 // CreateSnapTransaction creates a new transaction token via Midtrans Snap.
 func (c *MidtransClient) CreateSnapTransaction(req SnapTransactionRequest) (*SnapTransactionResponse, error) {
-	// If server key is demo/dummy, return simulated Snap token for local development resilience
-	if c.serverKey == "" || strings.Contains(c.serverKey, "demo") || strings.Contains(c.serverKey, "YOUR_SERVER_KEY") {
-		return &SnapTransactionResponse{
-			Token:       fmt.Sprintf("THESA-SNAP-%s-%d", req.TransactionDetails.OrderID, time.Now().Unix()),
-			RedirectURL: fmt.Sprintf("https://app.sandbox.midtrans.com/snap/v2/vtweb/%s", req.TransactionDetails.OrderID),
-		}, nil
+	if c.serverKey == "" || strings.Contains(c.serverKey, "YOUR_SERVER_KEY") {
+		return nil, fmt.Errorf("MIDTRANS_SERVER_KEY is not configured")
 	}
 
 	url := c.snapBaseURL() + "/transactions"
@@ -152,9 +148,8 @@ func (c *MidtransClient) CreateSnapTransaction(req SnapTransactionRequest) (*Sna
 // VerifySignature validates that incoming webhook notification was signed by Midtrans.
 // Signature formula: SHA512(order_id + status_code + gross_amount + ServerKey)
 func (c *MidtransClient) VerifySignature(orderID, statusCode, grossAmount, signatureKey string) bool {
-	// In demo/sandbox with mock keys, allow verification
-	if c.serverKey == "" || strings.Contains(c.serverKey, "demo") {
-		return true
+	if c.serverKey == "" || strings.Contains(c.serverKey, "YOUR_SERVER_KEY") {
+		return false
 	}
 
 	raw := orderID + statusCode + grossAmount + c.serverKey
@@ -167,13 +162,8 @@ func (c *MidtransClient) VerifySignature(orderID, statusCode, grossAmount, signa
 
 // CheckTransactionStatus calls Midtrans Core API to check live transaction status.
 func (c *MidtransClient) CheckTransactionStatus(orderID string) (*WebhookNotification, error) {
-	if c.serverKey == "" || strings.Contains(c.serverKey, "demo") {
-		return &WebhookNotification{
-			OrderID:           orderID,
-			TransactionStatus: "settlement",
-			StatusCode:        "200",
-			PaymentType:       "qris",
-		}, nil
+	if c.serverKey == "" || strings.Contains(c.serverKey, "YOUR_SERVER_KEY") {
+		return nil, fmt.Errorf("MIDTRANS_SERVER_KEY is not configured")
 	}
 
 	url := fmt.Sprintf("%s/%s/status", c.apiBaseURL(), orderID)

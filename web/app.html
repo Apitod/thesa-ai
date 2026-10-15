@@ -47,27 +47,27 @@
 
         <!-- Nav -->
         <nav class="hp-nav">
-          <a class="hp-nav-item active" id="navDashboard" href="#" onclick="return false;">
+          <a class="hp-nav-item active" id="navDashboard" href="#" onclick="navigateTo('dashboard'); return false;">
             <span class="material-symbols-rounded">dashboard</span>
             <span>Dashboard</span>
           </a>
-          <a class="hp-nav-item" href="#" onclick="navigateTo('projects'); return false;">
+          <a class="hp-nav-item" id="navProjects" href="#" onclick="navigateTo('projects'); return false;">
             <span class="material-symbols-rounded">folder_open</span>
             <span>Proyek Saya</span>
-            <span class="hp-nav-badge">3</span>
+            <span class="hp-nav-badge" id="navProjectsBadge">0</span>
           </a>
-          <a class="hp-nav-item" id="navPustakaRiset" href="#" onclick="openPustakaRisetModal(); return false;">
+          <a class="hp-nav-item" id="navPustakaRiset" href="#" onclick="navigateTo('pustaka'); return false;">
             <span class="material-symbols-rounded">menu_book</span>
             <span>Pustaka Riset</span>
           </a>
-          <a class="hp-nav-item" id="navPencapaian" href="#" onclick="openPencapaianModal(); return false;">
+          <a class="hp-nav-item" id="navPencapaian" href="#" onclick="navigateTo('pencapaian'); return false;">
             <span class="material-symbols-rounded">emoji_events</span>
             <span>Pencapaian</span>
           </a>
 
           <div class="hp-nav-divider"></div>
 
-          <a class="hp-nav-item" href="#" onclick="showDossierModal('compass'); return false;" title="Pengaturan Academic Path &amp; Preferensi Bimbingan">
+          <a class="hp-nav-item" id="navPengaturan" href="#" onclick="navigateTo('pengaturan'); return false;" title="Pengaturan Akun &amp; Preferensi">
             <span class="material-symbols-rounded">settings</span>
             <span>Pengaturan</span>
           </a>
@@ -116,10 +116,24 @@
             <span class="material-symbols-rounded" style="font-size:15px; color:#059669;">verified</span>
             <span>Integritas 98%</span>
           </div>
-          <button class="hp-notif-btn" title="Notifikasi">
-            <span class="material-symbols-rounded">notifications</span>
-            <span class="hp-notif-dot"></span>
-          </button>
+          <div style="position:relative;">
+            <button class="hp-notif-btn" id="btnHpNotif" onclick="toggleNotifications(event)" title="Notifikasi">
+              <span class="material-symbols-rounded">notifications</span>
+              <span class="hp-notif-dot" id="hpNotifDot"></span>
+            </button>
+            <div id="thesaNotifPanel" style="display:none; position:absolute; right:0; top:48px; width:340px; background:#fff; border:1.5px solid #e2e8f0; border-radius:14px; box-shadow:0 12px 32px rgba(15,23,42,0.18); z-index:10000; padding:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #f1f5f9; padding-bottom:8px;">
+                <strong style="font-size:13.5px; color:#1e293b; display:flex; align-items:center; gap:6px;">
+                  <span class="material-symbols-rounded" style="font-size:18px; color:var(--brand);">notifications_active</span>
+                  Pusat Notifikasi
+                </strong>
+                <button onclick="clearNotifications()" style="background:none; border:none; color:#64748b; font-size:11px; cursor:pointer; font-weight:700;">Tandai Dibaca</button>
+              </div>
+              <div id="notifListContainer" style="display:flex; flex-direction:column; gap:10px; max-height:280px; overflow-y:auto;">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
           <div class="hp-avatar-sm" onclick="showDossierModal()" title="Profil &amp; Pengaturan">
             <img id="hpUserAvatarSm" src="https://api.dicebear.com/7.x/initials/svg?seed=AA&backgroundColor=e0e7ff&textColor=4f46e5" alt="Avatar">
           </div>
@@ -129,7 +143,8 @@
       <!-- Scrollable Content Body -->
       <div class="hp-body">
 
-        <!-- ── HERO: New Project ──────────────────────────────────────── -->
+        <!-- ── VIEW 1: DASHBOARD (DEFAULT VIEW) ──────────────────────── -->
+        <div id="viewDashboard" class="hp-view-section" style="display:flex; flex-direction:column; gap:24px; width:100%;">
         <section class="hp-hero-card">
           <div class="hp-hero-top-row">
             <div class="hp-hero-left">
@@ -434,7 +449,221 @@
 
           </div><!-- /hp-col-side -->
 
-        </div><!-- /hp-content-grid -->
+        </div><!-- /viewDashboard -->
+
+        <!-- ── VIEW 2: PROYEK SAYA (DEDICATED FULL VIEW) ──────────────── -->
+        <div id="viewProjects" class="hp-view-section" style="display:none; flex-direction:column; gap:20px; width:100%;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div>
+              <h2 style="font-size:22px; font-weight:800; color:#1e293b; margin:0 0 4px;">📁 Proyek Riset Saya</h2>
+              <p style="font-size:13px; color:#64748b; margin:0;">Seluruh naskah, draf, dan catatan riset yang tersimpan di basis data terverifikasi.</p>
+            </div>
+            <button class="btn-primary" onclick="handleKTIClick('makalah')" style="padding:10px 18px; font-weight:700;">
+              <span class="material-symbols-rounded">add</span>
+              <span>Buat Proyek Baru</span>
+            </button>
+          </div>
+
+          <!-- Filter & Search Bar -->
+          <div style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:12px 16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+            <div style="flex:1; min-width:240px; display:flex; align-items:center; gap:8px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:10px; padding:8px 12px;">
+              <span class="material-symbols-rounded" style="color:#64748b; font-size:18px;">search</span>
+              <input type="text" id="projectSearchInput" placeholder="Cari berdasarkan judul atau topik riset..." style="border:none; outline:none; background:transparent; font-size:13px; width:100%; color:#1e293b;" oninput="filterDedicatedProjects()">
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn-secondary active" id="btnFilterAllProjects" onclick="filterProjectsByType('all')" style="padding:6px 14px; font-size:12px;">Semua</button>
+              <button class="btn-secondary" id="btnFilterMakalah" onclick="filterProjectsByType('makalah')" style="padding:6px 14px; font-size:12px;">Makalah</button>
+              <button class="btn-secondary" id="btnFilterProposal" onclick="filterProjectsByType('proposal')" style="padding:6px 14px; font-size:12px;">Proposal</button>
+              <button class="btn-secondary" id="btnFilterSkripsi" onclick="filterProjectsByType('skripsi')" style="padding:6px 14px; font-size:12px;">Skripsi</button>
+            </div>
+          </div>
+
+          <!-- Projects Dedicated Grid -->
+          <div id="dedicatedProjectsGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:16px;">
+            <div style="padding:32px; text-align:center; color:#64748b;">⏳ Memuat daftar proyek dari database...</div>
+          </div>
+        </div>
+
+        <!-- ── VIEW 3: PUSTAKA RISET (LIVE PUBMED DEDICATED FULL VIEW) ───── -->
+        <div id="viewPustakaRiset" class="hp-view-section" style="display:none; flex-direction:column; gap:20px; width:100%;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div>
+              <h2 style="font-size:22px; font-weight:800; color:#1e293b; margin:0 0 4px; display:flex; align-items:center; gap:8px;">
+                <span>📚 Pustaka Riset Ilmiah (Live PubMed)</span>
+                <span style="font-size:11px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:2px 8px; border-radius:999px;">NCBI Terverifikasi</span>
+              </h2>
+              <p style="font-size:13px; color:#64748b; margin:0;">Cari jutaan artikel peer-reviewed terindeks di PubMed NCBI untuk memperkuat sitasi dan novelty naskahmu.</p>
+            </div>
+          </div>
+
+          <!-- Live Search Bar -->
+          <div style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; gap:10px;">
+              <div style="flex:1; display:flex; align-items:center; gap:10px; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:10px; padding:10px 14px;">
+                <span class="material-symbols-rounded" style="color:#4f46e5;">travel_explore</span>
+                <input type="text" id="dedicatedPustakaInput" placeholder="Ketik topik ilmiah, nama penyakit, teknologi, atau DOI (cth: deep learning clinical decision support)..." style="border:none; outline:none; background:transparent; font-size:13.5px; width:100%; color:#1e293b;" onkeydown="if(event.key==='Enter') executeDedicatedPubMedSearch();">
+              </div>
+              <button class="btn-primary" onclick="executeDedicatedPubMedSearch()" style="padding:10px 20px; font-weight:700;">
+                <span class="material-symbols-rounded">search</span>
+                <span>Cari di PubMed</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Results Container -->
+          <div id="dedicatedPustakaResults" style="display:flex; flex-direction:column; gap:14px;">
+            <div style="background:#fff; border:1px dashed #cbd5e1; border-radius:14px; padding:36px; text-align:center; color:#64748b;">
+              <span class="material-symbols-rounded" style="font-size:40px; color:#94a3b8; margin-bottom:8px;">menu_book</span>
+              <h4 style="font-size:15px; font-weight:700; color:#334155; margin:0 0 6px;">Pustaka Riset Siap Digunakan</h4>
+              <p style="font-size:12.5px; max-width:440px; margin:0 auto; line-height:1.5;">Masukkan kata kunci atau topik penelitianmu di atas untuk mencari publikasi ilmiah nyata dari repositori PubMed secara langsung.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── VIEW 4: PENCAPAIAN (DEDICATED FULL VIEW) ────────────────── -->
+        <div id="viewPencapaian" class="hp-view-section" style="display:none; flex-direction:column; gap:20px; width:100%;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div>
+              <h2 style="font-size:22px; font-weight:800; color:#1e293b; margin:0 0 4px;">🏆 Pencapaian &amp; Integritas Akademik</h2>
+              <p style="font-size:13px; color:#64748b; margin:0;">Pantau reputasi kepenulisan, integritas anti-joki, dan akumulasi poin keahlian akademikmu.</p>
+            </div>
+          </div>
+
+          <!-- Stats Grid -->
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
+            <div style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:18px;">
+              <div style="font-size:11.5px; font-weight:700; color:#64748b; margin-bottom:6px;">SKOR INTEGRITAS AKADEMIK</div>
+              <div style="font-size:28px; font-weight:800; color:#059669; display:flex; align-items:center; gap:8px;">
+                <span class="material-symbols-rounded">verified</span>
+                <span id="pencapaianTrustScore">95%</span>
+              </div>
+              <div style="font-size:11px; color:#64748b; margin-top:4px;">Bebas fabrikasi data &amp; plagiarisme</div>
+            </div>
+            <div style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:18px;">
+              <div style="font-size:11.5px; font-weight:700; color:#64748b; margin-bottom:6px;">TOTAL KREDIT / AKADEMIK XP</div>
+              <div style="font-size:28px; font-weight:800; color:#4f46e5; display:flex; align-items:center; gap:8px;">
+                <span class="material-symbols-rounded">stars</span>
+                <span id="pencapaianXP">450 XP</span>
+              </div>
+              <div style="font-size:11px; color:#64748b; margin-top:4px;">Tingkat: Peneliti Muda Terverifikasi</div>
+            </div>
+            <div style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:18px;">
+              <div style="font-size:11.5px; font-weight:700; color:#64748b; margin-bottom:6px;">MESIN KECERDASAN BUATAN</div>
+              <div style="font-size:20px; font-weight:800; color:#2563eb; display:flex; align-items:center; gap:8px;">
+                <span class="material-symbols-rounded">smart_toy</span>
+                <span>Gemini 2.5 Flash</span>
+              </div>
+              <div style="font-size:11px; color:#059669; font-weight:700; margin-top:4px;">● Aktif &amp; Terhubung Google AI</div>
+            </div>
+          </div>
+
+          <!-- Badges Collection -->
+          <div style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:20px;">
+            <h3 style="font-size:15px; font-weight:800; color:#1e293b; margin:0 0 16px;">Lencana Kompetensi Akademik</h3>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px;">
+              <div style="border:1.5px solid #a7f3d0; background:#f0fdf4; border-radius:12px; padding:14px; display:flex; gap:12px;">
+                <span style="font-size:28px;">🛡️</span>
+                <div>
+                  <div style="font-size:13px; font-weight:800; color:#065f46;">Integritas Sokratik</div>
+                  <div style="font-size:11.5px; color:#047857; margin-top:2px;">Naskah disusun melalui refleksi kritis dan pertimbangan argumen orisinal mahasiswa.</div>
+                </div>
+              </div>
+              <div style="border:1.5px solid #bfdbfe; background:#eff6ff; border-radius:12px; padding:14px; display:flex; gap:12px;">
+                <span style="font-size:28px;">🧬</span>
+                <div>
+                  <div style="font-size:13px; font-weight:800; color:#1e40af;">Penjelajah PubMed</div>
+                  <div style="font-size:11.5px; color:#1d4ed8; margin-top:2px;">Terhubung langsung ke repositori PubMed NCBI untuk verifikasi referensi ilmiah.</div>
+                </div>
+              </div>
+              <div style="border:1.5px solid #e2e8f0; background:#f8fafc; border-radius:12px; padding:14px; display:flex; gap:12px;">
+                <span style="font-size:28px;">📑</span>
+                <div>
+                  <div style="font-size:13px; font-weight:800; color:#334155;">Struktur Piramida Terbalik</div>
+                  <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Menyusun latar belakang dari fenomena global, urgensi empiris, hingga celah riset spesifik.</div>
+                </div>
+              </div>
+              <div style="border:1.5px solid #e2e8f0; background:#f8fafc; border-radius:12px; padding:14px; display:flex; gap:12px;">
+                <span style="font-size:28px;">⚔️</span>
+                <div>
+                  <div style="font-size:13px; font-weight:800; color:#334155;">Ketahanan Sidang Akademik</div>
+                  <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Latihan menguji konsistensi premis dan metodologi di hadapan AI Penguji Komprehensif.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── VIEW 5: PENGATURAN (DEDICATED FULL VIEW) ────────────────── -->
+        <div id="viewPengaturan" class="hp-view-section" style="display:none; flex-direction:column; gap:20px; width:100%;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div>
+              <h2 style="font-size:22px; font-weight:800; color:#1e293b; margin:0 0 4px;">⚙️ Pengaturan Profil &amp; Preferensi Akademik</h2>
+              <p style="font-size:13px; color:#64748b; margin:0;">Konfigurasikan identitas akademik, kampus, pedoman penulisan, dan integrasi sistem.</p>
+            </div>
+          </div>
+
+          <div style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:24px; max-width:760px;">
+            <form onsubmit="event.preventDefault(); saveUserSettings();" style="display:flex; flex-direction:column; gap:18px;">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                <div>
+                  <label style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:6px;">Nama Lengkap</label>
+                  <input type="text" id="setUserName" style="width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:13px; box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:6px;">Email Terdaftar</label>
+                  <input type="email" id="setUserEmail" readonly style="width:100%; padding:10px 12px; border:1.5px solid #e2e8f0; background:#f8fafc; border-radius:8px; font-size:13px; color:#64748b; box-sizing:border-box;">
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                <div>
+                  <label style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:6px;">Institusi / Universitas</label>
+                  <input type="text" id="setUserInstitution" style="width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:13px; box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:6px;">Program Studi &amp; Jenjang</label>
+                  <input type="text" id="setUserProdi" style="width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:13px; box-sizing:border-box;">
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                <div>
+                  <label style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:6px;">Nomor Induk Mahasiswa (NIM)</label>
+                  <input type="text" id="setUserNim" placeholder="cth: 2106752000" style="width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:13px; box-sizing:border-box;">
+                </div>
+                <div>
+                  <label style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:6px;">Dosen Pembimbing / Supervisor</label>
+                  <input type="text" id="setUserSupervisor" placeholder="cth: Prof. Dr. Ir. ..." style="width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:13px; box-sizing:border-box;">
+                </div>
+              </div>
+
+              <div>
+                <label style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:6px;">Gaya Sitasi Default</label>
+                <select id="setUserCitationStyle" style="width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:13px; background:#fff; box-sizing:border-box;">
+                  <option value="apa">APA 7th Edition (Standar Ilmu Sosial &amp; Sains)</option>
+                  <option value="ieee">IEEE (Standar Teknik &amp; Ilmu Komputer)</option>
+                  <option value="harvard">Harvard Referencing Style</option>
+                  <option value="mla">MLA 9th Edition (Humaniora)</option>
+                </select>
+              </div>
+
+              <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <div style="font-size:12.5px; font-weight:700; color:#1e293b;">Engine AI Generator</div>
+                  <div style="font-size:11.5px; color:#059669; font-weight:600;">✓ Google Gemini 2.5 Flash Aktif (Tanpa Mock / Tanpa Fallback Palsu)</div>
+                </div>
+                <span class="material-symbols-rounded" style="color:#059669; font-size:24px;">verified</span>
+              </div>
+
+              <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:8px;">
+                <button type="submit" class="btn-primary" style="padding:10px 24px; font-weight:700;">
+                  <span class="material-symbols-rounded">save</span>
+                  <span>Simpan Pengaturan</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div><!-- /hp-body -->
     </main>
   </div><!-- /homepageScreen -->
@@ -2745,8 +2974,8 @@
         <div class="modal-title-wrap">
           <span class="material-symbols-rounded icon-modal" style="background:#e0e7ff; color:var(--brand);">add_card</span>
           <div>
-            <h3>Top Up Saldo &amp; Kuota Token</h3>
-            <p id="topupModalSubtitle">Pilih nominal isi ulang sesuai paket aktifmu</p>
+            <h3>Top Up Saldo</h3>
+            <p id="topupModalSubtitle">Masukkan nominal sendiri, mulai Rp 10.000</p>
           </div>
         </div>
         <button class="btn-modal-close" onclick="toggleTopupModal(false)"><span class="material-symbols-rounded">close</span></button>

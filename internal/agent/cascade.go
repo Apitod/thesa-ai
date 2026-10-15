@@ -14,7 +14,7 @@ import (
 // CascadeMatrix defines impacts between stages
 type CascadeMatrix struct {
 	Source   string   `json:"source"`
-	Targets  []string `json:"targets"` // stages affected when source changes
+	Targets  []string `json:"targets"`  // stages affected when source changes
 	Severity string   `json:"severity"` // "low"|"medium"|"high"
 }
 

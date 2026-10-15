@@ -29,9 +29,9 @@ type PaperRef struct {
 
 // Author represents a single author.
 type Author struct {
-	LastName  string
-	ForeName  string
-	Initials  string
+	LastName string
+	ForeName string
+	Initials string
 }
 
 // PaperDetail holds the full metadata for a single PubMed paper.
@@ -76,7 +76,7 @@ type SearchResult struct {
 // ---------------------------------------------------------------------------
 
 type pmcXML struct {
-	XMLName  xml.Name       `xml:"PubmedArticleSet"`
+	XMLName  xml.Name        `xml:"PubmedArticleSet"`
 	Articles []pubmedArticle `xml:"PubmedArticle"`
 }
 
@@ -86,18 +86,16 @@ type pubmedArticle struct {
 }
 
 type medlineCitation struct {
-	PMID  pmid   `xml:"PMID"`
-	Title string `xml:"Article>ArticleTitle"`
-	Journal journalInfo `xml:"Article>Journal"`
-	AuthorList authorList `xml:"Article>AuthorList"`
-	Volume  string `xml:"Article>Journal>JournalIssue>Volume"`
-	Issue   string `xml:"Article>Journal>JournalIssue>Issue"`
-	Pages   string `xml:"Article>Pagination>MedlinePgn"`
-	Abstract abstractText `xml:"Article>Abstract"`
-	Keywords keywordList `xml:"KeywordList"`
-	DatePublished medlineDate `xml:"Article>Journal>JournalIssue>PubDate"`
-	ELocationID eLocationID `xml:"Article>ELocationID"`
-	MeshHeadingList meshHeadingList `xml:"MeshHeadingList"`
+	PMID                pmid                `xml:"PMID"`
+	Title               string              `xml:"Article>ArticleTitle"`
+	Journal             journalInfo         `xml:"Article>Journal"`
+	AuthorList          authorList          `xml:"Article>AuthorList"`
+	ArticleDate         medlineDate         `xml:"Article>ArticleDate"`
+	Pages               string              `xml:"Article>Pagination>MedlinePgn"`
+	Abstract            abstractText        `xml:"Article>Abstract"`
+	Keywords            keywordList         `xml:"KeywordList"`
+	ELocationID         eLocationID         `xml:"Article>ELocationID"`
+	MeshHeadingList     meshHeadingList     `xml:"MeshHeadingList"`
 	PublicationTypeList publicationTypeList `xml:"Article>PublicationTypeList"`
 }
 
@@ -107,8 +105,15 @@ type pmid struct {
 }
 
 type journalInfo struct {
-	Title string `xml:"Title"`
-	ISSN  issn   `xml:"ISSN"`
+	Title        string       `xml:"Title"`
+	ISSN         issn         `xml:"ISSN"`
+	JournalIssue journalIssue `xml:"JournalIssue"`
+}
+
+type journalIssue struct {
+	Volume  string      `xml:"Volume"`
+	Issue   string      `xml:"Issue"`
+	PubDate medlineDate `xml:"PubDate"`
 }
 
 type issn struct {
@@ -121,9 +126,9 @@ type authorList struct {
 }
 
 type authorXML struct {
-	LastName  string `xml:"LastName"`
-	ForeName  string `xml:"ForeName"`
-	Initials  string `xml:"Initials"`
+	LastName string `xml:"LastName"`
+	ForeName string `xml:"ForeName"`
+	Initials string `xml:"Initials"`
 }
 
 type abstractText struct {
@@ -145,9 +150,10 @@ type keywordXML struct {
 }
 
 type medlineDate struct {
-	Year  string `xml:"Year"`
-	Month string `xml:"Month"`
-	Day   string `xml:"Day"`
+	Year        string `xml:"Year"`
+	Month       string `xml:"Month"`
+	Day         string `xml:"Day"`
+	MedlineDate string `xml:"MedlineDate"`
 }
 
 type eLocationID struct {
@@ -196,16 +202,16 @@ type articleID struct {
 
 type esearchResponse struct {
 	Header struct {
-		Type  string `json:"type"`
+		Type    string `json:"type"`
 		Version string `json:"version"`
 	} `json:"header"`
 	Result struct {
-		Count    string   `json:"count"`
-		RetMax   string   `json:"retmax"`
-		RetStart string   `json:"retstart"`
-		IDList   []string `json:"idlist"`
-		QueryKey  string  `json:"querykey"`
-		WebEnv    string  `json:"webenv"`
+		Count     string   `json:"count"`
+		RetMax    string   `json:"retmax"`
+		RetStart  string   `json:"retstart"`
+		IDList    []string `json:"idlist"`
+		QueryKey  string   `json:"querykey"`
+		WebEnv    string   `json:"webenv"`
 		ErrorList struct {
 			PhrasesNotFound []string `json:"phrasesnotfound"`
 			FieldsNotFound  []string `json:"fieldsnotfound"`
@@ -215,9 +221,9 @@ type esearchResponse struct {
 			To   string `json:"to"`
 		} `json:"translationset"`
 		TranslationStack []struct {
-			Term   string `json:"term"`
-			Field  string `json:"field"`
-			Count  string `json:"count"`
+			Term    string `json:"term"`
+			Field   string `json:"field"`
+			Count   string `json:"count"`
 			Explode string `json:"explode"`
 		} `json:"translationstack"`
 		QueryTranslation string `json:"querytranslation"`
@@ -534,12 +540,21 @@ func (c *PubMedClient) parsePubmedXML(data []byte) ([]PaperDetail, error) {
 		d.ISSN = strings.TrimSpace(article.MedlineCitation.Journal.ISSN.Value)
 
 		// Volume, Issue, Pages
-		d.Volume = strings.TrimSpace(article.MedlineCitation.Volume)
-		d.Issue = strings.TrimSpace(article.MedlineCitation.Issue)
+		d.Volume = strings.TrimSpace(article.MedlineCitation.Journal.JournalIssue.Volume)
+		d.Issue = strings.TrimSpace(article.MedlineCitation.Journal.JournalIssue.Issue)
 		d.Pages = strings.TrimSpace(article.MedlineCitation.Pages)
 
 		// Year
-		yearStr := strings.TrimSpace(article.MedlineCitation.DatePublished.Year)
+		yearStr := strings.TrimSpace(article.MedlineCitation.Journal.JournalIssue.PubDate.Year)
+		if yearStr == "" {
+			yearStr = strings.TrimSpace(article.MedlineCitation.ArticleDate.Year)
+		}
+		if yearStr == "" && article.MedlineCitation.Journal.JournalIssue.PubDate.MedlineDate != "" {
+			md := article.MedlineCitation.Journal.JournalIssue.PubDate.MedlineDate
+			if len(md) >= 4 {
+				yearStr = md[:4]
+			}
+		}
 		if yearStr != "" {
 			if y, err := strconv.Atoi(yearStr); err == nil {
 				d.Year = y
@@ -547,7 +562,10 @@ func (c *PubMedClient) parsePubmedXML(data []byte) ([]PaperDetail, error) {
 		}
 
 		// Month
-		monthStr := strings.TrimSpace(article.MedlineCitation.DatePublished.Month)
+		monthStr := strings.TrimSpace(article.MedlineCitation.Journal.JournalIssue.PubDate.Month)
+		if monthStr == "" {
+			monthStr = strings.TrimSpace(article.MedlineCitation.ArticleDate.Month)
+		}
 		if monthStr != "" {
 			monthMap := map[string]int{
 				"jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,

@@ -36,15 +36,15 @@ func (h *ConversationHandler) Turn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cfg := agent.ProviderConfig{
-		APIKey:    os.Getenv("DEEPSEEK_API_KEY"),
-		Model:     "deepseek-chat",
+		APIKey:    os.Getenv("GEMINI_API_KEY"),
+		Model:     os.Getenv("GEMINI_MODEL"),
 		MaxTokens: 2000,
 		Extra:     map[string]string{"temperature": "0.5"},
 	}
 
 	resp, err := h.supervisor.ExecuteConversationTurn(req, cfg)
 	if err != nil {
-		http.Error(w, "Error processing conversation turn: "+err.Error(), http.StatusInternalServerError)
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"code": "gemini_unavailable", "message": "Gemini belum dapat memproses revisi. Silakan coba lagi."})
 		return
 	}
 

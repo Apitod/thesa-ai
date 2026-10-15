@@ -17,9 +17,9 @@ import (
 // ---------------------------------------------------------------------------
 
 type LookupTemplateRequest struct {
-	JenisKTI       string `json:"jenis_kti"`
-	Institusi      string `json:"institusi"`
-	ProgramStudi   string `json:"program_studi"`
+	JenisKTI     string `json:"jenis_kti"`
+	Institusi    string `json:"institusi"`
+	ProgramStudi string `json:"program_studi"`
 }
 
 type InjectTemplateRequest struct {
@@ -45,14 +45,14 @@ type AnalyzeTemplateRequest struct {
 }
 
 type AnalyzeTemplateResponse struct {
-	Structure    *agent.TemplateStructure `json:"structure,omitempty"`
-	Mapped       *agent.MappedOutline      `json:"mapped_outline,omitempty"`
-	Sections     int                      `json:"sections_count"`
-	Error        string                   `json:"error,omitempty"`
+	Structure *agent.TemplateStructure `json:"structure,omitempty"`
+	Mapped    *agent.MappedOutline     `json:"mapped_outline,omitempty"`
+	Sections  int                      `json:"sections_count"`
+	Error     string                   `json:"error,omitempty"`
 }
 
 type GenerateStyleGuideRequest struct {
-	Sections     []agent.OutlineSection   `json:"sections"`
+	Sections     []agent.OutlineSection     `json:"sections"`
 	Requirements agent.TemplateRequirements `json:"requirements"`
 }
 
@@ -126,14 +126,14 @@ func (h *TemplateHandler) LookupTemplate(w http.ResponseWriter, r *http.Request)
 			var parsedStructure map[string]interface{}
 			_ = json.Unmarshal([]byte(tmpl.StructureData), &parsedStructure)
 			resp := map[string]interface{}{
-				"template_id":    tmpl.ID,
-				"name":           tmpl.Name,
-				"jenis_kti":      tmpl.Degree,
-				"institusi":      tmpl.Institution,
-				"program_studi":  req.ProgramStudi,
-				"structure":      parsedStructure,
-				"sections":       parsedStructure["sections"],
-				"requirements":   parsedStructure["requirements"],
+				"template_id":   tmpl.ID,
+				"name":          tmpl.Name,
+				"jenis_kti":     tmpl.Degree,
+				"institusi":     tmpl.Institution,
+				"program_studi": req.ProgramStudi,
+				"structure":     parsedStructure,
+				"sections":      parsedStructure["sections"],
+				"requirements":  parsedStructure["requirements"],
 			}
 			json.NewEncoder(w).Encode(resp)
 			return
@@ -142,13 +142,13 @@ func (h *TemplateHandler) LookupTemplate(w http.ResponseWriter, r *http.Request)
 
 	// Fallback preset response
 	resp := map[string]interface{}{
-		"template_id":    1,
-		"name":           "Pedoman Penulisan Skripsi Standar Nasional (DIKTI)",
-		"jenis_kti":      req.JenisKTI,
-		"institusi":      req.Institusi,
-		"program_studi":  req.ProgramStudi,
-		"sections":       []map[string]interface{}{},
-		"requirements":   map[string]interface{}{},
+		"template_id":   1,
+		"name":          "Pedoman Penulisan Skripsi Standar Nasional (DIKTI)",
+		"jenis_kti":     req.JenisKTI,
+		"institusi":     req.Institusi,
+		"program_studi": req.ProgramStudi,
+		"sections":      []map[string]interface{}{},
+		"requirements":  map[string]interface{}{},
 	}
 	json.NewEncoder(w).Encode(resp)
 }
@@ -441,14 +441,14 @@ func (h *TemplateHandler) CheckCompliance(w http.ResponseWriter, r *http.Request
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-// defaultConfig builds a ProviderConfig from environment variables with sensible defaults.
+// defaultConfig builds a ProviderConfig for Gemini AI calls.
 func (h *TemplateHandler) defaultConfig() agent.ProviderConfig {
-	apiKey := getEnvOrDefault("DEEPSEEK_API_KEY", "")
+	model := getEnvOrDefault("GEMINI_MODEL", "gemini-2.5-flash")
 	return agent.ProviderConfig{
-		Provider:  "deepseek",
-		Model:     "deepseek-chat",
-		APIKey:    apiKey,
-		MaxTokens: 4096,
+		Provider:  "gemini",
+		Model:     model,
+		APIKey:    os.Getenv("GEMINI_API_KEY"),
+		MaxTokens: 2048,
 	}
 }
 
@@ -459,9 +459,9 @@ func (h *TemplateHandler) loadTemplateMappedOutline(templateID int) (*agent.Mapp
 		err := db.DB.Get(&structureData, "SELECT structure_data FROM thesa_templates WHERE id = ? LIMIT 1", templateID)
 		if err == nil && structureData != "" {
 			var parsed struct {
-				Sections     []agent.OutlineSection      `json:"sections"`
+				Sections     []agent.OutlineSection     `json:"sections"`
 				Requirements agent.TemplateRequirements `json:"requirements"`
-				Deviations   []agent.TemplateDeviation   `json:"deviations"`
+				Deviations   []agent.TemplateDeviation  `json:"deviations"`
 			}
 			if err := json.Unmarshal([]byte(structureData), &parsed); err == nil && len(parsed.Sections) > 0 {
 				return &agent.MappedOutline{

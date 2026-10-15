@@ -669,10 +669,8 @@
           <div class="step-dot active" id="dot1"></div>
           <div class="step-dot-line" id="line12"></div>
           <div class="step-dot" id="dot2"></div>
-          <div class="step-dot-line" id="line23"></div>
-          <div class="step-dot" id="dot3"></div>
         </div>
-        <div class="auth-step-label" id="stepLabel">Langkah 1 dari 3 — Buat Akun &amp; Kata Sandi</div>
+        <div class="auth-step-label" id="stepLabel">Langkah 1 dari 2 — Buat Akun &amp; Kata Sandi</div>
 
         <!-- ── Register Step 1: Akun & Sandi ───────────── -->
         <div id="regStep1" class="auth-step-screen">
@@ -791,9 +789,13 @@
             </div>
           </div>
 
-          <button type="button" class="btn-auth-primary" id="btnRegNext2" onclick="nextRegStep(3)">
-            <span class="material-symbols-rounded">arrow_forward</span>
-            Lanjut Pilih Paket
+          <div style="display:flex;gap:8px;align-items:flex-start;padding:12px 14px;margin:18px 0;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:12px;color:#475569;font-size:12px;line-height:1.5;">
+            <span class="material-symbols-rounded" style="color:#64748b;">workspace_premium</span>
+            <span><strong>Mulai gratis dengan Silver.</strong> Tidak ada pembayaran saat daftar; top up atau upgrade ke Gold/Platinum nanti dari dashboard.</span>
+          </div>
+          <button type="button" class="btn-auth-primary" id="btnRegNext2" onclick="handleRegister()">
+            <span class="material-symbols-rounded">rocket_launch</span>
+            Buat Akun Gratis
           </button>
           <button type="button" class="btn-auth-secondary" onclick="nextRegStep(1)">
             <span class="material-symbols-rounded">arrow_back</span>
@@ -930,9 +932,7 @@
     let activeAuthMode = 'login';
     let currentRegStep = 1;
     let selectedLevelVal = 'S1';
-    let selectedPlan = 'gold';
-    let isAnnual = false;
-    let isPlatinumTrial = false;
+    let selectedPlan = 'silver';
 
     // ── Switch between Login & Register ─────────────────────────
     function switchAuthMode(mode) {
@@ -963,20 +963,19 @@
     // ── Wizard Step Navigation ─────────────────────────────────
     function setRegStep(step) {
       currentRegStep = step;
-      for (let i = 1; i <= 3; i++) {
+      for (let i = 1; i <= 2; i++) {
         const el = document.getElementById('regStep' + i);
         if (el) el.style.display = i === step ? 'block' : 'none';
       }
 
       const labels = [
-        'Langkah 1 dari 3 — Buat Akun & Kata Sandi',
-        'Langkah 2 dari 3 — Profil Mahasiswa',
-        'Langkah 3 dari 3 — Pilih Paket Langganan'
+        'Langkah 1 dari 2 — Buat Akun & Kata Sandi',
+        'Langkah 2 dari 2 — Lengkapi Profil Mahasiswa'
       ];
       const stepLabel = document.getElementById('stepLabel');
       if (stepLabel) stepLabel.textContent = labels[step - 1];
 
-      for (let i = 1; i <= 3; i++) {
+      for (let i = 1; i <= 2; i++) {
         const dot = document.getElementById('dot' + i);
         if (dot) {
           dot.className = 'step-dot';
@@ -984,7 +983,7 @@
           if (i === step) dot.classList.add('active');
         }
       }
-      for (let i = 1; i <= 2; i++) {
+      for (let i = 1; i <= 1; i++) {
         const line = document.getElementById('line' + i + (i + 1));
         if (line) line.className = 'step-dot-line' + (i < step ? ' done' : '');
       }
@@ -993,13 +992,6 @@
     function nextRegStep(step) {
       if (step === 2) {
         if (!validateStep1()) return;
-      } else if (step === 3) {
-        const name = (document.getElementById('regFullName')?.value || '').trim();
-        if (!name) {
-          showAuthAlert('regAlert2', 'Nama lengkap wajib diisi agar Thesa bisa menyapamu.', 'error');
-          document.getElementById('regFullName')?.focus();
-          return;
-        }
       }
       setRegStep(step);
     }
@@ -1229,8 +1221,8 @@
           email: u.email || email,
           isAcademicEmail: (u.email || email).toLowerCase().includes('.ac.id'),
           trustScore: u.trustScore || 85,
-          tier: u.tier || 'gold',
-          silverBalance: u.tier === 'silver' ? 15000 : 0,
+          tier: u.tier || 'silver',
+          silverBalance: Number(u.silverBalance || 0),
           goldTokens: u.tier === 'gold' ? 250000 : 0,
           platinumTokens: u.tier === 'platinum' ? 1500000 : 0,
           registeredAt: u.registeredAt || new Date().toISOString()
@@ -1281,8 +1273,7 @@
             name: name,
             institution: inst,
             prodi: prodi,
-            level: selectedLevelVal || 'S1',
-            tier: selectedPlan || 'gold'
+            level: selectedLevelVal || 'S1'
           })
         });
 
@@ -1292,9 +1283,9 @@
           submitBtn.innerHTML = '<span class="material-symbols-rounded">rocket_launch</span> Buat Akun &amp; Mulai Riset!';
           
           if (res.status === 409) {
-            showAuthAlert('regAlert3', data.message || 'Email ini sudah terdaftar. Silakan beralih ke tab Masuk.', 'error');
+            showAuthAlert('regAlert2', data.message || 'Email ini sudah terdaftar. Silakan beralih ke tab Masuk.', 'error');
           } else {
-            showAuthAlert('regAlert3', data.message || 'Pendaftaran gagal. Periksa kembali data Anda.', 'error');
+            showAuthAlert('regAlert2', data.message || 'Pendaftaran gagal. Periksa kembali data Anda.', 'error');
           }
           return;
         }
@@ -1316,14 +1307,10 @@
           email: u.email || email,
           isAcademicEmail: email.toLowerCase().includes('.ac.id'),
           trustScore: u.trustScore || (email.toLowerCase().includes('.ac.id') ? 95 : 85),
-          tier: selectedPlan || 'gold',
-          isTrial: isPlatinumTrial && selectedPlan === 'platinum',
-          trialDaysLeft: isPlatinumTrial ? 3 : 0,
-          trialSessionsRemaining: isPlatinumTrial ? 3 : 0,
-          silverBalance: selectedPlan === 'silver' ? 15000 : 0,
-          goldTokens: selectedPlan === 'gold' ? 250000 : 0,
-          platinumTokens: selectedPlan === 'platinum' ? 1500000 : 0,
-          billingCycle: isAnnual ? 'annual' : 'monthly',
+          tier: u.tier || 'silver',
+          silverBalance: Number(u.silverBalance || 0),
+          goldTokens: 0,
+          platinumTokens: 0,
           registeredAt: new Date().toISOString(),
           covenantQ1: 'Saya berkomitmen untuk belajar dan menyusun riset ini secara mandiri dengan bimbingan Thesa.',
           covenantQ2: topic || 'Menemukan gap penelitian dan merumuskan argumen yang kuat.'
@@ -1340,7 +1327,7 @@
       } catch (err) {
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<span class="material-symbols-rounded">rocket_launch</span> Buat Akun &amp; Mulai Riset!';
-        showAuthAlert('regAlert3', 'Gagal menghubungi server: ' + err.message, 'error');
+        showAuthAlert('regAlert2', 'Gagal menghubungi server: ' + err.message, 'error');
       }
     }
 

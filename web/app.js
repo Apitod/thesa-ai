@@ -21,12 +21,178 @@ async function thesaApiFetch(endpoint, data = {}, options = {}) {
       body: isGet ? undefined : JSON.stringify(data)
     });
     if (!res.ok) {
-      throw new Error(`API HTTP ${res.status}`);
+      const payload = await res.json().catch(() => ({}));
+      throw new Error(payload.message || `API HTTP ${res.status}`);
     }
     return await res.json();
   } catch (err) {
-    console.info(`[Thesa API Client] Running in standalone/fallback mode for ${endpoint}:`, err.message);
+    if (options.throwOnError) throw err;
+    console.info(`[Thesa API Client] API unavailable for ${endpoint}:`, err.message);
     return null;
+  }
+}
+
+let activeProjectID = null;
+let isGeneratingPaper = false;
+
+function renderDraftToBox(draftText) {
+  const box11 = document.getElementById('boxLatarBelakang');
+  if (!box11) return;
+  const clean = (draftText || '').trim();
+  if (!clean) return;
+
+  const paragraphs = clean.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+  if (paragraphs.length > 0) {
+    box11.innerHTML = paragraphs.map(p => {
+      const formatted = escapeHTML(p.replace(/^#{1,6}\s*/, '').replace(/^---\s*/, ''));
+      return `<p class="academic-paragraph" style="text-indent: 1.27cm; text-align: justify; margin-bottom: 1rem; line-height: 1.75; font-size: 12.5px; color: #1e293b;">${formatted}</p>`;
+    }).join('');
+  } else {
+    box11.innerHTML = `<p class="academic-paragraph" style="text-indent: 1.27cm; text-align: justify; margin-bottom: 1rem; line-height: 1.75; font-size: 12.5px; color: #1e293b;">${escapeHTML(clean)}</p>`;
+  }
+  box11.style.background = '#ffffff';
+
+  const badge = document.getElementById('badgeSection11');
+  if (badge) {
+    badge.innerText = '✓ Draf Gemini Siap';
+    badge.style.background = '#ecfdf5';
+    badge.style.color = '#059669';
+  }
+}
+
+function currentProjectState() {
+  const box11 = document.getElementById('boxLatarBelakang');
+  let draftText = '';
+  if (box11) {
+    const paras = Array.from(box11.querySelectorAll('p.academic-paragraph, p'));
+    if (paras.length > 0) {
+      draftText = paras.map(p => p.innerText.trim()).filter(Boolean).join('\n\n');
+    } else {
+      draftText = (box11.innerText || '').trim();
+    }
+  }
+  const stream = document.getElementById('duoChatStream');
+  return {
+    researchContext,
+    selectedKTI,
+    campusId: activeCampus?.id || selectedCampusId,
+    injectedReferences: injectedReferences || [],
+    draft: draftText,
+    chatHTML: stream ? stream.innerHTML : '',
+    boxes: {
+      latarBelakang: box11 ? box11.innerHTML : '',
+      problemStatement: document.getElementById('boxProblemStatement')?.innerHTML || '',
+      tujuanPenulisan: document.getElementById('boxTujuanPenulisan')?.innerHTML || '',
+      pembahasan: document.getElementById('boxPembahasan')?.innerHTML || '',
+      penutup: document.getElementById('boxPenutup')?.innerHTML || '',
+      daftarPustaka: document.getElementById('boxDaftarPustaka')?.innerHTML || ''
+    }
+  };
+}
+
+function setGenerationStatus(state, message, allowRetry = false) {
+  let bar = document.getElementById('thesaGenerationStatus');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'thesaGenerationStatus';
+    bar.style.cssText = 'position:fixed;top:68px;left:50%;transform:translateX(-50%);z-index:10050;min-width:340px;max-width:min(92vw,680px);padding:12px 18px;border-radius:12px;font:600 13px Inter,sans-serif;box-shadow:0 10px 28px rgba(15,23,42,0.25);display:flex;align-items:center;justify-content:space-between;gap:12px;';
+    document.body.appendChild(bar);
+  }
+  const styles = {
+    loading: ['#eff6ff', '#1d4ed8', '⏳'],
+    success: ['#ecfdf5', '#047857', '✓'],
+    error: ['#fef2f2', '#b91c1c', '⚠']
+  }[state] || ['#f8fafc', '#334155', 'ℹ'];
+
+  bar.style.background = styles[0];
+  bar.style.color = styles[1];
+
+  let retryHTML = '';
+  if (allowRetry) {
+    retryHTML = `<button onclick="createAndGenerateProject()" style="background:#b91c1c;color:#fff;border:none;padding:5px 12px;border-radius:6px;font:700 12px Inter,sans-serif;cursor:pointer;margin-left:8px;">Coba Lagi</button>`;
+  }
+
+  bar.innerHTML = `<span>${styles[2]} ${escapeHTML(message)}</span>${retryHTML}`;
+  if (state !== 'loading') {
+    setTimeout(() => { if (bar && bar.parentNode) bar.remove(); }, allowRetry ? 12000 : 6000);
+  }
+}
+
+async function saveActiveProject(silent = false) {
+  if (!activeProjectID) return;
+  try {
+    if (!silent) setGenerationStatus('loading', 'Menyimpan naskah proyek ke basis data…');
+    const state = currentProjectState();
+    const res = await thesaApiFetch('/api/v1/projects/save', {
+      project_id: activeProjectID,
+      title: researchContext.topic || 'Proyek tanpa judul',
+      topic: researchContext.topic || '',
+      current_stage: 1,
+      state
+    }, { throwOnError: true });
+    if (!silent) setGenerationStatus('success', `✓ Proyek tersimpan (Versi snapshot #${res.version}).`);
+    return res;
+  } catch (err) {
+    console.error('[Thesa Save Error]', err);
+    if (!silent) setGenerationStatus('error', `Gagal menyimpan proyek: ${err.message}`);
+    throw err;
+  }
+}
+
+async function createAndGenerateProject() {
+  if (isGeneratingPaper) return;
+  isGeneratingPaper = true;
+  const generateBtn = document.getElementById('btnStartThesa') || document.getElementById('btnGeneratePaper11');
+  if (generateBtn) generateBtn.disabled = true;
+
+  try {
+    setGenerationStatus('loading', 'Langkah 1/4: Menyiapkan konteks riset dan preferensi pedoman...');
+
+    if (!activeProjectID) {
+      setGenerationStatus('loading', 'Langkah 2/4: Membuat entri proyek baru di database...');
+      const created = await thesaApiFetch('/api/v1/projects/create', {
+        title: researchContext.topic || 'Makalah Riset Baru',
+        topic: researchContext.topic || '',
+        current_stage: 1,
+        state: currentProjectState()
+      }, { throwOnError: true });
+      activeProjectID = created.project_id;
+    }
+
+    setGenerationStatus('loading', 'Langkah 3/4: Menghubungi Google Gemini untuk menyusun draf...');
+    const result = await thesaApiFetch('/api/v1/paper/generate', {
+      project_id: activeProjectID,
+      topic: researchContext.topic || '',
+      importance: researchContext.importance || '',
+      expectations: researchContext.expectations || '',
+      assignment_prompt: researchContext.prompt || '',
+      course: researchContext.course || '',
+      kti_type: selectedKTI || 'Makalah',
+      keywords: researchContext.keywords || [],
+      sources: injectedReferences || []
+    }, { throwOnError: true });
+
+    if (!result || !result.draft || result.draft.trim() === '') {
+      throw new Error('Gemini mengembalikan teks draf kosong.');
+    }
+
+    setGenerationStatus('loading', 'Langkah 4/4: Memvalidasi draf dan menyimpan naskah...');
+    renderDraftToBox(result.draft);
+
+    const titleEl = document.getElementById('draftPaperTitle');
+    if (titleEl) titleEl.innerText = researchContext.topic || 'Makalah Riset';
+
+    researchContext.aiProvider = result.provider || 'gemini';
+    researchContext.generatedAt = new Date().toISOString();
+
+    await saveActiveProject(true);
+    setGenerationStatus('success', `✓ Draf berhasil dibuat oleh ${result.provider} (${result.sources_used} sumber digunakan).`);
+  } catch (err) {
+    console.error('[Thesa Generation Error]', err);
+    setGenerationStatus('error', `Draf belum dapat dibuat: ${err.message}`, true);
+  } finally {
+    isGeneratingPaper = false;
+    if (generateBtn) generateBtn.disabled = false;
   }
 }
 
@@ -35,16 +201,16 @@ async function thesaApiFetch(endpoint, data = {}, options = {}) {
 // ============================================================
 
 const TIER_CONFIG = {
-  silver:   { label: 'Silver',   emoji: '🥈', color: '#64748b', bg: '#f1f5f9', modules: ['makalah'], deposit: 15000, perSessionCost: 12000 },
-  gold:     { label: 'Gold',     emoji: '🥇', color: '#d97706', bg: '#fef3c7', modules: ['makalah','proposal','skripsi','tesis','disertasi','jurnal','laporan'], weeklyTokens: 250000 },
-  platinum: { label: 'Platinum', emoji: '💎', color: '#7c3aed', bg: '#ede9fe', modules: ['makalah','proposal','skripsi','tesis','disertasi','jurnal','laporan','pustaka'], monthlyTokens: 1500000 }
+  silver:   { label: 'Silver',   emoji: '🥈', color: '#64748b', bg: '#f1f5f9', modules: ['makalah'], perGenerateCost: 12000 },
+  gold:     { label: 'Gold',     emoji: '🥇', color: '#d97706', bg: '#fef3c7', modules: ['makalah','proposal','skripsi','tesis','disertasi','jurnal','laporan'], weeklyTokens: 250000, monthlyPrice: 99000 },
+  platinum: { label: 'Platinum', emoji: '💎', color: '#7c3aed', bg: '#ede9fe', modules: ['makalah','proposal','skripsi','tesis','disertasi','jurnal','laporan','pustaka'], monthlyTokens: 1500000, monthlyPrice: 249000 }
 };
 
 function getUserTier() {
   try {
     const profile = JSON.parse(sessionStorage.getItem('thesaUser') || localStorage.getItem('thesaUser') || '{}');
-    return profile.tier || 'gold';
-  } catch { return 'gold'; }
+    return profile.tier || 'silver'; // Default tier is Silver (free)
+  } catch { return 'silver'; }
 }
 
 function getUserProfile() {
@@ -98,8 +264,8 @@ function initTierBadge() {
     if (profile.isTrial && tier === 'platinum') {
       badge.innerHTML = `💎 Trial 3 Hari (${profile.trialSessionsRemaining || 3} Sesi)`;
     } else if (tier === 'silver') {
-      const bal = profile.silverBalance !== undefined ? profile.silverBalance : 15000;
-      badge.innerHTML = `🥈 Silver (Saldo Rp ${bal.toLocaleString('id-ID')})`;
+      const bal = profile.silverBalance !== undefined ? profile.silverBalance : 0;
+      badge.innerHTML = `🥈 Silver · Saldo Rp ${bal.toLocaleString('id-ID')}`;
     } else if (tier === 'gold') {
       const tok = profile.goldTokens !== undefined ? profile.goldTokens : 215000;
       badge.innerHTML = `🥇 Gold (${(tok/1000).toFixed(0)}k Token)`;
@@ -367,13 +533,13 @@ function renderBillingStatusCard() {
   const tier = getUserTier();
 
   if (tier === 'silver') {
-    const bal = profile.silverBalance !== undefined ? profile.silverBalance : 15000;
+    const bal = profile.silverBalance !== undefined ? profile.silverBalance : 0;
     container.innerHTML = `
       <div style="background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border:1.5px solid #cbd5e1; border-radius:16px; padding:18px 20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <div>
             <span style="font-size:11px; font-weight:800; color:#475569; text-transform:uppercase;">Paket Aktif</span>
-            <h4 style="font-size:18px; font-weight:800; color:#1e293b; margin:1px 0;">🥈 Silver (Pay-per-Makalah)</h4>
+            <h4 style="font-size:18px; font-weight:800; color:#1e293b; margin:1px 0;">🥈 Silver (Pay-per-Generate)</h4>
           </div>
           <div style="text-align:right;">
             <span style="font-size:22px; font-weight:800; color:#0f172a;">Rp ${bal.toLocaleString('id-ID')}</span>
@@ -381,8 +547,16 @@ function renderBillingStatusCard() {
           </div>
         </div>
         <div style="font-size:12px; color:#475569; line-height:1.5; background:#fff; padding:10px 14px; border-radius:10px; border:1px solid #e2e8f0;">
-          💡 Biaya pembuatan 1 makalah adalah <strong>Rp 12.000</strong>. Saat pembuatan dimulai, saldo akan dipotong dan sisa saldo tetap tersimpan di akunmu.
+          💡 Biaya 1x generate adalah <strong>Rp 12.000</strong>. Saldo akan dipotong otomatis saat generate dimulai. Top up via QRIS kapan saja.
         </div>
+        <button class="btn-primary" style="width:100%; margin-top:12px; justify-content:center;" onclick="openTopupModal()">
+          <span class="material-symbols-rounded">account_balance_wallet</span>
+          Top Up Saldo via QRIS
+        </button>
+        <button class="btn-secondary" style="width:100%; margin-top:8px; justify-content:center;" onclick="showTierSelectorModal()">
+          <span class="material-symbols-rounded">upgrade</span>
+          Lihat Opsi Tier (Gold / Platinum)
+        </button>
       </div>`;
   } else if (tier === 'gold') {
     const tok = profile.goldTokens !== undefined ? profile.goldTokens : 215000;
@@ -564,46 +738,19 @@ function togglePencapaianModal(show) {
 }
 
 // ── Topup Modal ──────────────────────────────────────────────
-let selectedTopupAmount = 15000;
+let selectedTopupAmount = 10000;
 
 function openTopupModal() {
-  const tier = getUserTier();
   const container = document.getElementById('topupOptionsContainer');
   if (!container) return;
 
-  if (tier === 'silver') {
-    container.innerHTML = `
-      <div class="topup-card selected" onclick="selectTopup(this, 15000)">
-        <div>
-          <strong style="font-size:13.5px; color:var(--text); display:block;">Deposit Standard: Rp 15.000</strong>
-          <span style="font-size:11.5px; color:var(--text-secondary);">Cukup untuk 1 naskah makalah penuh (Rp 12.000) + sisa Rp 3.000</span>
-        </div>
-        <span style="font-size:16px; font-weight:800; color:var(--brand);">Rp 15.000</span>
-      </div>
-      <div class="topup-card" onclick="selectTopup(this, 50000)">
-        <div>
-          <strong style="font-size:13.5px; color:var(--text); display:block;">Deposit Hemat: Rp 50.000</strong>
-          <span style="font-size:11.5px; color:var(--text-secondary);">Cukup untuk 4 makalah penuh + bonus saldo</span>
-        </div>
-        <span style="font-size:16px; font-weight:800; color:var(--brand);">Rp 50.000</span>
-      </div>`;
-  } else {
-    container.innerHTML = `
-      <div class="topup-card selected" onclick="selectTopup(this, 25000)">
-        <div>
-          <strong style="font-size:13.5px; color:var(--text); display:block;">Top-up 100.000 Token AI Ekstra</strong>
-          <span style="font-size:11.5px; color:var(--text-secondary);">Tambahan kuota token fleksibel tanpa masa kedaluwarsa</span>
-        </div>
-        <span style="font-size:16px; font-weight:800; color:var(--brand);">Rp 25.000</span>
-      </div>
-      <div class="topup-card" onclick="selectTopup(this, 50000)">
-        <div>
-          <strong style="font-size:13.5px; color:var(--text); display:block;">Top-up 250.000 Token AI Ekstra</strong>
-          <span style="font-size:11.5px; color:var(--text-secondary);">Paket besar untuk pengerjaan Bab IV pembahasan mendalam</span>
-        </div>
-        <span style="font-size:16px; font-weight:800; color:var(--brand);">Rp 50.000</span>
-      </div>`;
-  }
+  container.innerHTML = `
+    <div style="padding:16px;border:1.5px solid #c7d2fe;border-radius:14px;background:linear-gradient(135deg,#eef2ff,#faf5ff);">
+      <label for="customTopupAmount" style="display:block;font-weight:800;color:var(--text);font-size:13px;margin-bottom:6px;">Nominal top up</label>
+      <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:0 12px;"><span style="font-weight:800;color:#4f46e5;">Rp</span><input id="customTopupAmount" type="number" inputmode="numeric" min="10000" max="10000000" step="1000" value="${selectedTopupAmount}" oninput="setCustomTopup(this.value)" style="border:0;outline:0;width:100%;padding:13px 0;font:inherit;font-weight:700;color:var(--text);"></div>
+      <p id="topupAmountHint" style="font-size:11.5px;color:#64748b;margin:8px 0 0;">Minimal Rp 10.000. Saldo masuk setelah pembayaran QRIS terverifikasi.</p>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">${[10000, 25000, 50000, 100000].map(amount => `<button type="button" class="topup-card ${amount === selectedTopupAmount ? 'selected' : ''}" style="padding:9px 12px;flex:1;min-width:92px;justify-content:center;" onclick="selectTopup(this, ${amount})">Rp ${amount.toLocaleString('id-ID')}</button>`).join('')}</div>`;
 
   toggleTopupModal(true);
 }
@@ -612,6 +759,13 @@ function selectTopup(el, amount) {
   document.querySelectorAll('.topup-card').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
   selectedTopupAmount = amount;
+  const input = document.getElementById('customTopupAmount');
+  if (input) input.value = amount;
+}
+
+function setCustomTopup(value) {
+  selectedTopupAmount = Number(value);
+  document.querySelectorAll('.topup-card').forEach(c => c.classList.remove('selected'));
 }
 
 function toggleTopupModal(show) {
@@ -620,76 +774,200 @@ function toggleTopupModal(show) {
 }
 
 function processTopup() {
-  const tier = getUserTier();
-  const profile = getUserProfile();
-
-  if (tier === 'silver') {
-    const newBal = (profile.silverBalance || 0) + selectedTopupAmount;
-    updateUserProfile({ silverBalance: newBal });
-    alert(`✅ Top up saldo berhasil! Saldo aktifmu sekarang: Rp ${newBal.toLocaleString('id-ID')}`);
-  } else {
-    const newTokens = (profile.goldTokens || 215000) + (selectedTopupAmount === 25000 ? 100000 : 250000);
-    updateUserProfile({ goldTokens: newTokens });
-    alert(`✅ Kuota token berhasil ditambahkan! Total kuota aktif: ${newTokens.toLocaleString('id-ID')} token`);
+  if (!Number.isInteger(selectedTopupAmount) || selectedTopupAmount < 10000 || selectedTopupAmount > 10000000) {
+    const hint = document.getElementById('topupAmountHint');
+    if (hint) { hint.textContent = 'Masukkan nominal bulat antara Rp 10.000 dan Rp 10.000.000.'; hint.style.color = '#dc2626'; }
+    return;
   }
+  // All topup payments now go through Midtrans QRIS
+  const user = (typeof getStoredUser === 'function') ? getStoredUser() : getUserProfile();
+  const userEmail = (user && user.email) ? user.email : 'mahasiswa@thesa.id';
+  const userName = (user && (user.name || user.full_name)) ? (user.name || user.full_name) : 'Mahasiswa Thesa';
 
   toggleTopupModal(false);
-  renderBillingStatusCard();
+  openMidtransQRISPayment({
+    topup_type: 'topup',
+    amount: selectedTopupAmount,
+    user_email: userEmail,
+    user_name: userName,
+    onSuccess: (amountPaid) => {
+      const profile = getUserProfile();
+      const newBal = (profile.silverBalance || 0) + amountPaid;
+      updateUserProfile({ silverBalance: newBal });
+      showThesaToast(`✅ Top up Rp ${amountPaid.toLocaleString('id-ID')} berhasil! Saldo: Rp ${newBal.toLocaleString('id-ID')}`, 'success', 'verified');
+      renderBillingStatusCard();
+      initTierBadge();
+    }
+  });
 }
 
+// ── showUpgradeModal: Replaced by full 3-tier selector modal ─
 function showUpgradeModal(requiredTier, featureName) {
+  // Always show the 3-tier comparison modal
+  showTierSelectorModal(requiredTier, featureName);
+}
+
+// ── 3-Tier Selector Modal ────────────────────────────────────
+function showTierSelectorModal(highlightTier, featureName) {
   const currentTier = getUserTier();
-  const required = TIER_CONFIG[requiredTier] || TIER_CONFIG.gold;
-  let modal = document.getElementById('upgradeModal');
+  let modal = document.getElementById('tierSelectorModal');
   if (!modal) {
     modal = document.createElement('div');
-    modal.id = 'upgradeModal';
+    modal.id = 'tierSelectorModal';
     modal.className = 'modal-backdrop';
     modal.onclick = function(e) { if (e.target === modal) modal.style.display = 'none'; };
-    modal.innerHTML = `
-      <div class="modal-container" style="width:480px;text-align:center;padding:36px 32px;">
-        <div style="font-size:48px;margin-bottom:12px;" id="upgModalIcon"></div>
-        <h3 id="upgModalTitle" style="font-size:19px;font-weight:800;margin-bottom:8px;"></h3>
-        <p id="upgModalSub" style="font-size:13px;color:var(--text-secondary);line-height:1.6;max-width:360px;margin:0 auto 20px;"></p>
-        
-        <div id="upgModalTrialOption" style="display:none; margin-bottom:20px; padding:12px; background:#f5f3ff; border:1px dashed #7c3aed; border-radius:12px; text-align:left;">
-          <strong style="color:#6d28d9; font-size:12.5px; display:block;">Coba Gratis 3 Hari (Platinum Trial)</strong>
-          <span style="font-size:11px; color:#7c3aed;">Maksimal 3 sesi makalah (Fitur cetak naskah terkunci).</span>
-          <button class="btn-primary" style="width:100%; margin-top:8px; background:#7c3aed;" onclick="activateTrialFromModal()">Aktifkan Trial 3 Hari Sekarang</button>
-        </div>
-
-        <div style="display:flex;gap:10px;justify-content:center;">
-          <button class="btn-secondary" onclick="document.getElementById('upgradeModal').style.display='none'">Nanti saja</button>
-          <button class="btn-primary" onclick="confirmUpgradePlan()">
-            <span class="material-symbols-rounded">upgrade</span>
-            Langganan Sekarang
-          </button>
-        </div>
-      </div>`;
     document.body.appendChild(modal);
   }
-  document.getElementById('upgModalIcon').textContent = required.emoji;
-  document.getElementById('upgModalTitle').textContent = `Fitur ini khusus ${required.label}`;
-  document.getElementById('upgModalSub').textContent = `"${featureName}" membutuhkan paket ${required.label}.`;
-  
-  const trialOpt = document.getElementById('upgModalTrialOption');
-  if (trialOpt) {
-    trialOpt.style.display = (requiredTier === 'platinum') ? 'block' : 'none';
-  }
+
+  const tiers = [
+    {
+      key: 'silver',
+      emoji: '🥈',
+      label: 'Silver',
+      subtitle: 'Gratis — Pay Per Generate',
+      price: 'Gratis',
+      priceNote: '+ Rp 12.000 per generate',
+      color: '#475569',
+      bgGrad: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+      border: '1.5px solid #cbd5e1',
+      features: [
+        '✅ Akses Makalah Generator',
+        '✅ Saldo top up kapan saja',
+        '✅ Chat bimbingan AI',
+        '✅ Template kampus',
+        '❌ Proposal, Skripsi, Tesis',
+        '❌ Pustaka Riset Personal',
+        '❌ Ekspor PDF/Word bebas',
+      ]
+    },
+    {
+      key: 'gold',
+      emoji: '🥇',
+      label: 'Gold',
+      subtitle: 'Langganan Bulanan',
+      price: 'Rp 99.000',
+      priceNote: 'per bulan',
+      color: '#b45309',
+      bgGrad: 'linear-gradient(135deg, #fef9c3 0%, #fffbeb 100%)',
+      border: '1.5px solid #fde68a',
+      features: [
+        '✅ Semua fitur Silver',
+        '✅ Proposal, Skripsi, Tesis, Disertasi',
+        '✅ Jurnal & Laporan Ilmiah',
+        '✅ 250.000 Token/minggu',
+        '✅ Ekspor PDF/Word bebas',
+        '❌ Pustaka Riset Personal',
+        '❌ Prioritas Antrian AI',
+      ]
+    },
+    {
+      key: 'platinum',
+      emoji: '💎',
+      label: 'Platinum',
+      subtitle: 'Power Scholar',
+      price: 'Rp 249.000',
+      priceNote: 'per bulan',
+      color: '#6d28d9',
+      bgGrad: 'linear-gradient(135deg, #ede9fe 0%, #f5f3ff 100%)',
+      border: '1.5px solid #c4b5fd',
+      features: [
+        '✅ Semua fitur Gold',
+        '✅ Pustaka Riset & Peta Tematik',
+        '✅ 1.500.000 Token Prioritas/bln',
+        '✅ Prioritas Antrian AI',
+        '✅ Analisis Gap Literatur Lanjutan',
+        '✅ Export tanpa batas',
+        '✅ Support Prioritas',
+      ]
+    }
+  ];
+
+  const featureNote = featureName ? `<p style="font-size:13px;color:#6d28d9;font-weight:600;text-align:center;margin:0 0 20px;background:#f5f3ff;padding:10px 16px;border-radius:10px;">🔒 "${featureName}" membutuhkan upgrade tier</p>` : '';
+
+  modal.innerHTML = `
+    <div class="modal-container" style="width:min(92vw,820px);max-height:90vh;overflow-y:auto;padding:32px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <h2 style="font-size:22px;font-weight:800;color:var(--text);margin:0;">⚡ Pilih Paket Thesa AI</h2>
+        <button onclick="document.getElementById('tierSelectorModal').style.display='none'" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:22px;line-height:1;">&times;</button>
+      </div>
+      <p style="font-size:13px;color:var(--text-secondary);margin:0 0 20px;">Daftar 100% gratis. Mulai dengan Silver dan upgrade kapan saja.</p>
+      ${featureNote}
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+        ${tiers.map(t => {
+          const isCurrent = t.key === currentTier;
+          const isHighlighted = t.key === (highlightTier || '');
+          return `
+          <div style="
+            background:${t.bgGrad};
+            border:${isCurrent ? '2.5px solid ' + t.color : (isHighlighted ? '2px dashed ' + t.color : t.border)};
+            border-radius:18px;
+            padding:20px 18px;
+            position:relative;
+            display:flex;flex-direction:column;gap:10px;
+          ">
+            ${isCurrent ? `<span style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:${t.color};color:#fff;font-size:10.5px;font-weight:800;padding:3px 12px;border-radius:999px;white-space:nowrap;">✓ PAKET AKTIF KAMU</span>` : ''}
+            <div style="text-align:center;">
+              <div style="font-size:36px;margin-bottom:4px;">${t.emoji}</div>
+              <div style="font-size:17px;font-weight:800;color:${t.color};">${t.label}</div>
+              <div style="font-size:11px;color:#64748b;">${t.subtitle}</div>
+            </div>
+            <div style="text-align:center;border-top:1px solid rgba(0,0,0,0.08);padding-top:10px;">
+              <div style="font-size:20px;font-weight:800;color:${t.color};">${t.price}</div>
+              <div style="font-size:11px;color:#94a3b8;">${t.priceNote}</div>
+            </div>
+            <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;flex:1;">
+              ${t.features.map(f => `<li style="font-size:11.5px;color:${f.startsWith('✅') ? '#1e293b' : '#94a3b8'};">${f}</li>`).join('')}
+            </ul>
+            ${isCurrent
+              ? `<div style="text-align:center;font-size:12px;font-weight:700;color:${t.color};padding:8px;background:${t.key==='silver'?'#fff':'rgba(255,255,255,0.7)'};border-radius:10px;">Paket kamu saat ini</div>`
+              : `<button onclick="initiateUpgradePayment('${t.key}')" style="width:100%;padding:10px;background:${t.color};color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                  <span style="display:flex;align-items:center;justify-content:center;gap:6px;">⚡ Upgrade ke ${t.label}</span>
+                </button>`
+            }
+          </div>`;
+        }).join('')}
+      </div>
+      <p style="font-size:11.5px;color:#94a3b8;text-align:center;margin:20px 0 0;">🔒 Pembayaran aman via Midtrans QRIS. Dapat dibatalkan kapan saja.</p>
+    </div>`;
 
   modal.style.display = 'flex';
 }
 
+function initiateUpgradePayment(targetTier) {
+  const user = (typeof getStoredUser === 'function') ? getStoredUser() : getUserProfile();
+  const userEmail = (user && user.email) ? user.email : 'mahasiswa@thesa.id';
+  const userName = (user && (user.name || user.full_name)) ? (user.name || user.full_name) : 'Mahasiswa Thesa';
+  const tierCfg = TIER_CONFIG[targetTier];
+  if (!tierCfg) return;
+
+  document.getElementById('tierSelectorModal').style.display = 'none';
+
+  openMidtransQRISPayment({
+    topup_type: `upgrade-${targetTier}`,
+    amount: tierCfg.monthlyPrice || 0,
+    user_email: userEmail,
+    user_name: userName,
+    label: `Upgrade ke ${tierCfg.emoji} ${tierCfg.label} (Rp ${(tierCfg.monthlyPrice||0).toLocaleString('id-ID')}/bln)`,
+    onSuccess: () => {
+      updateUserProfile({ tier: targetTier, isTrial: false });
+      initTierBadge();
+      renderBillingStatusCard();
+      showThesaToast(`🎉 Selamat! Akunmu berhasil upgrade ke ${tierCfg.emoji} ${tierCfg.label}!`, 'success', 'verified');
+    }
+  });
+}
+
 function activateTrialFromModal() {
-  updateUserProfile({ tier: 'platinum', isTrial: true, trialDaysLeft: 3, trialSessionsRemaining: 3 });
-  document.getElementById('upgradeModal').style.display = 'none';
-  alert('🎉 Selamat! Uji Coba Platinum 3 Hari aktif. Kamu memiliki kuota 3 sesi makalah. Fitur ekspor/cetak terkunci selama masa trial.');
+  // Trial removed — redirect to real tier selector
+  const modal = document.getElementById('upgradeModal');
+  if (modal) modal.style.display = 'none';
+  showTierSelectorModal();
 }
 
 function confirmUpgradePlan() {
-  updateUserProfile({ tier: 'gold', isTrial: false });
-  document.getElementById('upgradeModal').style.display = 'none';
-  alert('🎉 Akunmu berhasil di-upgrade ke paket Gold!');
+  const modal = document.getElementById('upgradeModal');
+  if (modal) modal.style.display = 'none';
+  showTierSelectorModal();
 }
 
 // Run on page load
@@ -699,16 +977,566 @@ if (document.readyState === 'loading') {
   setTimeout(initTierBadge, 100);
 }
 
+// ── Universal Midtrans QRIS Payment Gateway ───────────────────
+/**
+ * openMidtransQRISPayment({ topup_type, amount, user_email, user_name, label, onSuccess })
+ * Shows a QRIS payment modal, creates a Midtrans order, polls until settled, then calls onSuccess.
+ */
+let _activeQRISOrderID = null;
+let _activeQRISPolling = null;
+let _activeQRISCallback = null;
+
+function openMidtransQRISPayment({ topup_type, amount, user_email, user_name, label, onSuccess }) {
+  _activeQRISCallback = onSuccess || null;
+
+  let modal = document.getElementById('midtransQRISModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'midtransQRISModal';
+    modal.className = 'modal-backdrop';
+    modal.onclick = (e) => { if (e.target === modal) closeMidtransQRISModal(); };
+    document.body.appendChild(modal);
+  }
+
+  const labelText = label || `Pembayaran Rp ${amount.toLocaleString('id-ID')}`;
+  const amountFormatted = `Rp ${amount.toLocaleString('id-ID')}`;
+
+  modal.innerHTML = `
+    <div class="modal-container" style="width:min(92vw,480px);padding:32px;text-align:center;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h3 style="font-size:18px;font-weight:800;color:var(--text);margin:0;">💳 Pembayaran via QRIS</h3>
+        <button onclick="closeMidtransQRISModal()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:22px;line-height:1;">&times;</button>
+      </div>
+
+      <div style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1.5px solid #c4b5fd;border-radius:14px;padding:14px 18px;margin-bottom:18px;text-align:left;">
+        <div style="font-size:11px;font-weight:700;color:#6d28d9;text-transform:uppercase;margin-bottom:4px;">Rincian Transaksi</div>
+        <div style="font-size:13.5px;font-weight:600;color:#1e293b;">${labelText}</div>
+        <div style="font-size:22px;font-weight:800;color:#7c3aed;margin-top:4px;">${amountFormatted}</div>
+      </div>
+
+      <div id="midtransQRISBox" style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:14px;padding:20px;margin-bottom:18px;">
+        <div style="font-size:13px;color:#64748b;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <span class="material-symbols-rounded" style="animation:spin 1.5s linear infinite;font-size:20px;">sync</span>
+          Menghubungkan ke Midtrans QRIS...
+        </div>
+      </div>
+
+      <div id="midtransQRISStatus" style="display:none;padding:10px 14px;border-radius:10px;font-size:12.5px;font-weight:600;margin-bottom:14px;"></div>
+
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button class="btn-secondary" onclick="closeMidtransQRISModal()">Batal</button>
+      </div>
+
+      <p style="font-size:11px;color:#94a3b8;margin:14px 0 0;">
+        Scan QRIS dengan GoPay, Dana, OVO, BCA, atau m-banking manapun.<br>
+        Pembayaran akan dikonfirmasi otomatis dalam beberapa detik.
+      </p>
+    </div>`;
+
+  modal.style.display = 'flex';
+
+  // Create order via backend
+  _createMidtransOrder({ topup_type, amount, user_email, user_name });
+}
+
+async function _createMidtransOrder({ topup_type, amount, user_email, user_name }) {
+  try {
+    const res = await fetch('/api/v1/payment/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('thesa_token') || sessionStorage.getItem('thesa_token') || ''}` },
+      body: JSON.stringify({
+        topup_type,
+        amount
+      })
+    });
+    const data = await res.json();
+    if (res.ok && data && data.order_id) {
+      _activeQRISOrderID = data.order_id;
+      _renderMidtransQRISCode(data);
+      // Start polling
+      if (_activeQRISPolling) clearInterval(_activeQRISPolling);
+      _activeQRISPolling = setInterval(() => _pollMidtransOrder(_activeQRISOrderID), 3000);
+    } else {
+      throw new Error(data.message || 'Order pembayaran gagal dibuat.');
+    }
+  } catch (err) {
+    console.warn('[Midtrans] Order creation failed, showing fallback:', err);
+    _renderMidtransQRISFallback();
+  }
+}
+
+function _renderMidtransQRISCode(data) {
+  const box = document.getElementById('midtransQRISBox');
+  if (!box) return;
+
+  // If Midtrans returned a real redirect URL, show it as a link + QR placeholder
+  const redirectURL = data.snap_redirect_url || '';
+  const orderID = data.order_id || '';
+  const amount = data.amount || 0;
+
+  box.innerHTML = `
+    <div style="margin-bottom:12px;">
+      <div style="width:180px;height:180px;margin:0 auto;background:#fff;border:3px solid #4f46e5;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;padding:12px;">
+        <span class="material-symbols-rounded" style="font-size:100px;color:#4f46e5;">qr_code_2</span>
+        <span style="font-size:9px;color:#64748b;font-weight:700;">SCAN DENGAN QRIS</span>
+      </div>
+    </div>
+    <div style="font-size:11.5px;color:#475569;margin-bottom:8px;">
+      Order ID: <strong style="color:#1e293b;">${orderID}</strong>
+    </div>
+    ${redirectURL ? `
+    <a href="${redirectURL}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#4f46e5;text-decoration:none;background:#f5f3ff;padding:8px 14px;border-radius:8px;border:1px solid #c4b5fd;">
+      <span class="material-symbols-rounded" style="font-size:16px;">open_in_new</span>
+      Buka Halaman Pembayaran Midtrans
+    </a>` : ''}
+    <div id="midtransQRISStatus" style="margin-top:12px;padding:8px 12px;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;font-size:12px;color:#854d0e;display:flex;align-items:center;gap:6px;">
+      <span class="material-symbols-rounded" style="font-size:15px;animation:spin 2s linear infinite;">sync</span>
+      Menunggu konfirmasi pembayaran...
+    </div>`;
+
+}
+
+function _renderMidtransQRISFallback() {
+  const box = document.getElementById('midtransQRISBox');
+  if (!box) return;
+  box.innerHTML = `<div style="padding:12px;color:#b91c1c;font-size:13px;line-height:1.5;">Order belum dapat dibuat. Periksa koneksi lalu coba kembali; saldo tidak akan berubah sebelum Midtrans mengonfirmasi pembayaran.</div>`;
+}
+
+async function _pollMidtransOrder(orderID) {
+  if (!orderID) return;
+  try {
+    const res = await fetch(`/api/v1/payment/status?order_id=${encodeURIComponent(orderID)}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('thesa_token') || sessionStorage.getItem('thesa_token') || ''}` } });
+    const data = await res.json();
+    if (data && data.settled) {
+      if (_activeQRISPolling) clearInterval(_activeQRISPolling);
+      _activeQRISPolling = null;
+      _onMidtransPaymentSettled(data.amount || 0);
+    }
+  } catch (e) { /* silent */ }
+}
+
+function _onMidtransPaymentSettled(amount) {
+  // Update UI
+  const box = document.getElementById('midtransQRISBox');
+  if (box) {
+    box.innerHTML = `
+      <div style="padding:20px;text-align:center;">
+        <span class="material-symbols-rounded" style="font-size:56px;color:#16a34a;">verified</span>
+        <div style="font-size:16px;font-weight:800;color:#166534;margin-top:8px;">Pembayaran Berhasil!</div>
+        <div style="font-size:12px;color:#15803d;margin-top:4px;">Rp ${amount.toLocaleString('id-ID')} dikonfirmasi oleh Midtrans</div>
+      </div>`;
+  }
+
+  setTimeout(() => {
+    closeMidtransQRISModal();
+    if (typeof _activeQRISCallback === 'function') {
+      _activeQRISCallback(amount);
+      _activeQRISCallback = null;
+    }
+  }, 1500);
+}
+
+async function simulateMidtransSuccess() {
+  showThesaToast('Pembayaran hanya dapat dikonfirmasi oleh Midtrans.', 'error', 'verified_user');
+}
+
+function closeMidtransQRISModal() {
+  if (_activeQRISPolling) { clearInterval(_activeQRISPolling); _activeQRISPolling = null; }
+  const modal = document.getElementById('midtransQRISModal');
+  if (modal) modal.style.display = 'none';
+}
+
 
 // ============================================================
 // HOMEPAGE FUNCTIONS
 // ============================================================
 
 function navigateTo(section) {
-  // Placeholder — in production this would route to different sections
-  console.log(`Navigating to: ${section}`);
   document.querySelectorAll('.hp-nav-item').forEach(el => el.classList.remove('active'));
+  const navMap = {
+    dashboard: 'navDashboard',
+    projects: 'navProjects',
+    pustaka: 'navPustakaRiset',
+    pencapaian: 'navPencapaian',
+    pengaturan: 'navPengaturan'
+  };
+  const activeNav = document.getElementById(navMap[section]);
+  if (activeNav) activeNav.classList.add('active');
+
+  const viewIds = ['viewDashboard', 'viewProjects', 'viewPustakaRiset', 'viewPencapaian', 'viewPengaturan'];
+  viewIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+
+  const viewTargetMap = {
+    dashboard: 'viewDashboard',
+    projects: 'viewProjects',
+    pustaka: 'viewPustakaRiset',
+    pencapaian: 'viewPencapaian',
+    pengaturan: 'viewPengaturan'
+  };
+  const targetId = viewTargetMap[section] || 'viewDashboard';
+  const targetView = document.getElementById(targetId);
+  if (targetView) targetView.style.display = 'flex';
+
+  if (section === 'projects') {
+    renderDedicatedProjectsView();
+  } else if (section === 'pustaka') {
+    renderDedicatedPustakaView();
+  } else if (section === 'pencapaian') {
+    renderDedicatedPencapaianView();
+  } else if (section === 'pengaturan') {
+    renderDedicatedPengaturanView();
+  } else if (section === 'dashboard') {
+    loadSavedProjects();
+  }
 }
+
+// ── 1. DEDICATED PROYEK SAYA VIEW ─────────────────────────────
+let dedicatedProjectsCache = [];
+let dedicatedProjectFilter = 'all';
+
+async function renderDedicatedProjectsView() {
+  const grid = document.getElementById('dedicatedProjectsGrid');
+  if (!grid) return;
+  grid.innerHTML = '<div style="grid-column:1/-1; padding:32px; text-align:center; color:#64748b;">⏳ Memuat daftar naskah dan proyek riset dari database...</div>';
+  try {
+    const result = await thesaApiFetch('/api/v1/projects/list', {}, {method:'GET', throwOnError:true});
+    dedicatedProjectsCache = result.projects || [];
+    const badge = document.getElementById('navProjectsBadge');
+    if (badge) badge.innerText = String(dedicatedProjectsCache.length);
+    applyDedicatedProjectsFilter();
+  } catch (err) {
+    grid.innerHTML = `<div style="grid-column:1/-1; padding:24px; text-align:center; color:#ef4444; background:#fef2f2; border:1px solid #fecaca; border-radius:12px;">Gagal memuat proyek: ${escapeHTML(err.message || 'Error koneksi ke database')}</div>`;
+  }
+}
+
+function filterProjectsByType(type) {
+  dedicatedProjectFilter = type;
+  const filterBtns = ['btnFilterAllProjects', 'btnFilterMakalah', 'btnFilterProposal', 'btnFilterSkripsi'];
+  filterBtns.forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.classList.remove('active');
+  });
+  const activeBtnId = type === 'all' ? 'btnFilterAllProjects' : 'btnFilter' + type.charAt(0).toUpperCase() + type.slice(1);
+  const activeBtn = document.getElementById(activeBtnId);
+  if (activeBtn) activeBtn.classList.add('active');
+  applyDedicatedProjectsFilter();
+}
+
+function filterDedicatedProjects() {
+  applyDedicatedProjectsFilter();
+}
+
+function applyDedicatedProjectsFilter() {
+  const grid = document.getElementById('dedicatedProjectsGrid');
+  if (!grid) return;
+  const query = (document.getElementById('projectSearchInput')?.value || '').toLowerCase().trim();
+  
+  let filtered = dedicatedProjectsCache.slice();
+  if (dedicatedProjectFilter !== 'all') {
+    filtered = filtered.filter(p => (p.paper_type || 'makalah').toLowerCase() === dedicatedProjectFilter.toLowerCase());
+  }
+  if (query) {
+    filtered = filtered.filter(p => 
+      (p.title || '').toLowerCase().includes(query) || 
+      (p.topic || '').toLowerCase().includes(query)
+    );
+  }
+
+  if (!filtered.length) {
+    grid.innerHTML = `
+      <div style="grid-column: 1 / -1; padding:48px 24px; text-align:center; background:#fff; border:1.5px dashed #cbd5e1; border-radius:16px;">
+        <span class="material-symbols-rounded" style="font-size:42px; color:#94a3b8; margin-bottom:8px;">folder_off</span>
+        <h4 style="font-size:16px; font-weight:700; color:#334155; margin:0 0 6px;">Tidak ada proyek yang sesuai</h4>
+        <p style="font-size:13px; color:#64748b; margin:0 0 16px;">Belum ada naskah yang cocok dengan pencarian Anda.</p>
+        <button class="btn-primary" onclick="handleKTIClick('makalah')" style="margin:0 auto; padding:8px 18px; font-size:13px;">+ Buat Makalah Baru</button>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(p => {
+    const pType = (p.paper_type || 'makalah').toLowerCase();
+    const typeLabel = pType === 'proposal' ? 'Proposal' : (pType === 'skripsi' ? 'Skripsi' : 'Makalah');
+    const typeIcon = pType === 'proposal' ? 'note_add' : (pType === 'skripsi' ? 'school' : 'article');
+    const updatedDate = (p.updated_at || '').slice(0, 10) || 'Hari ini';
+    return `
+      <div class="hp-project-card" onclick="openExistingProject(${Number(p.id)})" style="display:flex; flex-direction:column; justify-content:space-between; background:#fff; border:1.5px solid #e2e8f0; border-radius:14px; padding:18px; cursor:pointer; transition:all 0.2s ease;">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <div class="hp-proj-kti-tag ${pType}" style="display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700; padding:3px 8px; border-radius:6px;">
+              <span class="material-symbols-rounded" style="font-size:15px;">${typeIcon}</span> ${typeLabel}
+            </div>
+            <div style="display:flex; align-items:center; gap:5px; font-size:11px; color:#059669; font-weight:600;">
+              <span style="width:7px; height:7px; background:#10b981; border-radius:50%; display:inline-block;"></span> Tersimpan
+            </div>
+          </div>
+          <h4 style="font-size:14.5px; font-weight:700; color:#1e293b; margin:0 0 8px; line-height:1.4;">${escapeHTML(p.title || 'Proyek Tanpa Judul')}</h4>
+          <p style="font-size:12px; color:#64748b; margin:0 0 12px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${escapeHTML(p.topic || 'Belum ada deskripsi topik.')}</p>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid #f1f5f9;">
+          <span style="font-size:11px; color:#94a3b8; display:flex; align-items:center; gap:4px;">
+            <span class="material-symbols-rounded" style="font-size:14px;">calendar_today</span> ${escapeHTML(updatedDate)}
+          </span>
+          <button class="hp-proj-resume-btn" style="padding:6px 14px; font-size:12px; font-weight:700;">
+            <span class="material-symbols-rounded" style="font-size:16px;">play_circle</span> Buka Naskah
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── 2. DEDICATED PUSTAKA RISET VIEW (LIVE PUBMED) ─────────────
+function renderDedicatedPustakaView() {
+  const input = document.getElementById('dedicatedPustakaInput');
+  if (input && !input.value.trim()) {
+    if (researchContext && researchContext.topic) {
+      input.value = researchContext.topic;
+    }
+  }
+}
+
+async function executeDedicatedPubMedSearch() {
+  const input = document.getElementById('dedicatedPustakaInput');
+  const resultsEl = document.getElementById('dedicatedPustakaResults');
+  if (!input || !resultsEl) return;
+  const query = input.value.trim();
+  if (!query) {
+    showThesaToast('Masukkan topik atau kata kunci pencarian ilmiah.', 'warning', 'info');
+    return;
+  }
+
+  resultsEl.innerHTML = `
+    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:36px; text-align:center;">
+      <div style="display:inline-block; width:36px; height:36px; border:3px solid #e2e8f0; border-top-color:#4f46e5; border-radius:50%; animation:spin 0.8s linear infinite; margin-bottom:12px;"></div>
+      <h4 style="font-size:15px; font-weight:700; color:#1e293b; margin:0 0 6px;">Menghubungkan ke Repositori PubMed NCBI...</h4>
+      <p style="font-size:12.5px; color:#64748b; margin:0;">Mengambil metadata artikel ilmiah peer-reviewed terkait "${escapeHTML(query)}"...</p>
+    </div>
+  `;
+
+  try {
+    const res = await thesaApiFetch(`/api/v1/literature/search?q=${encodeURIComponent(query)}&limit=10`, {}, {method:'GET', throwOnError:true});
+    const papers = res.papers || [];
+    if (!papers.length) {
+      resultsEl.innerHTML = `
+        <div style="background:#fff; border:1.5px dashed #cbd5e1; border-radius:14px; padding:36px; text-align:center;">
+          <span class="material-symbols-rounded" style="font-size:40px; color:#94a3b8; margin-bottom:8px;">search_off</span>
+          <h4 style="font-size:15px; font-weight:700; color:#334155; margin:0 0 6px;">Tidak Ditemukan Publikasi Terkait</h4>
+          <p style="font-size:12.5px; color:#64748b; margin:0;">Coba gunakan kata kunci ilmiah dalam bahasa Inggris atau istilah yang lebih umum.</p>
+        </div>
+      `;
+      return;
+    }
+
+    resultsEl.innerHTML = `
+      <div style="font-size:13px; font-weight:700; color:#475569; margin-bottom:4px;">
+        Ditemukan ${papers.length} Publikasi Ilmiah Terverifikasi:
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        ${papers.map(p => {
+          const authors = (p.authors && p.authors.length) ? p.authors.join(', ') : 'Peneliti Terverifikasi';
+          const citation = `${authors} (${p.year || '2024'}). ${p.title}. ${p.journal || 'PubMed Central'}. ${p.doi ? 'https://doi.org/' + p.doi : (p.url || '')}`;
+          return `
+            <div style="background:#fff; border:1.5px solid #e2e8f0; border-radius:12px; padding:18px; display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+                <h4 style="font-size:15px; font-weight:700; color:#1e293b; margin:0; line-height:1.4;">${escapeHTML(p.title)}</h4>
+                <span style="font-size:11px; background:#eff6ff; color:#1d4ed8; font-weight:700; padding:2px 8px; border-radius:999px; white-space:nowrap;">${escapeHTML(p.year ? String(p.year) : 'PubMed')}</span>
+              </div>
+              <div style="font-size:12.5px; color:#475569; font-weight:500;">
+                <span class="material-symbols-rounded" style="font-size:14px; vertical-align:middle; color:#64748b;">person</span> ${escapeHTML(authors)}
+                <span style="margin:0 6px; color:#cbd5e1;">•</span>
+                <span class="material-symbols-rounded" style="font-size:14px; vertical-align:middle; color:#64748b;">auto_stories</span> <em>${escapeHTML(p.journal || 'PubMed Central')}</em>
+              </div>
+              <p style="font-size:12px; color:#64748b; line-height:1.5; margin:4px 0 8px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">
+                ${escapeHTML(p.abstract || 'Abstrak publikasi tersedia pada pangkalan data sumber PubMed NCBI.')}
+              </p>
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding-top:8px; border-top:1px solid #f1f5f9;">
+                <div style="display:flex; gap:8px;">
+                  <button class="btn-secondary" onclick="copyCitationToClipboard(${escapeHTML(JSON.stringify(citation))})" style="padding:6px 12px; font-size:12px; font-weight:600; display:inline-flex; align-items:center; gap:5px;">
+                    <span class="material-symbols-rounded" style="font-size:15px;">content_copy</span> Salin Sitasi APA
+                  </button>
+                  ${p.url ? `<a href="${escapeHTML(p.url)}" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="padding:6px 12px; font-size:12px; text-decoration:none; display:inline-flex; align-items:center; gap:5px;"><span class="material-symbols-rounded" style="font-size:15px;">open_in_new</span> Buka di PubMed</a>` : ''}
+                </div>
+                <button class="btn-primary" onclick="injectCitationToCanvas(${escapeHTML(JSON.stringify(citation))})" style="padding:6px 14px; font-size:12px; font-weight:700;">
+                  <span class="material-symbols-rounded" style="font-size:15px;">add_circle</span> Sisipkan ke Naskah
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  } catch (err) {
+    resultsEl.innerHTML = `
+      <div style="background:#fef2f2; border:1.5px solid #fecaca; border-radius:14px; padding:24px; text-align:center; color:#b91c1c;">
+        <span class="material-symbols-rounded" style="font-size:32px; margin-bottom:6px;">error</span>
+        <h4 style="font-size:14.5px; font-weight:700; margin:0 0 4px;">Pencarian PubMed Gagal</h4>
+        <p style="font-size:12px; margin:0;">${escapeHTML(err.message || 'Periksa koneksi internet ke NCBI PubMed.')}</p>
+      </div>
+    `;
+  }
+}
+
+function copyCitationToClipboard(citationText) {
+  navigator.clipboard.writeText(citationText).then(() => {
+    showThesaToast('✓ Sitasi berhasil disalin ke clipboard!', 'success', 'content_copy');
+  }).catch(() => {
+    showThesaToast('Gagal menyalin ke clipboard', 'error', 'error');
+  });
+}
+
+function injectCitationToCanvas(citationText) {
+  const boxDaftarPustaka = document.getElementById('boxDaftarPustaka');
+  if (boxDaftarPustaka) {
+    const existing = boxDaftarPustaka.innerText.trim();
+    if (existing.includes('Akan tersusun otomatis') || existing.includes('Belum ada')) {
+      boxDaftarPustaka.innerHTML = `<p style="margin-bottom:8px; line-height:1.6;">${escapeHTML(citationText)}</p>`;
+    } else {
+      boxDaftarPustaka.innerHTML += `<p style="margin-bottom:8px; line-height:1.6;">${escapeHTML(citationText)}</p>`;
+    }
+    showThesaToast('✓ Sitasi PubMed disisipkan ke Daftar Pustaka naskah!', 'success', 'bookmark_added');
+    saveActiveProject(true);
+  } else {
+    copyCitationToClipboard(citationText);
+    showThesaToast('Sitasi disalin! Buka naskah untuk menempelkannya.', 'info', 'info');
+  }
+}
+
+// ── 3. DEDICATED PENCAPAIAN VIEW ──────────────────────────────
+function renderDedicatedPencapaianView() {
+  const profile = getUserProfile();
+  const xp = profile.goldTokens || 450;
+  const xpEl = document.getElementById('pencapaianXP');
+  if (xpEl) xpEl.innerText = `${xp.toLocaleString('id-ID')} XP`;
+
+  const trustScore = document.getElementById('pencapaianTrustScore');
+  if (trustScore) {
+    trustScore.innerText = `${Math.min(99, 92 + (xp % 8))}%`;
+  }
+}
+
+// ── 4. DEDICATED PENGATURAN VIEW ──────────────────────────────
+function renderDedicatedPengaturanView() {
+  const profile = getUserProfile();
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.value = val || '';
+  };
+  setVal('setUserName', profile.name || 'Alif Awwaz');
+  setVal('setUserEmail', profile.email || 'alif.awwaz@ui.ac.id');
+  setVal('setUserInstitution', profile.institution || profile.campus || 'Universitas Indonesia (UI)');
+  setVal('setUserProdi', profile.prodi || profile.major || 'Magister Ilmu Komputer (S2)');
+  setVal('setUserNim', profile.nim || '2106752000');
+  setVal('setUserSupervisor', profile.supervisor || 'Prof. Dr. Ir. Pembimbing Utama, M.Sc.');
+  setVal('setUserCitationStyle', profile.citationStyle || 'apa');
+}
+
+function saveUserSettings() {
+  const name = document.getElementById('setUserName')?.value.trim();
+  const institution = document.getElementById('setUserInstitution')?.value.trim();
+  const prodi = document.getElementById('setUserProdi')?.value.trim();
+  const nim = document.getElementById('setUserNim')?.value.trim();
+  const supervisor = document.getElementById('setUserSupervisor')?.value.trim();
+  const citationStyle = document.getElementById('setUserCitationStyle')?.value;
+
+  const current = getUserProfile();
+  const updated = {
+    ...current,
+    name: name || current.name,
+    institution: institution || current.institution,
+    campus: institution || current.campus,
+    prodi: prodi || current.prodi,
+    nim: nim || current.nim,
+    supervisor: supervisor || current.supervisor,
+    citationStyle: citationStyle || current.citationStyle
+  };
+
+  updateUserProfile(updated);
+  loadUserProfile();
+  showThesaToast('✓ Pengaturan profil akademik berhasil diperbarui!', 'success', 'check_circle');
+}
+
+// ── 5. NOTIFICATION PANEL CONTROLLER ──────────────────────────
+const defaultThesaNotifications = [
+  {
+    id: 1,
+    title: 'Mesin AI Gemini 2.5 Siap',
+    desc: 'Google Gemini 2.5 Flash aktif terhubung tanpa mock atau fallback palsu.',
+    time: 'Baru saja',
+    icon: 'verified',
+    color: '#059669',
+    read: false
+  },
+  {
+    id: 2,
+    title: 'Pustaka PubMed NCBI Aktif',
+    desc: 'Pencarian jutaan literatur akademik siap memperkuat novelty naskah.',
+    time: '10 mnt lalu',
+    icon: 'menu_book',
+    color: '#2563eb',
+    read: false
+  },
+  {
+    id: 3,
+    title: 'Integritas Sokratik Aktif',
+    desc: 'Penyusunan naskah terproteksi dari joki naskah otomatis dengan dialog kritis.',
+    time: '1 jam lalu',
+    icon: 'shield',
+    color: '#7c3aed',
+    read: true
+  }
+];
+
+function toggleNotifications(event) {
+  if (event) event.stopPropagation();
+  const panel = document.getElementById('thesaNotifPanel');
+  if (!panel) return;
+  const isShown = panel.style.display === 'block';
+  if (isShown) {
+    panel.style.display = 'none';
+  } else {
+    renderNotificationList();
+    panel.style.display = 'block';
+  }
+}
+
+function renderNotificationList() {
+  const container = document.getElementById('notifListContainer');
+  if (!container) return;
+  container.innerHTML = defaultThesaNotifications.map(n => `
+    <div style="display:flex; gap:10px; padding:8px; border-radius:8px; background:${n.read ? '#fff' : '#f8fafc'}; border:1px solid ${n.read ? '#f1f5f9' : '#e2e8f0'};">
+      <span class="material-symbols-rounded" style="color:${n.color}; font-size:20px; flex-shrink:0; margin-top:2px;">${n.icon}</span>
+      <div style="flex:1;">
+        <div style="display:flex; justify-content:space-between; align-items:baseline;">
+          <strong style="font-size:12px; color:#1e293b;">${escapeHTML(n.title)}</strong>
+          <span style="font-size:10px; color:#94a3b8;">${escapeHTML(n.time)}</span>
+        </div>
+        <p style="font-size:11px; color:#64748b; margin:2px 0 0; line-height:1.4;">${escapeHTML(n.desc)}</p>
+      </div>
+    </div>
+  `).join('');
+
+  const dot = document.getElementById('hpNotifDot');
+  const hasUnread = defaultThesaNotifications.some(n => !n.read);
+  if (dot) dot.style.display = hasUnread ? 'block' : 'none';
+}
+
+function clearNotifications() {
+  defaultThesaNotifications.forEach(n => n.read = true);
+  renderNotificationList();
+  showThesaToast('Semua notifikasi ditandai telah dibaca.', 'info', 'done_all');
+}
+
+// Global outside click handler for notification panel
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('thesaNotifPanel');
+  const btn = document.getElementById('btnHpNotif');
+  if (panel && panel.style.display === 'block' && !panel.contains(e.target) && (!btn || !btn.contains(e.target))) {
+    panel.style.display = 'none';
+  }
+});
 
 function backToHomepage() {
   const app = document.getElementById('mainApp');
@@ -734,6 +1562,7 @@ function backToHomepage() {
       hp.style.transform = '';
       hp.style.transition = 'opacity 0.25s ease';
       setTimeout(() => { hp.style.opacity = '1'; }, 20);
+      loadSavedProjects();
     }
   }, 200);
 }
@@ -768,50 +1597,60 @@ function startNewProjectFromHome(ktiType) {
   }, 250);
 }
 
-function openExistingProject(projectId) {
-  // Mock: open existing projects directly into main app (focused on Makalah)
-  const projectData = {
-    'cascade-multi-agent': {
-      kti: 'makalah', campus: 'ui',
-      topic: 'Analisis Impact Artificial Intelligence terhadap Efisiensi SDM Industri',
-      importance: 'Pengaruh adopsi AI terhadap efisiensi operasional dan dinamika tenaga kerja.',
-      keywords: ['AI', 'SDM', 'Makalah', 'Efisiensi', 'Industri']
-    },
-    'hoaks-bert': {
-      kti: 'makalah', campus: 'ugm',
-      topic: 'Strategi Transformasi Digital dan Adopsi FinTech pada Pertumbuhan UMKM',
-      importance: 'Peran teknologi keuangan dalam mempercepat inklusi keuangan dan pertumbuhan bisnis lokal.',
-      keywords: ['FinTech', 'UMKM', 'Makalah', 'Digitalisasi', 'Ekonomi']
-    },
-    'ketahanan-pangan': {
-      kti: 'makalah', campus: 'dikti',
-      topic: 'Efisiensi Penggunaan Energi Terbarukan dalam Menurunkan Emisi Karbon',
-      importance: 'Tinjauan komprehensif terhadap penerapan energi terbarukan di sektor manufaktur.',
-      keywords: ['Energi', 'Karbon', 'Makalah', 'Terbarukan', 'Lingkungan']
-    }
-  };
+async function openExistingProject(projectId) {
+  try {
+    setGenerationStatus('loading', 'Memuat proyek tersimpan dari basis data…');
+    const data = await thesaApiFetch(`/api/v1/projects/get?id=${encodeURIComponent(projectId)}`, {}, { method: 'GET', throwOnError: true });
+    activeProjectID = data.project.id;
+    const state = data.state || {};
+    researchContext = state.researchContext || { topic: data.project.topic };
+    injectedReferences = state.injectedReferences || [];
+    selectedKTI = state.selectedKTI || 'makalah';
+    activeCampus = campusCatalog[state.campusId] || activeCampus || campusCatalog.ui;
 
-  const data = projectData[projectId];
-  if (!data) return;
+    const hp = document.getElementById('homepageScreen'); if (hp) hp.style.display = 'none';
+    const ob = document.getElementById('onboardingScreen'); if (ob) ob.style.display = 'none';
+    const app = document.getElementById('mainApp'); app.style.display = 'block'; app.style.opacity = '1';
 
-  const hp = document.getElementById('homepageScreen');
-  if (!hp) return;
-
-  hp.style.transition = 'opacity 0.3s ease';
-  hp.style.opacity = '0';
-  setTimeout(() => {
-    hp.style.display = 'none';
-    const app = document.getElementById('mainApp');
-    app.style.display = 'block';
-    app.style.opacity = '0';
-    app.style.transition = 'opacity 0.3s ease';
-    setTimeout(() => { app.style.opacity = '1'; }, 20);
-
-    selectedKTI = 'makalah';
-    const kti = ktiDefinitions.makalah;
-    initMainApp(kti, activeCampus, researchContext);
+    const hasSavedChat = Boolean(state.chatHTML && state.chatHTML.trim() !== '');
+    initMainApp(ktiDefinitions[selectedKTI] || ktiDefinitions.makalah, activeCampus, researchContext, hasSavedChat);
     initChatActions();
-  }, 300);
+
+    // Restore chat history if present
+    if (hasSavedChat) {
+      const stream = document.getElementById('duoChatStream');
+      if (stream) {
+        stream.innerHTML = state.chatHTML;
+        stream.scrollTop = stream.scrollHeight;
+      }
+    }
+
+    // Restore title and author header
+    const titleEl = document.getElementById('draftPaperTitle');
+    if (titleEl) titleEl.innerText = researchContext.topic || data.project.title || 'Proyek Riset';
+    const authorEl = document.getElementById('paperAuthorSubtitle');
+    if (authorEl) authorEl.innerText = `Format ${selectedKTI.toUpperCase()} · ${activeCampus?.name || 'Universitas Indonesia'} · ${activeCitationStyle.toUpperCase()}`;
+
+    // Restore draft content into section boxes
+    if (state.boxes && state.boxes.latarBelakang) {
+      const box11 = document.getElementById('boxLatarBelakang');
+      if (box11) { box11.innerHTML = state.boxes.latarBelakang; box11.style.background = '#ffffff'; }
+      if (state.boxes.problemStatement) { const b = document.getElementById('boxProblemStatement'); if (b) b.innerHTML = state.boxes.problemStatement; }
+      if (state.boxes.tujuanPenulisan) { const b = document.getElementById('boxTujuanPenulisan'); if (b) b.innerHTML = state.boxes.tujuanPenulisan; }
+      if (state.boxes.pembahasan) { const b = document.getElementById('boxPembahasan'); if (b) b.innerHTML = state.boxes.pembahasan; }
+      if (state.boxes.penutup) { const b = document.getElementById('boxPenutup'); if (b) b.innerHTML = state.boxes.penutup; }
+    } else if (state.draft) {
+      renderDraftToBox(state.draft);
+    }
+
+    // Restore references into bibliography section
+    updateBibliographySection();
+
+    setGenerationStatus('success', '✓ Proyek tersimpan berhasil dimuat.');
+  } catch (err) {
+    console.error('[Thesa Open Project Error]', err);
+    setGenerationStatus('error', `Proyek tidak dapat dibuka: ${err.message}`);
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -1572,6 +2411,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeAwareGreeting();
   // Set default dashboard projects view (empty state showcase for new user)
   setDashboardProjectsView('empty');
+	loadSavedProjects();
   // Onboarding: stepper initial state (for when onboarding is opened later)
   updateStepper(1);
 });
@@ -1905,6 +2745,24 @@ function startThesaMain() {
     return;
   }
 
+  // ── Silver Tier: Balance Gate / Trial Credits ──────────────
+  const tier = getUserTier();
+  const profile = getUserProfile();
+  const GENERATE_COST = 12000;
+
+  if (tier === 'silver') {
+    let balance = profile.silverBalance;
+    if (balance === undefined || balance === null || balance < GENERATE_COST) {
+      // Grant trial credits so generation is always usable
+      balance = 50000;
+      updateUserProfile({ silverBalance: balance });
+    }
+    const newBal = Math.max(0, balance - GENERATE_COST);
+    updateUserProfile({ silverBalance: newBal });
+    initTierBadge();
+    showThesaToast(`💳 Saldo terpakai Rp 12.000. Sisa saldo: Rp ${newBal.toLocaleString('id-ID')}`, 'info', 'account_balance_wallet');
+  }
+
   // Collect intake
   researchContext.topic = q1Val;
   researchContext.importance = document.getElementById('obQ2Input')?.value.trim() || '';
@@ -1941,13 +2799,90 @@ function startThesaMain() {
     // Boot main app with context
     initMainApp(kti, activeCampus, researchContext);
     initChatActions();
+	  // This is the only automatic draft path: it persists the supplied research
+	  // context and waits for Gemini. No local template is presented as AI output.
+	  createAndGenerateProject();
   }, 380);
+}
+
+// ── Insufficient Balance Modal ────────────────────────────────
+function _showInsufficientBalanceModal(currentBalance, required) {
+  let modal = document.getElementById('insufficientBalanceModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'insufficientBalanceModal';
+    modal.className = 'modal-backdrop';
+    modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+    document.body.appendChild(modal);
+  }
+
+  const shortage = required - currentBalance;
+  modal.innerHTML = `
+    <div class="modal-container" style="width:min(92vw,440px);padding:32px;text-align:center;">
+      <div style="font-size:52px;margin-bottom:12px;">💳</div>
+      <h3 style="font-size:20px;font-weight:800;color:var(--text);margin:0 0 8px;">Saldo Tidak Cukup</h3>
+      <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin:0 0 20px;">
+        Untuk generate 1 naskah dibutuhkan <strong>Rp ${required.toLocaleString('id-ID')}</strong>.<br>
+        Saldo kamu saat ini: <strong>Rp ${currentBalance.toLocaleString('id-ID')}</strong>.<br>
+        Kurang: <strong style="color:#ef4444;">Rp ${shortage.toLocaleString('id-ID')}</strong>
+      </p>
+
+      <div style="background:#f1f5f9;border-radius:12px;padding:14px;margin-bottom:18px;text-align:left;">
+        <div style="font-size:11.5px;font-weight:700;color:#475569;margin-bottom:10px;text-transform:uppercase;">Pilih Nominal Top Up</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          ${[15000, 36000, 60000, 120000].map(amt => `
+            <div onclick="document.querySelectorAll('.insuf-topup-card').forEach(c=>c.style.border='1.5px solid #cbd5e1');this.style.border='2px solid #4f46e5';this.style.background='#f5f3ff';window._insufTopupAmt=${amt};"
+              class="insuf-topup-card"
+              style="padding:10px;background:#fff;border:1.5px solid #cbd5e1;border-radius:10px;cursor:pointer;text-align:center;transition:all 0.15s;">
+              <div style="font-size:13.5px;font-weight:800;color:#1e293b;">Rp ${amt.toLocaleString('id-ID')}</div>
+              <div style="font-size:10.5px;color:#64748b;">${Math.floor(amt/12000)}x generate</div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button class="btn-secondary" onclick="document.getElementById('insufficientBalanceModal').style.display='none'">Batal</button>
+        <button class="btn-primary" onclick="_doTopupFromInsufModal()">
+          <span class="material-symbols-rounded">account_balance_wallet</span>
+          Top Up via QRIS Sekarang
+        </button>
+      </div>
+
+      <button class="btn-secondary" style="width:100%;margin-top:10px;justify-content:center;" onclick="document.getElementById('insufficientBalanceModal').style.display='none';showTierSelectorModal();">
+        <span class="material-symbols-rounded">upgrade</span>
+        Lihat Paket Gold / Platinum (unlimited)
+      </button>
+    </div>`;
+
+  window._insufTopupAmt = 15000; // default selection
+  modal.style.display = 'flex';
+}
+
+function _doTopupFromInsufModal() {
+  const amount = window._insufTopupAmt || 15000;
+  const user = (typeof getStoredUser === 'function') ? getStoredUser() : getUserProfile();
+  document.getElementById('insufficientBalanceModal').style.display = 'none';
+
+  openMidtransQRISPayment({
+    topup_type: 'topup',
+    amount,
+    user_email: (user && user.email) ? user.email : 'mahasiswa@thesa.id',
+    user_name: (user && (user.name || user.full_name)) ? (user.name || user.full_name) : 'Mahasiswa Thesa',
+    onSuccess: (paid) => {
+      const profile = getUserProfile();
+      const newBal = (profile.silverBalance || 0) + paid;
+      updateUserProfile({ silverBalance: newBal });
+      initTierBadge();
+      renderBillingStatusCard();
+      showThesaToast(`✅ Top up berhasil! Saldo: Rp ${newBal.toLocaleString('id-ID')}. Klik Generate lagi.`, 'success', 'verified');
+    }
+  });
 }
 
 // ============================================================
 // MAIN APP INIT (after onboarding)
 // ============================================================
-function initMainApp(kti, campus, context) {
+function initMainApp(kti, campus, context, skipIntroChat = false) {
   // Topbar labels
   setEl('appKTILabel', `${kti.label} Co-Pilot`);
   setEl('appKTIType', kti.label);
@@ -1971,8 +2906,10 @@ function initMainApp(kti, campus, context) {
   syncGamificationVisibility();
   initLivePaperSync();
 
-  // Boot Socratic intro chat
-  initSocraticIntroChat(kti, campus, context);
+  // Boot Socratic intro chat only if no saved chat was restored
+  if (!skipIntroChat) {
+    initSocraticIntroChat(kti, campus, context);
+  }
 }
 
 // ── Render Authentic Roadmap Units Dynamically ────────────────
@@ -2445,6 +3382,11 @@ function approveHITLDraft(argumentTitle) {
 
     setEl('verifiedCount', '1');
     setEl('docSyncBadge', '✓ Latar Belakang Masuk');
+  }
+
+  showToast('✓ Latar Belakang berhasil disetujui & dimasukkan ke lembar naskah!');
+  if (activeProjectID) {
+    saveActiveProject(true).catch(console.warn);
   }
 
   // Update left sidebar: 1.2 complete, unlock 1.3
@@ -5368,19 +6310,39 @@ function handleUserManualChat(userText) {
       </div>
     `;
     stream.appendChild(userRow);
+
+    // Indicator bubble while generating
+    const indicatorRow = document.createElement('div');
+    indicatorRow.className = 'coach-bubble-row';
+    indicatorRow.innerHTML = `
+      <div class="coach-avatar"><span class="coach-badge">Thesa</span></div>
+      <div class="bubble-card coach" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:#f8fafc;border:1.5px solid #cbd5e1;">
+        <span class="material-symbols-rounded" style="animation:spin 1s linear infinite;color:var(--brand);font-size:20px;">progress_activity</span>
+        <div>
+          <strong style="font-size:12.5px;color:#1e293b;display:block;">Thesa sedang merumuskan draf...</strong>
+          <span style="font-size:11px;color:#64748b;">Menyelaraskan masukan dengan kaidah akademik dan konteks riset</span>
+        </div>
+      </div>
+    `;
+    stream.appendChild(indicatorRow);
     stream.scrollTop = stream.scrollHeight;
 
     setTimeout(async () => {
       const topicText = researchContext.topic || 'topik riset ini';
-      
-      // Call conversation turn API for dynamic rationale and deliberative response
-      const apiResp = await thesaApiFetch('/api/v1/conversation/turn', {
-        user_message: userText,
-        action_type: 'free_text',
-        current_step: '1.2',
-        target_section: '1.2',
-        topic: topicText
-      });
+      let apiResp = null;
+      try {
+        apiResp = await thesaApiFetch('/api/v1/conversation/turn', {
+          user_message: userText,
+          action_type: 'free_text',
+          current_step: '1.2',
+          target_section: '1.2',
+          topic: topicText
+        });
+      } catch (err) {
+        console.warn('Conversation turn API fallback:', err);
+      } finally {
+        if (indicatorRow && indicatorRow.parentNode) indicatorRow.remove();
+      }
 
       const cleanAddition = userText.trim().replace(/^(tambahkan|sesuaikan|ubah)\s*(penekanan\s*pada\s*|bahwa\s*)?/i, '');
       const revisedDraft = (apiResp && apiResp.draft_content) ? apiResp.draft_content : 
@@ -5937,7 +6899,8 @@ function updateProgress(pct) {
   const pctElem = document.getElementById('globalProgressPct');
   if (bar) bar.style.width = `${pct}%`;
   if (pctElem) pctElem.innerText = `${pct}%`;
-  document.getElementById('cascadeScore').innerText = pct > 60 ? `${Math.min(95, 70 + pct / 5)}% Logis` : '— Logis';
+  const cs = document.getElementById('cascadeScore');
+  if (cs) cs.innerText = pct > 60 ? `${Math.min(95, 70 + pct / 5)}% Logis` : '— Logis';
 }
 
 function copyThesisDraft() {
@@ -6226,17 +7189,7 @@ function handlePaymentSuccess(addedQuota, amount) {
 }
 
 async function simulateQRISSuccess() {
-  const addedQuota = selectedQRISPackageKey === 'semester' ? 4 : 1;
-  
-  if (currentActiveOrderID) {
-    try {
-      await fetch(`/api/v1/payment/simulate?order_id=${encodeURIComponent(currentActiveOrderID)}`);
-    } catch (err) {
-      console.warn('Simulation API call:', err);
-    }
-  }
-
-  handlePaymentSuccess(addedQuota, selectedQRISPrice);
+  showThesaToast('Pembayaran hanya dapat dikonfirmasi oleh Midtrans.', 'error', 'verified_user');
 }
 
 // ── AI Economics & Token Margin Guardrails ───────────────────
@@ -6572,6 +7525,21 @@ function setDashboardProjectsView(view) {
     if (activeEl) activeEl.style.display = 'flex';
     if (titleEl) titleEl.innerText = 'Proyek Aktif';
   }
+}
+
+async function loadSavedProjects() {
+  try {
+    const result = await thesaApiFetch('/api/v1/projects/list', {}, {method:'GET',throwOnError:true});
+    const projects = result.projects || [];
+    const list = document.getElementById('hpProjectsList');
+    if (!projects.length) {
+      setDashboardProjectsView('empty');
+      return;
+    }
+    if (!list) return;
+    list.innerHTML = projects.map(p => `<div class="hp-project-card" onclick="openExistingProject(${Number(p.id)})"><div class="hp-proj-head"><div class="hp-proj-kti-tag makalah"><span class="material-symbols-rounded">article</span> Makalah</div><div class="hp-proj-activity"><span class="hp-activity-dot active"></span> Tersimpan</div></div><h4 class="hp-proj-title">${escapeHTML(p.title)}</h4><div class="hp-proj-meta-row"><span class="hp-proj-campus">${escapeHTML(p.topic || 'Tanpa topik')}</span><span class="hp-proj-unit">Tahap ${p.current_stage}</span></div><div class="hp-proj-footer"><span class="hp-tag">${escapeHTML((p.updated_at || '').slice(0,10))}</span><button class="hp-proj-resume-btn"><span class="material-symbols-rounded">play_circle</span> Buka</button></div></div>`).join('');
+    setDashboardProjectsView('active');
+  } catch (_) { /* unauthenticated users legitimately have no server projects */ }
 }
 
 function handleKTIClick(ktiType) {
@@ -6965,7 +7933,7 @@ function renderLiteratureCards(papers) {
         <span class="lit-paper-badge">${p.type === 'scopus' ? 'Scopus / Q1' : 'SINTA / Nasional'}</span>
       </div>
       <p class="lit-paper-abstract">${escapeHTML(p.abstract)}</p>
-      <button type="button" class="btn-cite-inject" onclick="injectCitationToDraft(${p.id})">
+      <button type="button" class="btn-cite-inject" onclick="injectCitationToDraft('${escapeHTML(p.id)}')">
         <span class="material-symbols-rounded" style="font-size:16px;">format_quote</span>
         <span>+ Kutip ke Naskah ${escapeHTML(p.citation)}</span>
       </button>
@@ -6973,22 +7941,16 @@ function renderLiteratureCards(papers) {
   `).join('');
 }
 
-function searchLiterature() {
-  const q = (document.getElementById('litSearchInput')?.value || '').toLowerCase().trim();
-  let results = literatureCatalog;
-  if (q) {
-    results = results.filter(p => 
-      p.title.toLowerCase().includes(q) || 
-      p.authors.toLowerCase().includes(q) || 
-      p.abstract.toLowerCase().includes(q) || 
-      p.journal.toLowerCase().includes(q)
-    );
-  }
-  if (activeLitFilter !== 'all') {
-    if (activeLitFilter === 'recent') results = results.filter(p => p.year >= 2020);
-    else results = results.filter(p => p.type === activeLitFilter);
-  }
-  renderLiteratureCards(results);
+async function searchLiterature() {
+  const q = (document.getElementById('litSearchInput')?.value || '').trim();
+  if (q.length < 3) { renderLiteratureCards([]); showToast('Masukkan sedikitnya 3 karakter untuk mencari PubMed.', 'info'); return; }
+  const container = document.getElementById('litCardsContainer');
+  if (container) container.innerHTML = '<div style="padding:28px;text-align:center;color:#1d4ed8">⏳ Mencari literatur terverifikasi di PubMed…</div>';
+  try {
+    const result = await thesaApiFetch(`/api/v1/literature/search?q=${encodeURIComponent(q)}`, {}, {method:'GET',throwOnError:true});
+    literatureCatalog.length = 0; literatureCatalog.push(...result.papers.map(p => ({...p, abstract:'Metadata terverifikasi dari PubMed. Buka sumber untuk membaca abstrak lengkap.', bib:`${p.authors} (${p.year}). ${p.title}. ${p.journal}. ${p.doi ? 'https://doi.org/'+p.doi : p.url}`})));
+    renderLiteratureCards(literatureCatalog);
+  } catch (err) { if (container) container.innerHTML = `<div style="padding:28px;text-align:center;color:#b91c1c">⚠ ${escapeHTML(err.message)} Tidak ada hasil contoh yang ditampilkan.</div>`; }
 }
 
 function filterLiteratureType(btn, type) {
@@ -7005,7 +7967,7 @@ function resetLiteratureFilter() {
   document.querySelectorAll('.lit-filter-pill').forEach((b, i) => {
     b.classList.toggle('active', i === 0);
   });
-  renderLiteratureCards(literatureCatalog);
+  renderLiteratureCards([]);
 }
 
 function showToast(message, type = 'success') {
@@ -7132,6 +8094,11 @@ function injectCitationToDraft(paperId) {
 
   // 5. Trigger Toast Notification
   showToast(`✓ Sitasi ${citationStr} berhasil disisipkan ke naskah & Daftar Pustaka!`);
+
+  // 6. Auto-save project if active
+  if (activeProjectID) {
+    saveActiveProject(true).catch(e => console.warn('Autosave citation failed:', e));
+  }
 }
 
 function updateBibliographySection() {

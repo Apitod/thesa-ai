@@ -43,9 +43,9 @@ type EvaluateSocraticResponse struct {
 }
 
 type ReadinessRequest struct {
-	MacroReview        agent.MacroReview          `json:"macro_review"`
+	MacroReview         agent.MacroReview          `json:"macro_review"`
 	SocraticEvaluations []agent.SocraticEvaluation `json:"socratic_evaluations"`
-	FormatCheck        agent.FormatCheck           `json:"format_check"`
+	FormatCheck         agent.FormatCheck          `json:"format_check"`
 }
 
 type ReadinessResponse struct {
@@ -61,8 +61,8 @@ type ReadinessResponse struct {
 // including macro analysis, Socratic questioning, answer evaluation, format
 // validation, and readiness scoring.
 type SupervisorHandler struct {
-	supervisor  *agent.AgentSupervisor
-	aiProvider  agent.AIProvider
+	supervisor *agent.AgentSupervisor
+	aiProvider agent.AIProvider
 }
 
 // NewSupervisorHandler creates a new SupervisorHandler with the provided
@@ -253,20 +253,20 @@ func (h *SupervisorHandler) ExaminerSimulate(w http.ResponseWriter, r *http.Requ
 		// Return graceful fallback
 		if req.Mode == "evaluate" {
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"score": 85,
-				"grade": "A-",
-				"feedback": "Jawaban Anda telah menyentuh aspek substansi inti dengan baik.",
-				"critique": "Pertahankan artikulasi dan perkuat korelasi data empiris.",
-				"strong_points": []string{"Penjelasan logis", "Menjawab langsung esensi pertanyaan"},
+				"score":              85,
+				"grade":              "A-",
+				"feedback":           "Jawaban Anda telah menyentuh aspek substansi inti dengan baik.",
+				"critique":           "Pertahankan artikulasi dan perkuat korelasi data empiris.",
+				"strong_points":      []string{"Penjelasan logis", "Menjawab langsung esensi pertanyaan"},
 				"improvement_points": []string{"Sertakan contoh kasus", "Pertegas batasan riset"},
-				"aspect_scores": map[string]int{"logic": 85, "method": 82, "literature": 84, "oral": 88},
+				"aspect_scores":      map[string]int{"logic": 85, "method": 82, "literature": 84, "oral": 88},
 			})
 			return
 		}
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"question_text": fmt.Sprintf("Berdasarkan topik '%s', bagaimana Anda membuktikan kebaruan (novelty) riset ini terhadap literatur yang sudah ada?", req.Topic),
-			"context_bab": "BAB I & II",
-			"intent": "Menguji penguasaan novelty dan posisi riset",
+			"context_bab":   "BAB I & II",
+			"intent":        "Menguji penguasaan novelty dan posisi riset",
 		})
 		return
 	}
@@ -278,41 +278,16 @@ func (h *SupervisorHandler) ExaminerSimulate(w http.ResponseWriter, r *http.Requ
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-// defaultConfig builds a ProviderConfig dynamically.
-// It respects AI_PRIMARY_PROVIDER and selects the correct API key accordingly.
-// Falls back to Gemini if DeepSeek key is absent.
+// defaultConfig builds a ProviderConfig dynamically for Gemini AI.
 func (h *SupervisorHandler) defaultConfig() agent.ProviderConfig {
-	primaryProvider := os.Getenv("AI_PRIMARY_PROVIDER")
-	if primaryProvider == "" {
-		primaryProvider = "gemini"
+	model := os.Getenv("GEMINI_MODEL")
+	if model == "" {
+		model = "gemini-2.5-flash"
 	}
-
-	router := agent.NewSmartLLMRouter()
-	routed := router.RouteTask(agent.TaskSocraticChat, "gold", 100000)
-
-	var apiKey string
-	provider := primaryProvider
-
-	switch provider {
-	case "deepseek":
-		apiKey = os.Getenv("DEEPSEEK_API_KEY")
-		if apiKey == "" {
-			apiKey = os.Getenv("DEEPSEEK_KEY")
-		}
-		// Fall back to Gemini if DeepSeek key not configured
-		if apiKey == "" {
-			provider = "gemini"
-			apiKey = os.Getenv("GEMINI_API_KEY")
-		}
-	default: // gemini
-		provider = "gemini"
-		apiKey = os.Getenv("GEMINI_API_KEY")
-	}
-
 	return agent.ProviderConfig{
-		Provider:  provider,
-		Model:     routed.Model,
-		APIKey:    apiKey,
-		MaxTokens: routed.MaxTokens,
+		Provider:  "gemini",
+		Model:     model,
+		APIKey:    os.Getenv("GEMINI_API_KEY"),
+		MaxTokens: 2048,
 	}
 }

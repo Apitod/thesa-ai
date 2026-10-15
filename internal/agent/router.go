@@ -23,7 +23,7 @@ type RoutedConfig struct {
 	MaxTokens        int     `json:"max_tokens"`
 	Temperature      float64 `json:"temperature"`
 	ContextTurns     int     `json:"context_turns"`
-	CompressionLevel string  `json:"compression_level"` // "aggressive" | "standard" | "verbatim"
+	CompressionLevel string  `json:"compression_level"`  // "aggressive" | "standard" | "verbatim"
 	CostTier         string  `json:"cost_tier"`          // "ultra_low" | "medium" | "deep_reasoning"
 	EstimatedCostIDR float64 `json:"estimated_cost_idr"` // Estimated cost in Rupiah per invocation
 }
@@ -36,27 +36,26 @@ type SmartLLMRouter struct {
 // NewSmartLLMRouter creates an instance of SmartLLMRouter.
 func NewSmartLLMRouter() *SmartLLMRouter {
 	return &SmartLLMRouter{
-		defaultProvider: "deepseek",
+		defaultProvider: "gemini",
 	}
 }
 
 // RouteTask determines the optimal model, max tokens, and context window based on task complexity, user tier, and token balance.
 func (r *SmartLLMRouter) RouteTask(task TaskType, userTier string, remainingTokens int) RoutedConfig {
+	geminiModel := getEnvOrDefault("GEMINI_MODEL", "gemini-2.5-flash")
 	isLowTokenBudget := remainingTokens > 0 && remainingTokens < 30000
-	isFreeOrSilver := userTier == "silver" || userTier == "trial" || userTier == ""
 
 	switch task {
 	case TaskSocraticChat:
-		// Socratic turns need fast, ultra-cheap chat models with compact context
-		maxTokens := 350
-		turns := 4
-		comp := "aggressive"
+		maxTokens := 500
+		turns := 6
+		comp := "standard"
 		if isLowTokenBudget {
-			maxTokens = 250
-			turns = 3
+			maxTokens = 350
+			turns = 4
 		}
 		return RoutedConfig{
-			Model:            "deepseek-chat", // Ultra-cheap (~$0.14/1M in, $0.28/1M out)
+			Model:            geminiModel,
 			MaxTokens:        maxTokens,
 			Temperature:      0.6,
 			ContextTurns:     turns,
@@ -67,45 +66,36 @@ func (r *SmartLLMRouter) RouteTask(task TaskType, userTier string, remainingToke
 
 	case TaskTopicValidation, TaskExerciseFeedback:
 		return RoutedConfig{
-			Model:            "deepseek-chat",
-			MaxTokens:        250,
+			Model:            geminiModel,
+			MaxTokens:        400,
 			Temperature:      0.5,
-			ContextTurns:     2,
-			CompressionLevel: "aggressive",
+			ContextTurns:     3,
+			CompressionLevel: "standard",
 			CostTier:         "ultra_low",
 			EstimatedCostIDR: 1.2,
 		}
 
 	case TaskDefenseSimulation:
 		return RoutedConfig{
-			Model:            "deepseek-chat",
-			MaxTokens:        350,
+			Model:            geminiModel,
+			MaxTokens:        600,
 			Temperature:      0.7,
-			ContextTurns:     3,
+			ContextTurns:     4,
 			CompressionLevel: "standard",
 			CostTier:         "ultra_low",
 			EstimatedCostIDR: 2.1,
 		}
 
 	case TaskGapAnalysis:
-		// Requires deep reasoning across multi-paper abstracts
-		model := "deepseek-chat"
-		maxTokens := 900
+		maxTokens := 1600
 		costTier := "medium"
 		costIDR := 6.5
 
-		if !isFreeOrSilver && !isLowTokenBudget && userTier == "platinum" {
-			model = "deepseek-reasoner" // DeepSeek-R1 for Platinum Power Users
-			maxTokens = 1200
-			costTier = "deep_reasoning"
-			costIDR = 18.0
-		}
-
 		return RoutedConfig{
-			Model:            model,
+			Model:            geminiModel,
 			MaxTokens:        maxTokens,
 			Temperature:      0.4,
-			ContextTurns:     2,
+			ContextTurns:     3,
 			CompressionLevel: "standard",
 			CostTier:         costTier,
 			EstimatedCostIDR: costIDR,
@@ -113,25 +103,25 @@ func (r *SmartLLMRouter) RouteTask(task TaskType, userTier string, remainingToke
 
 	case TaskOutlineGeneration:
 		return RoutedConfig{
-			Model:            "deepseek-chat",
-			MaxTokens:        1400,
+			Model:            geminiModel,
+			MaxTokens:        2048,
 			Temperature:      0.4,
-			ContextTurns:     1,
+			ContextTurns:     2,
 			CompressionLevel: "standard",
 			CostTier:         "medium",
 			EstimatedCostIDR: 8.5,
 		}
 
 	case TaskChapterDrafting:
-		maxTokens := 1400
+		maxTokens := 2048
 		if isLowTokenBudget {
-			maxTokens = 900
+			maxTokens = 1200
 		}
 		return RoutedConfig{
-			Model:            "deepseek-chat",
+			Model:            geminiModel,
 			MaxTokens:        maxTokens,
 			Temperature:      0.7,
-			ContextTurns:     3,
+			ContextTurns:     4,
 			CompressionLevel: "standard",
 			CostTier:         "medium",
 			EstimatedCostIDR: 9.2,
@@ -139,8 +129,8 @@ func (r *SmartLLMRouter) RouteTask(task TaskType, userTier string, remainingToke
 
 	default:
 		return RoutedConfig{
-			Model:            "deepseek-chat",
-			MaxTokens:        400,
+			Model:            geminiModel,
+			MaxTokens:        800,
 			Temperature:      0.7,
 			ContextTurns:     4,
 			CompressionLevel: "standard",

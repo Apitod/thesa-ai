@@ -30,8 +30,9 @@ type geminiGenerationConfig struct {
 }
 
 type geminiChatRequest struct {
-	Contents         []geminiContent        `json:"contents"`
-	GenerationConfig geminiGenerationConfig `json:"generationConfig,omitempty"`
+	SystemInstruction *geminiContent         `json:"system_instruction,omitempty"`
+	Contents          []geminiContent        `json:"contents"`
+	GenerationConfig  geminiGenerationConfig `json:"generationConfig,omitempty"`
 }
 
 type geminiChatResponse struct {
@@ -59,7 +60,7 @@ type geminiChatResponse struct {
 // NewGeminiProvider creates a new Google Gemini provider.
 func NewGeminiProvider() *GeminiProvider {
 	return &GeminiProvider{
-		httpClient: &http.Client{Timeout: 60 * time.Second},
+		httpClient: &http.Client{Timeout: 90 * time.Second},
 	}
 }
 
@@ -76,15 +77,15 @@ func (p *GeminiProvider) Chat(messages []Message, config ProviderConfig) (string
 	}
 
 	model := strings.TrimSpace(config.Model)
-	if model == "" || model == "gemini-1.5-flash" || model == "gemini-1.5-pro" {
-		model = "gemini-2.5-flash"
+	if model == "" || model == "gemini-1.5-flash" || model == "gemini-1.5-pro" || strings.HasPrefix(model, "deepseek") {
+		model = getEnvOrDefault("GEMINI_MODEL", "gemini-2.5-flash")
 	}
 
 	maxTokens := config.MaxTokens
 	if maxTokens <= 0 {
-		maxTokens = 1500
-	} else if maxTokens > 2500 {
-		maxTokens = 2500
+		maxTokens = 2048
+	} else if maxTokens > 4096 {
+		maxTokens = 4096
 	}
 
 	temperature := 0.7
@@ -98,26 +99,45 @@ func (p *GeminiProvider) Chat(messages []Message, config ProviderConfig) (string
 	optimizedMessages := optimizeContextWindow(messages)
 
 	// Format messages for Gemini API
+	var systemInstruction *geminiContent
 	contents := make([]geminiContent, 0, len(optimizedMessages))
 	for _, m := range optimizedMessages {
+		if m.Role == "system" {
+			systemInstruction = &geminiContent{
+				Parts: []geminiPart{{Text: m.Content}},
+			}
+			continue
+		}
 		role := "user"
 		if m.Role == "assistant" || m.Role == "model" {
 			role = "model"
 		}
 		content := m.Content
-		if len(content) > 4000 {
-			content = content[:4000] + "... [Konteks diringkas untuk efisiensi token]"
+		if len(content) > 30000 {
+			content = content[:30000] + "... [Konteks diringkas]"
 		}
+		// If last message has the same role, combine parts to satisfy Gemini alternation
+		if len(contents) > 0 && contents[len(contents)-1].Role == role {
+			contents[len(contents)-1].Parts = append(contents[len(contents)-1].Parts, geminiPart{Text: content})
+		} else {
+			contents = append(contents, geminiContent{
+				Role:  role,
+				Parts: []geminiPart{{Text: content}},
+			})
+		}
+	}
+
+	// Ensure at least one content exists
+	if len(contents) == 0 {
 		contents = append(contents, geminiContent{
-			Role: role,
-			Parts: []geminiPart{
-				{Text: content},
-			},
+			Role:  "user",
+			Parts: []geminiPart{{Text: "Mulai penulisan ilmiah."}},
 		})
 	}
 
 	reqBody := geminiChatRequest{
-		Contents: contents,
+		SystemInstruction: systemInstruction,
+		Contents:          contents,
 		GenerationConfig: geminiGenerationConfig{
 			Temperature:     temperature,
 			MaxOutputTokens: maxTokens,

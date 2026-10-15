@@ -88,8 +88,26 @@ func AutoMigrate() error {
 			log.Printf("[Thesa DB Migration] Error executing statement: %v | Stmt: %s", err, truncate(stmt, 80))
 		}
 	}
+	// MySQL 8.0 does not support ADD COLUMN IF NOT EXISTS on all supported
+	// versions. Check metadata first so existing installations upgrade safely.
+	if err := ensureColumn("users", "silver_balance", "DECIMAL(12,2) NOT NULL DEFAULT 0.00"); err != nil {
+		return fmt.Errorf("ensure users.silver_balance: %w", err)
+	}
 
 	return nil
+}
+
+func ensureColumn(table, column, definition string) error {
+	var exists int
+	err := DB.Get(&exists, `SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?`, table, column)
+	if err != nil {
+		return err
+	}
+	if exists > 0 {
+		return nil
+	}
+	_, err = DB.Exec("ALTER TABLE `" + table + "` ADD COLUMN `" + column + "` " + definition)
+	return err
 }
 
 // getDSN resolves and formats MySQL DSN from various environment variables.

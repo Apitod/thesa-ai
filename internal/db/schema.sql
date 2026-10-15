@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   `institution` VARCHAR(255) DEFAULT '',
   `prodi` VARCHAR(255) DEFAULT '',
   `level` VARCHAR(50) DEFAULT 'S1',
-  `tier` VARCHAR(50) DEFAULT 'gold',
+  `tier` VARCHAR(50) NOT NULL DEFAULT 'silver',
+  `silver_balance` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
   `role` VARCHAR(50) NOT NULL DEFAULT 'user',
   `credits` INT NOT NULL DEFAULT 1,
   `trust_score` INT DEFAULT 85,
@@ -24,6 +25,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   INDEX `idx_user_email` (`email`),
   INDEX `idx_user_role` (`role`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Safe upgrade for databases initialized before the free Silver tier.
 
 CREATE TABLE IF NOT EXISTS `user_sessions` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,

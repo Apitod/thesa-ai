@@ -16,18 +16,18 @@ import (
 // ---------------------------------------------------------------------------
 
 type GenerateOutlineRequest struct {
-	ProjectID     int                  `json:"project_id"`
-	TopicFocus    *agent.TopicFocus    `json:"topic_focus,omitempty"`
-	GapSummary    string               `json:"gap_summary,omitempty"`
-	JenisKTI      string               `json:"jenis_kti"`
-	TemplateID    int                  `json:"template_id,omitempty"`
-	TotalWords    int                  `json:"total_words,omitempty"`
+	ProjectID  int               `json:"project_id"`
+	TopicFocus *agent.TopicFocus `json:"topic_focus,omitempty"`
+	GapSummary string            `json:"gap_summary,omitempty"`
+	JenisKTI   string            `json:"jenis_kti"`
+	TemplateID int               `json:"template_id,omitempty"`
+	TotalWords int               `json:"total_words,omitempty"`
 }
 
 type GenerateOutlineResponse struct {
-	Outline      *agent.MappedOutline `json:"outline,omitempty"`
-	SectionsCount int                 `json:"sections_count"`
-	Error        string               `json:"error,omitempty"`
+	Outline       *agent.MappedOutline `json:"outline,omitempty"`
+	SectionsCount int                  `json:"sections_count"`
+	Error         string               `json:"error,omitempty"`
 }
 
 type EditSectionRequest struct {
@@ -251,14 +251,17 @@ func (h *OutlineHandler) SetWordTarget(w http.ResponseWriter, r *http.Request) {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-// defaultConfig builds a ProviderConfig from environment variables with sensible defaults.
+// defaultConfig builds a ProviderConfig from environment variables with sensible defaults for Gemini.
 func (h *OutlineHandler) defaultConfig() agent.ProviderConfig {
-	apiKey := os.Getenv("DEEPSEEK_API_KEY")
+	model := os.Getenv("GEMINI_MODEL")
+	if model == "" {
+		model = "gemini-2.5-flash"
+	}
 	return agent.ProviderConfig{
-		Provider:  "deepseek",
-		Model:     "deepseek-chat",
-		APIKey:    apiKey,
-		MaxTokens: 4096,
+		Provider:  "gemini",
+		Model:     model,
+		APIKey:    os.Getenv("GEMINI_API_KEY"),
+		MaxTokens: 2048,
 	}
 }
 

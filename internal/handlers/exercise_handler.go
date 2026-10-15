@@ -230,17 +230,16 @@ func (h *ExerciseHandler) SaveReflection(w http.ResponseWriter, r *http.Request)
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-// defaultConfig builds a ProviderConfig from the DEEPSEEK_API_KEY / DEEPSEEK_KEY env variable
-// with sensible defaults for exercise AI calls.
+// defaultConfig builds a ProviderConfig for Gemini AI calls.
 func (h *ExerciseHandler) defaultConfig() agent.ProviderConfig {
-	apiKey := os.Getenv("DEEPSEEK_API_KEY")
-	if apiKey == "" {
-		apiKey = os.Getenv("DEEPSEEK_KEY")
+	model := os.Getenv("GEMINI_MODEL")
+	if model == "" {
+		model = "gemini-2.5-flash"
 	}
 	return agent.ProviderConfig{
-		Provider:  "deepseek",
-		Model:     "deepseek-chat",
-		APIKey:    apiKey,
-		MaxTokens: 4096,
+		Provider:  "gemini",
+		Model:     model,
+		APIKey:    os.Getenv("GEMINI_API_KEY"),
+		MaxTokens: 2048,
 	}
 }

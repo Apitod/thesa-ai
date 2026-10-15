@@ -26,7 +26,7 @@ type GapAnalysisResponse struct {
 }
 
 type GapAnalysisHandler struct {
-	litAgent  *agent.LiteratureAgent
+	litAgent   *agent.LiteratureAgent
 	aiProvider agent.AIProvider
 }
 
@@ -78,29 +78,25 @@ func (h *GapAnalysisHandler) Analyze(w http.ResponseWriter, r *http.Request) {
 		paperDetails = append(paperDetails, paperToPaperDetail(p))
 	}
 
-	// Build provider config from env
-	apiKey := os.Getenv("DEEPSEEK_API_KEY")
-	if apiKey == "" {
-		apiKey = os.Getenv("DEEPSEEK_KEY")
+	// Build provider config for Gemini
+	model := os.Getenv("GEMINI_MODEL")
+	if model == "" {
+		model = "gemini-2.5-flash"
 	}
 	config := agent.ProviderConfig{
-		Provider:  "deepseek",
-		Model:     "deepseek-chat",
-		APIKey:    apiKey,
-		MaxTokens: 2000,
+		Provider:  "gemini",
+		Model:     model,
+		APIKey:    os.Getenv("GEMINI_API_KEY"),
+		MaxTokens: 2048,
 	}
 
 	// Call LiteratureAgent.AnalyzeGap
 	gapResult, err := h.litAgent.AnalyzeGap(paperDetails, config)
 	if err != nil {
-		log.Printf("GapAnalysis: AnalyzeGap failed: %v", err)
-		// Fallback: return basic analysis
-		analysis, gaps, recommendations := h.fallbackAnalysis(papers, topicContext)
-		json.NewEncoder(w).Encode(GapAnalysisResponse{
-			Analysis:        analysis,
-			Gaps:            gaps,
-			Recommendations: recommendations,
-			PapersAnalyzed:  len(papers),
+		log.Printf("[Thesa GapAnalysis] AnalyzeGap failed: %v", err)
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
+			"code":    "gap_analysis_unavailable",
+			"message": fmt.Sprintf("Gemini belum berhasil menganalisis gap literatur: %v", err),
 		})
 		return
 	}
